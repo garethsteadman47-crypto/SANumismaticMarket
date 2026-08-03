@@ -3,7 +3,8 @@ import { ListingCategory, ListingStatus, Prisma } from "@prisma/client";
 import { createListing } from "@/lib/listings";
 import { createListingSchema } from "@/lib/validation/listing";
 import { db } from "@/lib/db";
-import { jsonCreated, jsonError, jsonOk, requireApiUser, isNextResponse } from "@/lib/api/http";
+import { jsonCreated, jsonError, jsonOk, isNextResponse } from "@/lib/api/http";
+import { requireApiUser } from "@/lib/api/require-user";
 
 export const dynamic = "force-dynamic";
 

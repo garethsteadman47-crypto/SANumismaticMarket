@@ -1,5 +1,6 @@
 import { getOrderForViewer } from "@/lib/orders";
-import { OBJECT_ID_PATTERN, jsonError, jsonOk, requireApiUser, isNextResponse } from "@/lib/api/http";
+import { OBJECT_ID_PATTERN, jsonError, jsonOk, isNextResponse } from "@/lib/api/http";
+import { requireApiUser } from "@/lib/api/require-user";
 
 export const dynamic = "force-dynamic";
 

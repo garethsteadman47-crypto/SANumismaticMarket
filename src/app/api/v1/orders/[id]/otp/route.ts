@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { getOrderForViewer, verifyDeliveryOtp } from "@/lib/orders";
 import { OTP_LENGTH } from "@/lib/otp";
-import { OBJECT_ID_PATTERN, jsonError, jsonOk, requireApiUser, isNextResponse } from "@/lib/api/http";
+import { OBJECT_ID_PATTERN, jsonError, jsonOk, isNextResponse } from "@/lib/api/http";
+import { requireApiUser } from "@/lib/api/require-user";
 
 export const dynamic = "force-dynamic";
 
