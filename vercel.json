@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/settle-holds",
-      "schedule": "*/15 * * * *"
+      "path": "/api/v1/cron/settle",
+      "schedule": "0 0 * * *"
     }
   ]
 }

@@ -258,7 +258,7 @@ export async function settleExpiredHold(orderId: string): Promise<OrderActionRes
 /**
  * Finds every `HOLD_48H` order whose hold has expired (and isn't disputed)
  * and settles it. Backs both the manual "Settle now" demo button and the
- * `/api/cron/settle-holds` route (for a real scheduler, e.g. Vercel Cron).
+ * `/api/v1/cron/settle` route (for a real scheduler, e.g. Vercel Cron).
  */
 export async function settleAllExpiredHolds(): Promise<{ settledOrderIds: string[] }> {
   const dueOrders = await db.order.findMany({

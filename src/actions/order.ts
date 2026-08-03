@@ -55,7 +55,7 @@ export async function verifyDeliveryOtpAction(orderId: string, code: string): Pr
 
 /**
  * Manual "Settle now" demo trigger — represents the scheduled job that
- * `/api/cron/settle-holds` also runs. Restricted to the order's own buyer
+ * `/api/v1/cron/settle` also runs. Restricted to the order's own buyer
  * or seller so it can't be used to prod arbitrary orders.
  */
 export async function settleNowAction(orderId: string): Promise<OrderActionResult> {
