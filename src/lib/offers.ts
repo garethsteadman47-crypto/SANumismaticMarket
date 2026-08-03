@@ -45,6 +45,9 @@ export async function createOffer({
   if (listing.status !== ListingStatus.ACTIVE) {
     return { success: false, error: "This listing is no longer available for offers." };
   }
+  if (!listing.acceptsOffers) {
+    return { success: false, error: "This seller isn't accepting offers on this listing." };
+  }
   if (listing.sellerId === buyerId) {
     return { success: false, error: "You can't make an offer on your own listing." };
   }

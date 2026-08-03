@@ -81,6 +81,7 @@ enum PreciousMetal {
   COPPER
   BRONZE
   NICKEL
+  STEEL
   OTHER
   NOT_APPLICABLE
 }
@@ -101,6 +102,8 @@ enum VerificationProvider {
   SANGS
   NGC
   PCGS
+  ANACS
+  SA_MINT
   HERNS
 }
 
@@ -303,6 +306,8 @@ model User {
   auctionsCurrentlyWon Auction[] @relation("CurrentBidderAuctions")
   bids                 Bid[]
 
+  savedSearches SavedSearch[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -394,6 +399,12 @@ model Listing {
   images String[]
 
   status ListingStatus @default(DRAFT)
+
+  // Drives the "Accepting Offers" browse-format filter and the PDP's "Make
+  // an Offer" button. Defaults to true (today every seller allows offers);
+  // no seller-facing toggle exists yet, but the flag lets that ship later
+  // without another schema change.
+  acceptsOffers Boolean @default(true)
 
   // Present only for GRADED listings. Nulls out once app logic clears it.
   certificateId String?
@@ -711,6 +722,27 @@ model PhoneVerification {
   createdAt DateTime @default(now())
 
   @@index([phone])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Saved searches ("notify me" stub for the /listings empty state)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Persists a buyer's exact filter combination from `/listings` so they can
+// revisit it later. No notification/alerting job is wired up yet (that
+// would need a background worker to re-run `queryString` periodically and
+// email/SMS on new matches) — this only covers the "save" half honestly.
+model SavedSearch {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label       String
+  queryString String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model AdPlacement {

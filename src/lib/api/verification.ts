@@ -55,6 +55,8 @@ const PROVIDER_LABELS: Record<VerificationProvider, string> = {
   SANGS: "South African Numismatic Grading Service",
   NGC: "Numismatic Guaranty Company",
   PCGS: "Professional Coin Grading Service",
+  ANACS: "American Numismatic Association Certification Service",
+  SA_MINT: "South African Mint Certification",
   HERNS: "Hern's Handbook of South African Coins & Patterns",
 };
 
@@ -103,6 +105,28 @@ const PCGS_GRADES = [
   "PR68DCAM",
   "PR69DCAM",
   "PR70DCAM",
+] as const;
+
+const ANACS_GRADES = [
+  "AU53",
+  "AU55",
+  "AU58",
+  "MS62",
+  "MS63",
+  "MS64",
+  "MS65",
+  "MS66",
+  "PF64",
+  "PF66",
+  "PF68",
+] as const;
+
+const SA_MINT_GRADES = [
+  "Uncirculated",
+  "Proof",
+  "Brilliant Uncirculated",
+  "Cameo Proof",
+  "Deep Cameo Proof",
 ] as const;
 
 const HERNS_CATALOG_PREFIXES = ["H4", "H5", "H6", "H7", "H8"] as const;
@@ -218,6 +242,42 @@ async function lookupPcgs(rng: () => number, certificateId: string): Promise<Omi
   };
 }
 
+async function lookupAnacs(rng: () => number, certificateId: string): Promise<Omit<VerificationLookupResult, "provider" | "certificateId" | "found" | "latencyMs">> {
+  const grade = pick(rng, ANACS_GRADES);
+  const mintage = intBetween(rng, 1_000, 1_500_000);
+  return {
+    grade,
+    mintage,
+    historicalNotes: buildHistoricalNotes(rng, mintage),
+    estimatedValueCents: Math.round(intBetween(rng, 45_000, 300_000) * gradeValueMultiplier(grade)),
+    shieldEligible: true,
+    rawApiResponse: {
+      registry: PROVIDER_LABELS.ANACS,
+      certNumber: certificateId,
+      grade,
+      mintage,
+    },
+  };
+}
+
+async function lookupSaMint(rng: () => number, certificateId: string): Promise<Omit<VerificationLookupResult, "provider" | "certificateId" | "found" | "latencyMs">> {
+  const grade = pick(rng, SA_MINT_GRADES);
+  const mintage = intBetween(rng, 500, 100_000);
+  return {
+    grade,
+    mintage,
+    historicalNotes: buildHistoricalNotes(rng, mintage),
+    estimatedValueCents: Math.round(intBetween(rng, 30_000, 150_000) * gradeValueMultiplier(grade)),
+    shieldEligible: true,
+    rawApiResponse: {
+      registry: PROVIDER_LABELS.SA_MINT,
+      certNumber: certificateId,
+      grade,
+      mintage,
+    },
+  };
+}
+
 async function lookupHerns(rng: () => number, certificateId: string): Promise<Omit<VerificationLookupResult, "provider" | "certificateId" | "found" | "latencyMs">> {
   const catalogNumber = `${pick(rng, HERNS_CATALOG_PREFIXES)}.${intBetween(rng, 1, 40)}`;
   const mintage = intBetween(rng, 500, 5_000_000);
@@ -276,6 +336,12 @@ export async function lookupCertificate({
       break;
     case VerificationProvider.PCGS:
       details = await lookupPcgs(rng, trimmedId);
+      break;
+    case VerificationProvider.ANACS:
+      details = await lookupAnacs(rng, trimmedId);
+      break;
+    case VerificationProvider.SA_MINT:
+      details = await lookupSaMint(rng, trimmedId);
       break;
     case VerificationProvider.HERNS:
       details = await lookupHerns(rng, trimmedId);

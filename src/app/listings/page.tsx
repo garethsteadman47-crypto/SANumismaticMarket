@@ -1,92 +1,91 @@
-import Link from "next/link";
-import { ListingStatus, Prisma, SubscriptionTier, VerificationProvider } from "@prisma/client";
-
 import { db } from "@/lib/db";
-import { ALL_CATEGORIES, CATEGORY_LABELS, CATEGORY_SLUGS } from "@/lib/categories";
-import { LISTING_CARD_SELECT, toListingCardData } from "@/lib/listing-card";
-import { randsToCents } from "@/lib/utils/currency";
-import { Badge } from "@/components/ui/badge";
-import { CategoryFilters } from "@/components/CategoryFilters";
-import { ListingGrid } from "@/components/ListingGrid";
+import { getAuctionPhase } from "@/lib/auctions";
+import { buildAuctionWhere, buildListingWhere, getActiveFilterPills, parseBrowseFilters, serializeBrowseFilters } from "@/lib/browse-filters";
+import { mergeBrowseItems, toBrowseItemFromAuction, toBrowseItemFromListing } from "@/lib/browse";
+import { FilterSidebar } from "@/components/browse/FilterSidebar";
+import { MobileFilterDrawer } from "@/components/browse/MobileFilterDrawer";
+import { ActiveFilterPills } from "@/components/browse/ActiveFilterPills";
+import { BrowseGrid } from "@/components/browse/BrowseGrid";
+import { BrowseEmptyState } from "@/components/browse/BrowseEmptyState";
 
 export const dynamic = "force-dynamic";
 
-function firstString(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
+const BASE_PATH = "/listings";
 
-/** The general "Buy Coins" catalog — all active listings across every category, with the same filter set as `/category/[slug]`. */
+const LISTING_BROWSE_SELECT = {
+  id: true,
+  title: true,
+  category: true,
+  priceCents: true,
+  images: true,
+  acceptsOffers: true,
+  createdAt: true,
+  seller: { select: { subscriptionTier: true } },
+  verification: { select: { shieldAwarded: true } },
+} as const;
+
+/** "Buy Coins" — the main numismatic browse experience: category taxonomy + faceted filters over listings and live auctions. */
 export default async function BuyCoinsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const gradingAgency = firstString(sp.gradingAgency);
-  const grade = firstString(sp.grade);
-  const minPriceRands = firstString(sp.minPrice);
-  const maxPriceRands = firstString(sp.maxPrice);
-  const sellerTier = firstString(sp.sellerTier);
+  const filters = parseBrowseFilters(sp);
 
-  const where: Prisma.ListingWhereInput = { status: ListingStatus.ACTIVE };
+  const listingWhere = buildListingWhere(filters);
+  const auctionWhere = buildAuctionWhere(filters);
 
-  if (minPriceRands || maxPriceRands) {
-    where.priceCents = {
-      ...(minPriceRands ? { gte: randsToCents(Number(minPriceRands)) } : {}),
-      ...(maxPriceRands ? { lte: randsToCents(Number(maxPriceRands)) } : {}),
-    };
-  }
+  const [listings, auctions] = await Promise.all([
+    listingWhere
+      ? db.listing.findMany({ where: listingWhere, orderBy: { createdAt: "desc" }, take: 60, select: LISTING_BROWSE_SELECT })
+      : Promise.resolve([]),
+    auctionWhere
+      ? db.auction.findMany({
+          where: auctionWhere,
+          orderBy: { createdAt: "desc" },
+          take: 60,
+          include: { seller: { select: { subscriptionTier: true } }, _count: { select: { bids: true } } },
+        })
+      : Promise.resolve([]),
+  ]);
 
-  const verificationWhere: Prisma.VerificationWhereInput = {};
-  if (gradingAgency && Object.values(VerificationProvider).includes(gradingAgency as VerificationProvider)) {
-    verificationWhere.provider = gradingAgency as VerificationProvider;
-  }
-  if (grade) {
-    verificationWhere.grade = { contains: grade };
-  }
-  if (Object.keys(verificationWhere).length > 0) {
-    where.verification = verificationWhere;
-  }
+  const listingItems = listings.map(toBrowseItemFromListing);
+  const auctionItems = auctions.map((auction) => toBrowseItemFromAuction(auction, getAuctionPhase(auction)));
+  const items = mergeBrowseItems(listingItems, auctionItems);
 
-  if (sellerTier && Object.values(SubscriptionTier).includes(sellerTier as SubscriptionTier)) {
-    where.seller = { subscriptionTier: sellerTier as SubscriptionTier };
-  }
-
-  const listings = await db.listing.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 60,
-    select: LISTING_CARD_SELECT,
-  });
+  const pills = getActiveFilterPills(filters);
+  const currentQueryString = serializeBrowseFilters(filters);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Buy Coins</h1>
         <p className="text-sm text-muted-foreground">
-          Browse every verified, buyer-protected listing across coins, banknotes, bullion, and Krugerrands.
+          Browse every verified, buyer-protected listing and live auction across coins, banknotes, bullion, and
+          Krugerrands.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {ALL_CATEGORIES.map((category) => (
-          <Link key={category} href={`/category/${CATEGORY_SLUGS[category]}`}>
-            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-              {CATEGORY_LABELS[category]}
-            </Badge>
-          </Link>
-        ))}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg border p-4">
+            <FilterSidebar basePath={BASE_PATH} />
+          </div>
+        </aside>
+
+        <div className="flex flex-col gap-4">
+          <ActiveFilterPills pills={pills} basePath={BASE_PATH} />
+
+          {items.length === 0 ? (
+            <BrowseEmptyState basePath={BASE_PATH} queryString={currentQueryString} />
+          ) : (
+            <BrowseGrid items={items} />
+          )}
+        </div>
       </div>
 
-      <CategoryFilters
-        basePath="/listings"
-        initialValues={{ gradingAgency, grade, minPrice: minPriceRands, maxPrice: maxPriceRands, sellerTier }}
-      />
-
-      <ListingGrid
-        listings={listings.map(toListingCardData)}
-        emptyMessage="No listings match your filters yet. Try clearing a filter or check back soon."
-      />
+      <MobileFilterDrawer basePath={BASE_PATH} activeCount={pills.length} />
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ImageOffIcon } from "lucide-react";
 
 import { getAuctionPhase, getAuctions, getMinimumNextBidCents } from "@/lib/auctions";
@@ -39,7 +40,7 @@ export default async function AuctionsPage() {
 
           return (
             <Card key={auction.id} className="overflow-hidden">
-              <div className="relative aspect-square w-full bg-muted">
+              <Link href={`/auctions/${auction.id}`} className="relative block aspect-square w-full bg-muted">
                 {coverImage ? (
                   <Image src={coverImage} alt={auction.title} fill className="object-cover" />
                 ) : (
@@ -50,10 +51,12 @@ export default async function AuctionsPage() {
                 <Badge className="absolute top-2 left-2" variant={isLive ? "default" : "secondary"}>
                   {phase === "LIVE" ? "🔴 Live" : phase === "SCHEDULED" ? "Upcoming" : "Ended"}
                 </Badge>
-              </div>
+              </Link>
               <CardContent className="flex flex-col gap-2">
                 <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[auction.category]}</span>
-                <h3 className="line-clamp-2 text-sm font-medium">{auction.title}</h3>
+                <Link href={`/auctions/${auction.id}`} className="hover:underline">
+                  <h3 className="line-clamp-2 text-sm font-medium">{auction.title}</h3>
+                </Link>
                 <div className="flex items-center gap-2">
                   <TrustBadge tier={auction.seller.subscriptionTier} className="text-[0.6rem]" />
                   {auction._count.bids > 0 && (

@@ -53,11 +53,29 @@ describe("lookupCertificate", () => {
     expect(result.latencyMs).toBeLessThanOrEqual(950);
   });
 
-  it("produces different-looking results across all four providers for the same raw ID", async () => {
+  it("returns a grade for a found ANACS certificate", async () => {
+    const result = await lookupCertificate({ provider: VerificationProvider.ANACS, certificateId: "ANACS-2024-001" });
+    if (result.found) {
+      expect(result.grade).toBeTruthy();
+      expect(result.shieldEligible).toBe(true);
+    }
+  });
+
+  it("returns a grade for a found SA_MINT certificate", async () => {
+    const result = await lookupCertificate({ provider: VerificationProvider.SA_MINT, certificateId: "SAMINT-2024-001" });
+    if (result.found) {
+      expect(result.grade).toBeTruthy();
+      expect(result.shieldEligible).toBe(true);
+    }
+  });
+
+  it("produces different-looking results across every provider for the same raw ID", async () => {
     const providers = [
       VerificationProvider.SANGS,
       VerificationProvider.NGC,
       VerificationProvider.PCGS,
+      VerificationProvider.ANACS,
+      VerificationProvider.SA_MINT,
       VerificationProvider.HERNS,
     ];
     const results = await Promise.all(
