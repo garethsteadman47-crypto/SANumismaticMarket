@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ConstructionIcon, ImageOffIcon } from "lucide-react";
+import { ImageOffIcon } from "lucide-react";
+import { ListingStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { calculateOrderFeeBreakdown } from "@/lib/utils/fees";
 import { describePayoutVelocity } from "@/lib/utils/escrow";
-import { getAvailablePaymentProviders, PAYMENT_PROVIDER_LABELS } from "@/lib/payments";
+import { getAvailablePaymentProviders } from "@/lib/payments";
 import { formatZarCents } from "@/lib/utils/currency";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TrustBadge } from "@/components/TrustBadge";
+import { CheckoutForm } from "@/components/CheckoutForm";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
   }
 
   const isOwnListing = session.user.id === listing.sellerId;
+  const isSoldOut = listing.status !== ListingStatus.ACTIVE;
 
   const feeBreakdown = calculateOrderFeeBreakdown({
     itemPriceCents: listing.priceCents,
@@ -67,19 +70,17 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
         <p className="text-sm text-muted-foreground">Review your order before initiating an escrow purchase.</p>
       </div>
 
-      <Alert>
-        <ConstructionIcon />
-        <AlertTitle>Checkout pipeline coming in Step 5</AlertTitle>
-        <AlertDescription>
-          This page previews the order summary, fee breakdown, and payout timeline using the escrow/fee utilities
-          already built. Payment processing, delivery OTP generation, and dual invoicing land in Step 5.
-        </AlertDescription>
-      </Alert>
-
       {isOwnListing && (
         <Alert variant="destructive">
           <AlertTitle>This is your own listing</AlertTitle>
           <AlertDescription>You can&apos;t purchase an item you&apos;re selling.</AlertDescription>
+        </Alert>
+      )}
+
+      {isSoldOut && !isOwnListing && (
+        <Alert variant="destructive">
+          <AlertTitle>No longer available</AlertTitle>
+          <AlertDescription>This item has already been sold or is pending sale to another buyer.</AlertDescription>
         </Alert>
       )}
 
@@ -107,24 +108,6 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
               </div>
             </div>
             <span className="font-semibold">{formatZarCents(listing.priceCents)}</span>
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Payment method</span>
-            <div className="flex flex-wrap gap-2">
-              {availableProviders.map((provider) => (
-                <span key={provider} className="rounded-md border px-2 py-1 text-xs text-muted-foreground">
-                  {PAYMENT_PROVIDER_LABELS[provider]}
-                </span>
-              ))}
-            </div>
-            {!availableProviders.includes("CARD") && (
-              <p className="text-xs text-muted-foreground">
-                Card payments are unavailable for orders of R5,000 or more — Instant EFT and Capitec Pay only.
-              </p>
-            )}
           </div>
 
           <Separator />
@@ -174,9 +157,11 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
             <span>{formatZarCents(listing.priceCents)}</span>
           </div>
 
-          <Button type="button" size="lg" disabled className="w-full">
-            Confirm &amp; Pay — available in Step 5
-          </Button>
+          <CheckoutForm
+            listingId={listing.id}
+            availableProviders={availableProviders}
+            disabled={isOwnListing || isSoldOut}
+          />
         </CardContent>
       </Card>
     </main>
