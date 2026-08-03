@@ -79,13 +79,13 @@ See `.env.example` for the full list. Critical keys:
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | always | MongoDB replica-set URI |
-| `AUTH_SECRET` | always | `npx auth secret` |
+| `DATABASE_URL` | **always** | MongoDB replica-set URI. Note: use `AUTH_SECRET`, not the `BETTER_AUTH_SECRET` key that `npx auth secret` now prints (that CLI defaults to the unrelated Better Auth library) |
+| `AUTH_SECRET` | **always** | Any strong random string, e.g. `openssl rand -hex 32` |
 | `NEXTAUTH_URL` | recommended | e.g. `http://localhost:3000` or your Vercel URL |
-| `UPLOADTHING_TOKEN` | **production** | Listing images + unboxing videos |
-| `CRON_SECRET` | **production** | Bearer token for `/api/v1/cron/settle` |
+| `UPLOADTHING_TOKEN` | recommended | Listing images + unboxing videos (feature not yet wired — safe to leave unset for now) |
+| `CRON_SECRET` | recommended | Bearer token for `/api/v1/cron/settle`; unset just means that route runs unauthenticated |
 
-`src/lib/env.ts` validates configuration via Zod. On a real production runtime (`NODE_ENV=production` and not a `next build` compile), missing Mongo / Auth / UploadThing / Cron secrets **abort boot**. Force the same checks locally with `ENFORCE_ENV_VALIDATION=1`.
+`src/lib/env.ts` validates configuration via Zod. Only `DATABASE_URL` and `AUTH_SECRET` are boot-blocking — a real production runtime (`NODE_ENV=production`, not a `next build` compile) throws and refuses to boot if either is missing, since the app cannot function without them. Every other key above is optional: a missing one only degrades that specific feature and logs a `[env]` warning, it never crashes the server. Force the same checks locally with `ENFORCE_ENV_VALIDATION=1`.
 
 ## REST API (`/api/v1`) — Phase 2 mobile surface
 
