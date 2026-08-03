@@ -2,7 +2,7 @@
 
 import { VerificationProvider } from "@prisma/client";
 
-import { lookupCertificate, type VerificationLookupResult } from "@/lib/api/verification";
+import { lookupCertificate, type CheckCertificateResult } from "@/lib/api/verification";
 import { isCertificateLocked } from "@/lib/listings";
 
 /**
@@ -16,10 +16,6 @@ import { isCertificateLocked } from "@/lib/listings";
  * server-side re-check is the one that's actually trusted; this action
  * only exists for a fast, friendly preview.
  */
-export type CheckCertificateResult =
-  | { ok: true; lookup: VerificationLookupResult; alreadyLocked: boolean }
-  | { ok: false; error: string };
-
 export async function checkCertificateAction(
   provider: VerificationProvider,
   certificateId: string

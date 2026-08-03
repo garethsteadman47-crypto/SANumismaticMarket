@@ -3,8 +3,6 @@
 import { auth } from "@/lib/auth";
 import { createListing, type CreateListingInput, type CreateListingResult } from "@/lib/listings";
 
-export type { CreateListingResult };
-
 /**
  * Thin "use server" wrapper: resolves the current session, then delegates
  * to the (independently testable, DB-only) `createListing` in

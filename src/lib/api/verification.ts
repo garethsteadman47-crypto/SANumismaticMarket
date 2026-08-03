@@ -1,4 +1,5 @@
 import { VerificationProvider } from "@prisma/client";
+import { hashString, intBetween, mulberry32, pick } from "@/lib/mock-random";
 
 /**
  * Mock external API hooks for the numismatic certificate registries.
@@ -60,38 +61,6 @@ const PROVIDER_LABELS: Record<VerificationProvider, string> = {
 const MIN_CERTIFICATE_ID_LENGTH = 4;
 const MIN_LATENCY_MS = 350;
 const MAX_LATENCY_MS = 950;
-
-// ── Deterministic pseudo-randomness ─────────────────────────────────────
-// A tiny seeded PRNG so the "mock API" gives stable answers per
-// (provider, certificateId) pair without needing a database round trip.
-
-function hashString(input: string): number {
-  let hash = 2166136261; // FNV-1a offset basis
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function mulberry32(seed: number) {
-  let state = seed;
-  return function next(): number {
-    state |= 0;
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function pick<T>(rng: () => number, items: readonly T[]): T {
-  return items[Math.floor(rng() * items.length) % items.length];
-}
-
-function intBetween(rng: () => number, min: number, max: number): number {
-  return Math.floor(rng() * (max - min + 1)) + min;
-}
 
 // ── Mock content pools ──────────────────────────────────────────────────
 
@@ -329,3 +298,13 @@ export async function lookupCertificate({
 export function getProviderLabel(provider: VerificationProvider): string {
   return PROVIDER_LABELS[provider];
 }
+
+/**
+ * Result type for the interactive certificate-check flow (see
+ * `actions/verification.ts`). Kept here rather than in that "use server"
+ * file — Next.js restricts Server Action modules to exporting only async
+ * functions.
+ */
+export type CheckCertificateResult =
+  | { ok: true; lookup: VerificationLookupResult; alreadyLocked: boolean }
+  | { ok: false; error: string };

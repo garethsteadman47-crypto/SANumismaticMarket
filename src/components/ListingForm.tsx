@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ShieldCheckIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
+import { Loader2Icon, TriangleAlertIcon } from "lucide-react";
 import { ListingCategory, ListingType, PreciousMetal, VerificationProvider } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ShieldBadge } from "@/components/ShieldBadge";
 import {
   Select,
   SelectContent,
@@ -23,19 +23,10 @@ import {
 } from "@/components/ui/select";
 import { createListingSchema, type CreateListingInput } from "@/lib/validation/listing";
 import { formatZarCents, randsToCents } from "@/lib/utils/currency";
-import { getProviderLabel } from "@/lib/api/verification";
-import { checkCertificateAction, type CheckCertificateResult } from "@/actions/verification";
+import { getProviderLabel, type CheckCertificateResult } from "@/lib/api/verification";
+import { CATEGORY_LABELS } from "@/lib/categories";
+import { checkCertificateAction } from "@/actions/verification";
 import { createListingAction } from "@/actions/listing";
-
-const CATEGORY_LABELS: Record<ListingCategory, string> = {
-  COINS: "Coins",
-  BANKNOTES: "Banknotes",
-  BULLION: "Bullion",
-  KRUGERRAND: "Krugerrand",
-  MEDALLIONS_TOKENS: "Medallions & Tokens",
-  ACCESSORIES: "Accessories",
-  OTHER: "Other",
-};
 
 const METAL_LABELS: Record<PreciousMetal, string> = {
   GOLD: "Gold",
@@ -60,6 +51,8 @@ type FormValues = CreateListingInput;
 const DEFAULT_VALUES: Partial<FormValues> = {
   metal: PreciousMetal.NOT_APPLICABLE,
   listingType: ListingType.RAW,
+  priceCents: 0,
+  images: [],
 };
 
 export function ListingForm() {
@@ -75,6 +68,7 @@ export function ListingForm() {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
     reset,
   } = useForm<FormValues>({
@@ -118,18 +112,6 @@ export function ListingForm() {
   }
 
   function onSubmit(values: FormValues) {
-    const images = imagesText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-    const priceCents = randsToCents(Number(priceRands || 0));
-
-    const payload: FormValues = {
-      ...values,
-      images,
-      priceCents,
-    };
-
     if (values.listingType === ListingType.GRADED && !isVerifiedForCurrentInput) {
       toast.error("Please verify the certificate before submitting a graded listing.");
       return;
@@ -140,7 +122,7 @@ export function ListingForm() {
     }
 
     startSubmitTransition(async () => {
-      const result = await createListingAction(payload);
+      const result = await createListingAction(values);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -192,7 +174,7 @@ export function ListingForm() {
                 control={control}
                 name="category"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
                     <SelectTrigger id="category" className="w-full">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -289,7 +271,11 @@ export function ListingForm() {
               step="0.01"
               placeholder="15000"
               value={priceRands}
-              onChange={(event) => setPriceRands(event.target.value)}
+              onChange={(event) => {
+                const raw = event.target.value;
+                setPriceRands(raw);
+                setValue("priceCents", randsToCents(Number(raw || 0)), { shouldValidate: false });
+              }}
             />
             {errors.priceCents && <p className="text-xs text-destructive">{errors.priceCents.message}</p>}
           </div>
@@ -301,7 +287,15 @@ export function ListingForm() {
               rows={3}
               placeholder={"https://example.com/photo-front.jpg\nhttps://example.com/photo-back.jpg"}
               value={imagesText}
-              onChange={(event) => setImagesText(event.target.value)}
+              onChange={(event) => {
+                const raw = event.target.value;
+                setImagesText(raw);
+                const images = raw
+                  .split("\n")
+                  .map((line) => line.trim())
+                  .filter(Boolean);
+                setValue("images", images, { shouldValidate: false });
+              }}
             />
             {errors.images && <p className="text-xs text-destructive">{errors.images.message as string}</p>}
           </div>
@@ -326,7 +320,7 @@ export function ListingForm() {
                   control={control}
                   name="verificationProvider"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <SelectTrigger id="verificationProvider" className="w-full">
                         <SelectValue placeholder="Select a registry" />
                       </SelectTrigger>
@@ -380,10 +374,7 @@ export function ListingForm() {
             {successResult && !successResult.alreadyLocked && (
               <div className="flex flex-col gap-2 rounded-lg border border-emerald-600/30 bg-emerald-50 p-3 dark:bg-emerald-950/30">
                 <div className="flex items-center gap-2">
-                  <Badge className="gap-1 bg-emerald-600 text-white hover:bg-emerald-600">
-                    <ShieldCheckIcon />
-                    Verified Authentic Shield
-                  </Badge>
+                  <ShieldBadge />
                   <span className="text-xs text-muted-foreground">
                     via {getProviderLabel(successResult.lookup.provider)} · {successResult.lookup.latencyMs}ms
                   </span>

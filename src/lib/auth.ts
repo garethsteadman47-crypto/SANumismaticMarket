@@ -14,16 +14,14 @@ import { db } from "@/lib/db";
  * `Account` linking work out of the box the moment a provider like Google
  * is added, without any schema changes (see `prisma/schema.prisma`).
  *
- * There is no sign-up/sign-in UI yet — that lands with the Step 4 frontend
- * scaffolding. This file only wires up the session/auth *infrastructure*
- * that server actions (e.g. `actions/listing.ts`) need to identify the
- * current user.
+ * The sign-in/sign-up UI lives at `/auth/signin` (see `actions/auth.ts` and
+ * `app/auth/signin/page.tsx`).
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/login",
+    signIn: "/auth/signin",
   },
   providers: [
     Credentials({
