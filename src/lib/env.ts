@@ -96,7 +96,7 @@ export function validateEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
       productionGaps.push("UPLOADTHING_TOKEN is required in production (listing images + unboxing videos).");
     }
     if (!env.CRON_SECRET) {
-      productionGaps.push("CRON_SECRET is required in production (protects /api/cron/settle-holds).");
+      productionGaps.push("CRON_SECRET is required in production (protects /api/v1/cron/settle).");
     }
     if (productionGaps.length > 0) {
       throw new Error(`Invalid environment configuration:\n${productionGaps.join("\n")}`);

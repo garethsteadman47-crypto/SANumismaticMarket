@@ -83,7 +83,7 @@ See `.env.example` for the full list. Critical keys:
 | `AUTH_SECRET` | always | `npx auth secret` |
 | `NEXTAUTH_URL` | recommended | e.g. `http://localhost:3000` or your Vercel URL |
 | `UPLOADTHING_TOKEN` | **production** | Listing images + unboxing videos |
-| `CRON_SECRET` | **production** | Bearer token for `/api/cron/settle-holds` |
+| `CRON_SECRET` | **production** | Bearer token for `/api/v1/cron/settle` |
 
 `src/lib/env.ts` validates configuration via Zod. On a real production runtime (`NODE_ENV=production` and not a `next build` compile), missing Mongo / Auth / UploadThing / Cron secrets **abort boot**. Force the same checks locally with `ENFORCE_ENV_VALIDATION=1`.
 
@@ -100,6 +100,7 @@ All routes return `{ success: true, data }` or `{ success: false, error }` JSON.
 | `GET` | `/api/v1/orders/:id/otp` | session | Read delivery OTP (buyer/seller) |
 | `POST` | `/api/v1/orders/:id/otp` | session | Confirm delivery (`verifyDeliveryOtp`) |
 | `GET` | `/api/v1/orders/:id/invoices` | session | Dual invoice JSON for download/print |
+| `GET` | `/api/v1/cron/settle` | `CRON_SECRET` bearer | Settle all expired 48h holds (daily, see `vercel.json`) |
 
 Server Actions in `src/actions/*` remain the web UI entry points; they call the identical business modules.
 
@@ -129,7 +130,7 @@ Vitest configs:
    - `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_URL` (your production URL)
    - `UPLOADTHING_TOKEN`, `CRON_SECRET`
    - Optional payment / OAuth / S3 keys from `.env.example`
-3. **Deploy** — `vercel.json` already registers cron `*/15 * * * *` → `/api/cron/settle-holds`.
+3. **Deploy** — `vercel.json` already registers cron `0 0 * * *` (daily at midnight UTC) → `/api/v1/cron/settle`.
 4. **Protect cron** — Vercel Cron sends `Authorization: Bearer $CRON_SECRET` when `CRON_SECRET` is set; the route rejects unauthorized callers in production.
 5. **Seed demo data (optional, non-prod only)**:
    ```bash

@@ -10,7 +10,7 @@ import { settleNowAction } from "@/actions/order";
 
 /**
  * Manually simulates the scheduled job that settles `HOLD_48H` orders once
- * their hold expires (see `/api/cron/settle-holds` for the real endpoint a
+ * their hold expires (see `/api/v1/cron/settle` for the real endpoint a
  * scheduler like Vercel Cron would hit).
  */
 export function SettleNowButton({ orderId }: { orderId: string }) {

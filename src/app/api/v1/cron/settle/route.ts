@@ -7,9 +7,10 @@ import { settleAllExpiredHolds } from "@/lib/orders";
  * escrow hold has expired (and isn't disputed) and settles it — generating
  * the dual invoices and releasing the seller's payout.
  *
- * Intended to be hit by a real scheduler (e.g. Vercel Cron) on an interval.
- * The `/orders/[id]` page also exposes a manual "Settle now" button that
- * calls the same underlying `settleExpiredHold` logic for demo purposes.
+ * Registered in `vercel.json` on a daily schedule (`0 0 * * *`). Note this
+ * means an expired hold may sit settled-but-unpaid for up to ~24h before
+ * this job runs; the `/orders/[id]` page's manual "Settle now" button calls
+ * the same underlying `settleExpiredHold` logic in the meantime.
  *
  * Set `CRON_SECRET` in production and configure the scheduler to send
  * `Authorization: Bearer <CRON_SECRET>` — this route is unauthenticated
