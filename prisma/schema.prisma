@@ -1,0 +1,583 @@
+// SA Numismatic Marketplace — Prisma schema (MongoDB)
+//
+// NOTE ON PRISMA VERSION: This project is pinned to Prisma 6.x (`prisma` /
+// `@prisma/client` 6.19.x). Prisma 7 removed first-class support for the
+// MongoDB connector in favour of the new SQL-only query-compiler engine, so
+// the officially supported path for a MongoDB + Prisma stack today is the
+// latest Prisma 6 release with the classic `prisma-client-js` generator.
+// Do NOT upgrade this project to Prisma 7 until Prisma ships a supported
+// MongoDB migration path.
+//
+// See https://pris.ly/d/mongodb-connector for connector docs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum KycStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum SubscriptionTier {
+  STANDARD
+  SILVER
+  GOLD
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ListingCategory {
+  COINS
+  BANKNOTES
+  BULLION
+  KRUGERRAND
+  MEDALLIONS_TOKENS
+  ACCESSORIES
+  OTHER
+}
+
+enum ListingType {
+  RAW
+  GRADED
+  BULLION
+}
+
+enum PreciousMetal {
+  GOLD
+  SILVER
+  PLATINUM
+  PALLADIUM
+  COPPER
+  BRONZE
+  NICKEL
+  OTHER
+  NOT_APPLICABLE
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  PENDING_SALE
+  SOLD
+  DELISTED
+  LOCKED
+}
+
+// Numismatic/registry authorities used for the mock "Verified Authentic
+// Shield" certificate lookups. Minted.co.za is treated separately as a
+// market-valuation data source (see Step 4), not a grading registry.
+enum VerificationProvider {
+  SANGS
+  NGC
+  PCGS
+  HERNS
+}
+
+enum VerificationFeeStatus {
+  PENDING
+  DEDUCTED
+  WAIVED
+}
+
+enum OrderStatus {
+  DRAFT
+  PAID_ESCROW
+  IN_TRANSIT
+  DELIVERED
+  HOLD_48H
+  DISPUTE
+  SETTLED
+  CANCELLED
+  REFUNDED
+}
+
+enum PayoutVelocity {
+  INSTANT
+  HOLD_48H
+}
+
+enum PaymentProvider {
+  OZOW
+  STITCH
+  CAPITEC_PAY
+  CARD
+}
+
+enum InvoiceType {
+  SELLER_TO_BUYER
+  PLATFORM_TO_SELLER
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  VOID
+}
+
+enum AdSlotType {
+  HOMEPAGE_HERO
+  CATEGORY_BANNER
+}
+
+enum BankAccountType {
+  CHEQUE
+  SAVINGS
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Composite (embedded) types — native MongoDB documents via Prisma
+// ─────────────────────────────────────────────────────────────────────────
+
+type Address {
+  line1      String
+  line2      String?
+  suburb     String?
+  city       String
+  province   String
+  postalCode String
+  country    String  @default("South Africa")
+}
+
+type BankAccount {
+  bankName          String
+  accountHolderName String
+  accountNumber     String
+  branchCode        String
+  accountType       BankAccountType @default(SAVINGS)
+}
+
+type DeliveryOtp {
+  code         String
+  generatedAt  DateTime  @default(now())
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  attemptCount Int       @default(0)
+}
+
+type UnboxingEvidence {
+  sellerPackingVideoUrl        String?
+  sellerPackingVideoUploadedAt DateTime?
+  buyerUnboxingVideoUrl        String?
+  buyerUnboxingVideoUploadedAt DateTime?
+}
+
+type InvoiceLineItem {
+  description String
+  amountCents Int
+  quantity    Int    @default(1)
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auth.js (NextAuth) models — required shape for @auth/prisma-adapter
+// ─────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Users & Subscriptions
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // set when using the Credentials provider
+
+  role      UserRole  @default(USER)
+  kycStatus KycStatus @default(UNVERIFIED)
+
+  phone   String?
+  address Address?
+
+  // Denormalized for fast reads by the fee-calculation utility (Step 3).
+  // Kept in sync with `subscription.tier` whenever the subscription changes.
+  subscriptionTier SubscriptionTier @default(STANDARD)
+
+  bankAccount BankAccount?
+
+  accounts Account[]
+  sessions Session[]
+
+  subscription         Subscription?
+  subscriptionPayments SubscriptionPayment[]
+
+  listings Listing[] @relation("SellerListings")
+
+  ordersAsBuyer  Order[] @relation("BuyerOrders")
+  ordersAsSeller Order[] @relation("SellerOrders")
+
+  adPlacements AdPlacement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([subscriptionTier])
+}
+
+model Subscription {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier   SubscriptionTier   @default(STANDARD)
+  status SubscriptionStatus @default(ACTIVE)
+
+  // Monthly price snapshot at time of subscribing, in ZA cents.
+  // Standard = 0, Silver = 49900, Gold = 99900.
+  priceCents Int @default(0)
+
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+
+  paymentProvider    PaymentProvider?
+  paymentProviderRef String?
+
+  payments SubscriptionPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tier, status])
+}
+
+model SubscriptionPayment {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  subscriptionId String       @db.ObjectId
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String       @db.ObjectId
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier          SubscriptionTier
+  amountCents   Int
+  vatCents      Int // 15% output VAT on subscription fee
+  totalCents    Int
+  status        BillingStatus    @default(PENDING)
+  invoiceNumber String           @unique
+  periodStart   DateTime
+  periodEnd     DateTime
+  paidAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Listings & the Verification Engine
+// ─────────────────────────────────────────────────────────────────────────
+
+model Listing {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId String @db.ObjectId
+  seller   User   @relation("SellerListings", fields: [sellerId], references: [id])
+
+  slug        String @unique
+  title       String
+  description String
+
+  category    ListingCategory
+  listingType ListingType
+  metal       PreciousMetal   @default(NOT_APPLICABLE)
+
+  // Free-text grade/condition, since SANGS/NGC/PCGS grading scales differ
+  // (e.g. "MS65", "PF69 UC", "AU58", "Uncirculated").
+  condition     String?
+  year          Int?
+  country       String  @default("South Africa")
+  denomination  String?
+  mintage       Int?
+  weightGrams   Float?
+  purityPercent Float?
+
+  priceCents Int
+  currency   String @default("ZAR")
+
+  images String[]
+
+  status ListingStatus @default(DRAFT)
+
+  // Present only for GRADED listings. Nulls out once app logic clears it.
+  certificateId String?
+
+  verification    Verification?
+  certificateLock CertificateLock?
+
+  orders       Order[]       @relation("ListingOrders")
+  adPlacements AdPlacement[]
+
+  viewCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, category])
+  @@index([sellerId])
+  @@index([certificateId])
+}
+
+// One verification record per listing. Created when a seller lists a
+// GRADED item and inputs a Certificate ID; the mock external API hooks
+// (SANGS/NGC/PCGS/Hern's Handbook — see Step 2) populate grade / mintage /
+// history and this record tracks the "Verified Authentic Shield" plus the
+// R15 verification fee, which is charged only at final escrow settlement.
+model Verification {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String  @unique @db.ObjectId
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  provider      VerificationProvider
+  certificateId String
+
+  grade           String?
+  mintage         Int?
+  historicalNotes String?
+  rawApiResponse  Json?
+
+  shieldAwarded Boolean @default(false)
+
+  // R15 flat fee, stored in cents. Never charged upfront — only deducted
+  // from the seller's escrow payout upon a successful sale (see Order).
+  feeCents  Int                   @default(1500)
+  feeStatus VerificationFeeStatus @default(PENDING)
+
+  verifiedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([certificateId])
+  @@index([provider])
+}
+
+// Anti-fraud lockout: a unique index on `certificateId` guarantees — at the
+// database level — that a given certificate can only be attached to ONE
+// active lock (and therefore one active listing) at a time. The row is
+// created when a listing becomes ACTIVE and deleted when it is
+// SOLD / DELISTED / LOCKED-for-fraud, freeing the certificate for a future
+// legitimate resale listing.
+model CertificateLock {
+  id            String               @id @default(auto()) @map("_id") @db.ObjectId
+  certificateId String               @unique
+  provider      VerificationProvider
+  listingId     String               @unique @db.ObjectId
+  listing       Listing              @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  lockedAt      DateTime             @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Orders — Escrow / Logistics / Payout state machine
+// ─────────────────────────────────────────────────────────────────────────
+
+model Order {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  listingId String  @db.ObjectId
+  listing   Listing @relation("ListingOrders", fields: [listingId], references: [id])
+
+  buyerId String @db.ObjectId
+  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  sellerId String @db.ObjectId
+  seller   User   @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  status OrderStatus @default(DRAFT)
+
+  // ── Money breakdown (all amounts in ZA cents) ─────────────────────────
+  itemPriceCents Int
+  currency       String @default("ZAR")
+
+  // Snapshot of the tiered commission schedule applied at sale time
+  // (see Step 3 fee-calculation utility). Stored in basis points, e.g.
+  // 750 = 7.5%.
+  commissionRateBps     Int
+  commissionAmountCents Int
+
+  verificationFeeCents Int @default(0)
+  adBoostFeeCents      Int @default(0)
+
+  // 15% SARS output VAT, charged by the platform on its own fees
+  // (commission + cert fee + ad boosts), per the Platform→Seller invoice.
+  platformVatCents Int @default(0)
+
+  // itemPriceCents - commissionAmountCents - verificationFeeCents
+  //   - adBoostFeeCents - platformVatCents
+  sellerPayoutCents Int?
+
+  // ── Payment ────────────────────────────────────────────────────────────
+  paymentProvider  PaymentProvider?
+  paymentReference String?
+  paidAt           DateTime?
+
+  // ── Delivery / logistics ────────────────────────────────────────────────
+  shippingAddress Address?
+  courierName     String?
+  trackingNumber  String?
+  deliveryOtp     DeliveryOtp?
+  deliveredAt     DateTime?
+
+  unboxingEvidence UnboxingEvidence?
+
+  // ── Payout velocity & escrow hold ───────────────────────────────────────
+  payoutVelocity      PayoutVelocity?
+  escrowHoldReleaseAt DateTime?
+  settledAt           DateTime?
+
+  // ── Disputes ─────────────────────────────────────────────────────────────
+  disputeReason     String?
+  disputeOpenedAt   DateTime?
+  disputeResolvedAt DateTime?
+
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([listingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Invoicing (SARS dual-invoice framework)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  type          InvoiceType
+  invoiceNumber String      @unique
+
+  // Who issues / receives the invoice. For PLATFORM_TO_SELLER, `issuedById`
+  // is null (the platform is the issuer) and `issuedToId` is the seller.
+  // For SELLER_TO_BUYER, `issuedById` is the seller and `issuedToId` is the
+  // buyer.
+  issuedById String? @db.ObjectId
+  issuedToId String  @db.ObjectId
+
+  lineItems InvoiceLineItem[]
+
+  subtotalCents Int
+  vatCents      Int // 15% output VAT
+  totalCents    Int
+  currency      String @default("ZAR")
+
+  status   InvoiceStatus @default(ISSUED)
+  issuedAt DateTime      @default(now())
+  pdfUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([type])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// UI Real-Estate Ad Engine (capped slot system)
+// ─────────────────────────────────────────────────────────────────────────
+
+model AdPlacement {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  slotType     AdSlotType
+  // Required (and only meaningful) for CATEGORY_BANNER slots.
+  category     ListingCategory?
+  // 1-based position within the slot type (+ category). App logic enforces
+  // slotPosition <= 3 for HOMEPAGE_HERO and <= 2 for CATEGORY_BANNER, and
+  // that at most one active placement occupies a given
+  // (slotType, category, slotPosition) at a time.
+  slotPosition Int
+
+  advertiserId String?  @db.ObjectId
+  advertiser   User?    @relation(fields: [advertiserId], references: [id])
+  listingId    String?  @db.ObjectId
+  listing      Listing? @relation(fields: [listingId], references: [id])
+
+  imageUrl  String
+  targetUrl String
+
+  priceCents Int @default(0)
+
+  startsAt DateTime
+  endsAt   DateTime
+  isActive Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slotType, category, isActive])
+}
