@@ -3,10 +3,18 @@ import { z } from "zod";
 /**
  * Environment variable validation.
  *
- * Production deploys fail fast when mandatory keys are missing so the
- * marketplace never boots half-configured. Local `next build`, unit tests,
- * and development stay permissive (with console warnings) unless
- * `ENFORCE_ENV_VALIDATION=1` is set.
+ * Only `DATABASE_URL` and `AUTH_SECRET` are boot-blocking: without them the
+ * app literally cannot function (no DB connection, no auth), so a real
+ * production runtime throws immediately rather than serving a broken site.
+ *
+ * Every other key here (UploadThing, payment gateways, OAuth, the cron
+ * secret) backs an optional or not-yet-wired feature — a missing one
+ * degrades that single feature gracefully (e.g. `/api/v1/cron/settle` just
+ * runs unauthenticated) and should never take the whole marketplace down.
+ * Those gaps are logged as warnings instead.
+ *
+ * Local `next build`, unit tests, and development stay permissive (with
+ * console warnings) unless `ENFORCE_ENV_VALIDATION=1` is set.
  */
 
 const optionalNonEmpty = z.preprocess(
@@ -21,7 +29,7 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required."),
   NEXTAUTH_URL: optionalNonEmpty,
 
-  // Required when production guards are enforced (see `shouldFailFast`).
+  // Optional — file uploads aren't wired to any route yet.
   UPLOADTHING_TOKEN: optionalNonEmpty,
 
   GOOGLE_CLIENT_ID: optionalNonEmpty,
@@ -38,6 +46,8 @@ const envSchema = z.object({
   STITCH_CLIENT_SECRET: optionalNonEmpty,
   CAPITEC_PAY_MERCHANT_ID: optionalNonEmpty,
 
+  // Optional — protects /api/v1/cron/settle; unset just means that one
+  // route runs unauthenticated (fine for early-stage / internal cron use).
   CRON_SECRET: optionalNonEmpty,
 });
 
@@ -53,8 +63,9 @@ export function isBuildTime(raw: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /**
- * When true, missing Mongo / Auth / UploadThing / Cron secrets abort boot.
- * Enabled for real production runtimes, or when explicitly forced.
+ * When true, a missing `DATABASE_URL` / `AUTH_SECRET` aborts boot.
+ * Enabled for real production runtimes, or when explicitly forced via
+ * `ENFORCE_ENV_VALIDATION`.
  */
 export function shouldFailFast(raw: NodeJS.ProcessEnv = process.env): boolean {
   if (raw.ENFORCE_ENV_VALIDATION === "1") return true;
@@ -63,18 +74,31 @@ export function shouldFailFast(raw: NodeJS.ProcessEnv = process.env): boolean {
   return raw.NODE_ENV === "production" && (raw.VERCEL_ENV === "production" || raw.VERCEL !== "1");
 }
 
+const RECOMMENDED_PRODUCTION_KEYS: Array<{ key: keyof AppEnv; hint: string }> = [
+  { key: "UPLOADTHING_TOKEN", hint: "listing images + unboxing videos will be unavailable until this is set." },
+  { key: "CRON_SECRET", hint: "/api/v1/cron/settle will run unauthenticated until this is set." },
+];
+
 /**
- * Validate `process.env`. Throws when fail-fast guards are active and
- * required keys are missing; otherwise returns a best-effort object and
- * may warn to the console.
+ * Validate `process.env`.
+ *
+ * Throws only when `DATABASE_URL` or `AUTH_SECRET` is missing/empty and
+ * fail-fast guards are active (real production, or `ENFORCE_ENV_VALIDATION=1`)
+ * — those two are the only keys the app cannot run without. All other
+ * missing optional keys are warned about, never thrown, so an incomplete
+ * (but functional) production config never takes the whole app down.
  */
 export function validateEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
   const failFast = shouldFailFast(raw);
   const parsed = envSchema.safeParse(raw);
 
   if (!parsed.success) {
+    const hardIssues = parsed.error.issues.filter(
+      (issue) => issue.path[0] === "DATABASE_URL" || issue.path[0] === "AUTH_SECRET"
+    );
     const message = `Invalid environment configuration:\n${formatZodError(parsed.error)}`;
-    if (failFast) {
+
+    if (failFast && hardIssues.length > 0) {
       throw new Error(message);
     }
     console.warn(`[env] ${message}`);
@@ -91,15 +115,9 @@ export function validateEnv(raw: NodeJS.ProcessEnv = process.env): AppEnv {
   const env = parsed.data;
 
   if (failFast) {
-    const productionGaps: string[] = [];
-    if (!env.UPLOADTHING_TOKEN) {
-      productionGaps.push("UPLOADTHING_TOKEN is required in production (listing images + unboxing videos).");
-    }
-    if (!env.CRON_SECRET) {
-      productionGaps.push("CRON_SECRET is required in production (protects /api/v1/cron/settle).");
-    }
-    if (productionGaps.length > 0) {
-      throw new Error(`Invalid environment configuration:\n${productionGaps.join("\n")}`);
+    const gaps = RECOMMENDED_PRODUCTION_KEYS.filter(({ key }) => !env[key]);
+    for (const { key, hint } of gaps) {
+      console.warn(`[env] ${key} is not set — ${hint}`);
     }
   }
 
