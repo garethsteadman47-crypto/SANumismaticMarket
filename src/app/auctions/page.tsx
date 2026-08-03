@@ -22,7 +22,7 @@ export default async function AuctionsPage() {
         <h1 className="text-2xl font-semibold">🔨 Live Auctions</h1>
         <p className="text-sm text-muted-foreground">
           Bid on rare coins, banknotes, and bullion in real time — every winning bid is buyer-protected like any
-          other CoinVault SA purchase.
+          other MintMark purchase.
         </p>
       </div>
 

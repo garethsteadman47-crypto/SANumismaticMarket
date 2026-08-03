@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/Navbar";
 import { CartProvider } from "@/components/cart/CartProvider";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/constants";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,9 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CoinVault SA — South Africa's Trusted Coin & Bullion Marketplace",
-  description:
-    "CoinVault SA is South Africa's most trusted, verified marketplace for rare coins, banknotes, and bullion — buyer-protected, authenticity-verified, and built for collectors and dealers alike.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({

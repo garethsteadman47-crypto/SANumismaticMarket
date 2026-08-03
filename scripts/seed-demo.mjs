@@ -27,7 +27,7 @@ const PLACEHOLDER =
       </linearGradient></defs>
       <rect width="1200" height="800" fill="url(#g)"/>
       <circle cx="600" cy="360" r="140" fill="#d4af37" opacity="0.9"/>
-      <text x="600" y="620" text-anchor="middle" fill="#fafaf9" font-family="Georgia,serif" font-size="42">SA Numismatic</text>
+      <text x="600" y="620" text-anchor="middle" fill="#fafaf9" font-family="Georgia,serif" font-size="42">MintMark</text>
     </svg>`
   );
 

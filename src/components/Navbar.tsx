@@ -3,15 +3,14 @@ import { GavelIcon, MenuIcon, PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { CoinVaultLogo } from "@/components/CoinVaultLogo";
+import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { TrustBadge } from "@/components/TrustBadge";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
 import { CartButton } from "@/components/cart/CartButton";
 import { auth, signOut } from "@/lib/auth";
 import { isDevLoginEnabled } from "@/lib/dev-users";
 import { countPendingOffersForSeller } from "@/lib/offers";
-
-const SITE_NAME = "CoinVault SA";
+import { SITE_NAME } from "@/lib/constants";
 
 const MAIN_NAV_LINKS = [
   { href: "/listings", label: "Buy Coins", icon: "🪙" },
@@ -60,8 +59,10 @@ export async function Navbar() {
           <SheetContent side="left">
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                <CoinVaultLogo size={24} />
-                {SITE_NAME}
+                <MintMarkLogo size={24} />
+                <span className="font-[family-name:var(--font-geist-sans)] font-bold text-slate-900 dark:text-white">
+                  {SITE_NAME}
+                </span>
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-4 px-4">
@@ -84,10 +85,11 @@ export async function Navbar() {
           </SheetContent>
         </Sheet>
 
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <CoinVaultLogo size={28} />
-          <span className="hidden sm:inline">{SITE_NAME}</span>
-          <span className="sm:hidden">CVSA</span>
+        <Link href="/" className="flex items-center gap-2">
+          <MintMarkLogo size={28} />
+          <span className="hidden font-[family-name:var(--font-geist-sans)] text-lg font-bold text-slate-900 sm:inline dark:text-white">
+            {SITE_NAME}
+          </span>
         </Link>
 
         <nav className="hidden flex-1 items-center gap-6 md:flex">

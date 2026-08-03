@@ -7,7 +7,7 @@ import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Live Spot Prices — CoinVault SA",
+  title: "Live Spot Prices — MintMark",
   description: "Live gold and silver spot prices in South African Rand, per gram and per troy ounce.",
 };
 

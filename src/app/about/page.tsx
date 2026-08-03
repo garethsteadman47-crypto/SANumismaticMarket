@@ -1,10 +1,11 @@
 import { AwardIcon, PackageCheckIcon, ScanSearchIcon, ShieldCheckIcon, TruckIcon, WalletIcon } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CoinVaultLogo } from "@/components/CoinVaultLogo";
+import { MintMarkLogo } from "@/components/MintMarkLogo";
+import { SITE_NAME } from "@/lib/constants";
 
 export const metadata = {
-  title: "About Us — CoinVault SA",
+  title: `About Us — ${SITE_NAME}`,
   description: "South Africa's most trusted, verified marketplace for rare coinage, bullion, and numismatic collectables.",
 };
 
@@ -53,8 +54,8 @@ export default function AboutPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-14 px-4 py-12">
       <section className="flex flex-col items-center gap-4 text-center">
-        <CoinVaultLogo size={56} />
-        <h1 className="text-3xl font-semibold">About CoinVault SA</h1>
+        <MintMarkLogo size={56} />
+        <h1 className="text-3xl font-semibold">About {SITE_NAME}</h1>
         <p className="max-w-2xl text-muted-foreground">
           South Africa&apos;s most trusted, verified marketplace for rare coinage, bullion, and numismatic
           collectables — built for collectors and dealers who demand certainty on every trade.
@@ -64,7 +65,7 @@ export default function AboutPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Our Mission</h2>
         <p className="text-muted-foreground">
-          High-value collectibles deserve a marketplace as careful as the items themselves. CoinVault SA exists to
+          High-value collectibles deserve a marketplace as careful as the items themselves. {SITE_NAME} exists to
           make buying and selling rare coins, banknotes, and precious-metal bullion in South Africa as safe,
           transparent, and liquid as possible — pairing independent authenticity verification with buyer-protected
           payments so every trade closes with confidence on both sides.
@@ -95,7 +96,7 @@ export default function AboutPage() {
         <div>
           <h2 className="text-xl font-semibold">Our Verification Standard</h2>
           <p className="text-sm text-muted-foreground">
-            Every graded listing on CoinVault SA passes through independent checks before it earns the Verified
+            Every graded listing on {SITE_NAME} passes through independent checks before it earns the Verified
             Authentic Shield.
           </p>
         </div>

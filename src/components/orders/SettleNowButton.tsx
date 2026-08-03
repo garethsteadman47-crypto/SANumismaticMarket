@@ -7,6 +7,7 @@ import { Loader2Icon, ZapIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { settleNowAction } from "@/actions/order";
+import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
 
 /**
  * Manually simulates the scheduled job that settles `HOLD_48H` orders once
@@ -24,7 +25,7 @@ export function SettleNowButton({ orderId }: { orderId: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Escrow hold released — funds settled and invoices generated.");
+      toast.success(`${BUYER_PROTECTION_LABEL} hold released — funds settled and invoices generated.`);
       router.refresh();
     });
   }
