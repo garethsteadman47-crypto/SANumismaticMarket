@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.mts"
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "db:memory": "node scripts/start-mongo-memory.mjs",
+    "db:seed": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
