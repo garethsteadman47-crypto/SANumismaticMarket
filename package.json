@@ -6,12 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
     "@auth/prisma-adapter": "^2.11.3",
     "@base-ui/react": "^1.6.0",
+    "@hookform/resolvers": "^5.7.1",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
@@ -23,6 +27,8 @@
     "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "^7.84.0",
+    "recharts": "^3.10.1",
     "shadcn": "^4.16.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
@@ -37,7 +43,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "mongodb-memory-server": "^11.2.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
