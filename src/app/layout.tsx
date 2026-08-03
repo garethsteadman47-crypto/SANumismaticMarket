@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { Navbar } from "@/components/Navbar";
+import { CartProvider } from "@/components/cart/CartProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SA Numismatic Marketplace",
-  description: "A secure, peer-to-peer marketplace for high-value collectible coins, banknotes, and bullion.",
+  title: "CoinVault SA — South Africa's Trusted Coin & Bullion Marketplace",
+  description:
+    "CoinVault SA is South Africa's most trusted, verified marketplace for rare coins, banknotes, and bullion — buyer-protected, authenticity-verified, and built for collectors and dealers alike.",
 };
 
 export default function RootLayout({
@@ -30,9 +32,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SiteHeader />
-        <div className="flex-1">{children}</div>
-        <Toaster />
+        <CartProvider>
+          <Navbar />
+          <div className="flex-1">{children}</div>
+          <Toaster />
+        </CartProvider>
       </body>
     </html>
   );

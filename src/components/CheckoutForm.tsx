@@ -15,10 +15,12 @@ export function CheckoutForm({
   listingId,
   availableProviders,
   disabled,
+  offerId,
 }: {
   listingId: string;
   availableProviders: PaymentProvider[];
   disabled?: boolean;
+  offerId?: string;
 }) {
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>(availableProviders[0]);
   const [isPending, startTransition] = useTransition();
@@ -26,12 +28,12 @@ export function CheckoutForm({
 
   function handleConfirm() {
     startTransition(async () => {
-      const result = await createOrderAction(listingId, selectedProvider);
+      const result = await createOrderAction(listingId, selectedProvider, offerId);
       if (!result.success) {
         toast.error(result.error);
         return;
       }
-      toast.success("Payment received — funds are now held in escrow.");
+      toast.success("Payment received — your purchase is protected until delivery is confirmed.");
       router.push(`/orders/${result.orderId}`);
     });
   }
@@ -69,7 +71,7 @@ export function CheckoutForm({
 
       <Button type="button" size="lg" className="w-full" disabled={disabled || isPending} onClick={handleConfirm}>
         {isPending ? <Loader2Icon className="animate-spin" /> : null}
-        Confirm Escrow Purchase
+        Complete Secure Purchase
       </Button>
     </div>
   );

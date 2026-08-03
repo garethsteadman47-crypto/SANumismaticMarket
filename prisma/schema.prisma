@@ -155,6 +155,21 @@ enum BankAccountType {
   SAVINGS
 }
 
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  COUNTERED
+  DECLINED
+  WITHDRAWN
+}
+
+enum AuctionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Composite (embedded) types — native MongoDB documents via Prisma
 // ─────────────────────────────────────────────────────────────────────────
@@ -276,6 +291,18 @@ model User {
 
   adPlacements AdPlacement[]
 
+  // Phone number sign-in (see PhoneVerification + the "phone-otp" Credentials
+  // provider in lib/auth.ts). `phone` above already existed for shipping;
+  // `phoneVerifiedAt` tracks whether it's been confirmed via OTP.
+  phoneVerifiedAt DateTime?
+
+  offersMade     Offer[] @relation("BuyerOffers")
+  offersReceived Offer[] @relation("SellerOffers")
+
+  auctionsListed       Auction[] @relation("SellerAuctions")
+  auctionsCurrentlyWon Auction[] @relation("CurrentBidderAuctions")
+  bids                 Bid[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -376,6 +403,7 @@ model Listing {
 
   orders       Order[]       @relation("ListingOrders")
   adPlacements AdPlacement[]
+  offers       Offer[]
 
   viewCount Int @default(0)
 
@@ -549,6 +577,141 @@ model Invoice {
 // ─────────────────────────────────────────────────────────────────────────
 // UI Real-Estate Ad Engine (capped slot system)
 // ─────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────
+// "Make an Offer" negotiation flow
+// ─────────────────────────────────────────────────────────────────────────
+
+// A buyer-initiated offer on an ACTIVE listing. Offers must be at least 70%
+// of the listing's asking price (enforced in lib/offers.ts, re-validated
+// server-side regardless of client input). Sellers respond with Accept,
+// Counter (sets counterAmountCents + COUNTERED), or Decline. An ACCEPTED
+// offer's amount becomes the checkout price for that specific buyer only
+// (see lib/orders.ts createOrder's optional offerId param) — it never
+// changes the listing's public priceCents.
+model Offer {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  listingId String  @db.ObjectId
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  buyerId String @db.ObjectId
+  buyer   User   @relation("BuyerOffers", fields: [buyerId], references: [id])
+
+  sellerId String @db.ObjectId
+  seller   User   @relation("SellerOffers", fields: [sellerId], references: [id])
+
+  // Snapshot of the listing price at offer time, so a later price edit
+  // doesn't retroactively change what "70% of asking" meant for this offer.
+  listingPriceCentsSnapshot Int
+
+  offerAmountCents   Int
+  counterAmountCents Int?
+  message            String?
+
+  status     OfferStatus @default(PENDING)
+  respondedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([sellerId, status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Live Auctions
+// ─────────────────────────────────────────────────────────────────────────
+
+// Auctions are modeled as standalone listable items (not tied to the
+// fixed-price Listing model) so a seller can run a timed auction without
+// first creating — and locking the price of — a regular listing.
+model Auction {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  sellerId String @db.ObjectId
+  seller   User   @relation("SellerAuctions", fields: [sellerId], references: [id])
+
+  title       String
+  description String
+  images      String[]
+  category    ListingCategory
+  metal       PreciousMetal   @default(NOT_APPLICABLE)
+
+  startingPriceCents Int
+  // Minimum amount a new bid must exceed the current bid by.
+  bidIncrementCents  Int @default(5000)
+  reservePriceCents  Int?
+
+  currentBidCents  Int?
+  currentBidderId  String? @db.ObjectId
+  currentBidder    User?   @relation("CurrentBidderAuctions", fields: [currentBidderId], references: [id])
+
+  // Optimistic-concurrency counter for `placeBid`'s compare-and-swap. Two
+  // bids racing on the same auction re-read this before writing, so only
+  // one can "win" against a bid it didn't see — deliberately NOT compared
+  // via `currentBidCents: null`, since Prisma's MongoDB connector treats an
+  // unset optional field differently from an explicit null in `equals`
+  // filters (a `@default(0)` scalar is always written, so it's never
+  // ambiguous).
+  version Int @default(0)
+
+  startsAt DateTime
+  endsAt   DateTime
+  status   AuctionStatus @default(SCHEDULED)
+
+  bids Bid[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, endsAt])
+  @@index([sellerId])
+}
+
+model Bid {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  auctionId String  @db.ObjectId
+  auction   Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  bidderId String @db.ObjectId
+  bidder   User   @relation(fields: [bidderId], references: [id])
+
+  amountCents Int
+
+  createdAt DateTime @default(now())
+
+  @@index([auctionId])
+  @@index([bidderId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phone number sign-in (OTP)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Short-lived OTP challenges for the "phone-otp" Credentials provider (see
+// lib/auth.ts). No SMS gateway is wired up yet — lib/phone-otp.ts logs the
+// code server-side and, outside production, returns it directly so the
+// sign-in UI can display it (mirrors the delivery-OTP demo pattern used for
+// escrow orders). Swap in a real gateway (e.g. Clickatell, Twilio) by
+// replacing the `console.log` in lib/phone-otp.ts with an actual send call.
+model PhoneVerification {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Normalized E.164 South African number, e.g. "+27821234567".
+  phone String
+
+  code         String
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  attemptCount Int       @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
 
 model AdPlacement {
   id String @id @default(auto()) @map("_id") @db.ObjectId

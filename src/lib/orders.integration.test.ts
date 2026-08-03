@@ -35,6 +35,13 @@ afterAll(async () => {
   const { db } = await import("@/lib/db");
   await db.$disconnect();
   await replSet.stop();
+  // Integration test files can end up scheduled onto the same worker
+  // thread, and `globalThis` (unlike Vitest's module cache) isn't reset
+  // between files — so `lib/db.ts`'s dev-mode singleton would otherwise
+  // leak a client bound to this file's (now-stopped) replica set into the
+  // next file's tests. Force the next `import("@/lib/db")` to construct a
+  // fresh client against its own `DATABASE_URL`.
+  delete (globalThis as { __prisma?: unknown }).__prisma;
 });
 
 let uniqueCounter = 0;

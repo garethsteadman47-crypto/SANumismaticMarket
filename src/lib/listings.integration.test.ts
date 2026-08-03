@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
+import type { VerificationProvider } from "@prisma/client";
+import { hashString } from "@/lib/mock-random";
 
 /**
  * Integration test: exercises `createListing` against a *real* MongoDB
@@ -17,6 +19,23 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
  */
 
 let replSet: MongoMemoryReplSet;
+
+/**
+ * `lib/api/verification.ts`'s mock lookup deliberately simulates a
+ * "certificate not found" response for ~1-in-13 certificate IDs (by hash),
+ * to exercise that code path elsewhere. That's fine for a fixed ID, but
+ * these tests generate IDs with `Date.now()` for uniqueness — so ~1-in-13
+ * *runs* could hit the "not found" bucket and fail for a reason unrelated
+ * to what's being tested. This picks a suffix that's guaranteed to land in
+ * the "found" bucket, using the exact same hash formula as `isNotFound`.
+ */
+function findFoundCertificateId(prefix: string, provider: VerificationProvider): string {
+  for (let i = 0; ; i++) {
+    const candidate = `${prefix}-${i}`;
+    const hash = hashString(`${provider}:${candidate.toUpperCase()}:not-found`);
+    if (hash % 13 !== 0) return candidate;
+  }
+}
 
 beforeAll(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
@@ -46,6 +65,10 @@ afterAll(async () => {
   const { db } = await import("@/lib/db");
   await db.$disconnect();
   await replSet.stop();
+  // See the matching comment in `orders.integration.test.ts` — resets the
+  // dev-mode singleton so a subsequent integration test file sharing this
+  // worker thread doesn't reuse this file's (now-stopped) replica set.
+  delete (globalThis as { __prisma?: unknown }).__prisma;
 });
 
 describe("createListing (integration)", () => {
@@ -80,7 +103,7 @@ describe("createListing (integration)", () => {
     const { createListing } = await import("@/lib/listings");
 
     const seller = await db.user.create({ data: { email: `graded-seller-${Date.now()}@example.com` } });
-    const certificateId = `NGC-INTEGRATION-${Date.now()}`;
+    const certificateId = findFoundCertificateId(`NGC-INTEGRATION-${Date.now()}`, "NGC");
 
     const result = await createListing(seller.id, {
       title: "1898 ZAR Single Pond",
@@ -113,7 +136,7 @@ describe("createListing (integration)", () => {
 
     const sellerA = await db.user.create({ data: { email: `lockout-a-${Date.now()}@example.com` } });
     const sellerB = await db.user.create({ data: { email: `lockout-b-${Date.now()}@example.com` } });
-    const certificateId = `PCGS-LOCKOUT-${Date.now()}`;
+    const certificateId = findFoundCertificateId(`PCGS-LOCKOUT-${Date.now()}`, "PCGS");
 
     const first = await createListing(sellerA.id, {
       title: "1893 ZAR Double Shilling",

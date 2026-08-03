@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { calculateOrderFeeBreakdown } from "@/lib/utils/fees";
 import { describePayoutVelocity } from "@/lib/utils/escrow";
+import { getAcceptedOfferForBuyer, getAcceptedOfferPriceCents } from "@/lib/offers";
 import { getAvailablePaymentProviders } from "@/lib/payments";
 import { formatZarCents } from "@/lib/utils/currency";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -45,7 +46,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
     return (
       <main className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Sign in to continue</h1>
-        <p className="text-sm text-muted-foreground">You need an account to initiate an escrow purchase.</p>
+        <p className="text-sm text-muted-foreground">You need an account to complete a purchase.</p>
         <Button nativeButton={false} render={<Link href="/auth/signin" />}>Sign in</Button>
       </main>
     );
@@ -54,21 +55,34 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
   const isOwnListing = session.user.id === listing.sellerId;
   const isSoldOut = listing.status !== ListingStatus.ACTIVE;
 
+  const acceptedOffer = await getAcceptedOfferForBuyer(listing.id, session.user.id);
+  const effectivePriceCents = acceptedOffer ? getAcceptedOfferPriceCents(acceptedOffer) : listing.priceCents;
+
   const feeBreakdown = calculateOrderFeeBreakdown({
-    itemPriceCents: listing.priceCents,
+    itemPriceCents: effectivePriceCents,
     subscriptionTier: listing.seller.subscriptionTier,
     verificationFeeCents: listing.verification?.feeCents ?? 0,
   });
   const payoutCopy = describePayoutVelocity(listing.seller.subscriptionTier);
-  const availableProviders = getAvailablePaymentProviders(listing.priceCents);
+  const availableProviders = getAvailablePaymentProviders(effectivePriceCents);
   const coverImage = listing.images[0];
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <div>
         <h1 className="text-2xl font-semibold">Checkout</h1>
-        <p className="text-sm text-muted-foreground">Review your order before initiating an escrow purchase.</p>
+        <p className="text-sm text-muted-foreground">Review your order before completing your secure purchase.</p>
       </div>
+
+      {acceptedOffer && (
+        <Alert>
+          <AlertTitle>Negotiated price applied</AlertTitle>
+          <AlertDescription>
+            You&apos;re checking out at your accepted offer price of {formatZarCents(effectivePriceCents)}, not the
+            original asking price of {formatZarCents(listing.priceCents)}.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isOwnListing && (
         <Alert variant="destructive">
@@ -107,7 +121,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
                 <TrustBadge tier={listing.seller.subscriptionTier} className="text-[0.65rem]" />
               </div>
             </div>
-            <span className="font-semibold">{formatZarCents(listing.priceCents)}</span>
+            <span className="font-semibold">{formatZarCents(effectivePriceCents)}</span>
           </div>
 
           <Separator />
@@ -154,13 +168,14 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
 
           <div className="flex items-center justify-between text-base font-semibold">
             <span>You pay</span>
-            <span>{formatZarCents(listing.priceCents)}</span>
+            <span>{formatZarCents(effectivePriceCents)}</span>
           </div>
 
           <CheckoutForm
             listingId={listing.id}
             availableProviders={availableProviders}
             disabled={isOwnListing || isSoldOut}
+            offerId={acceptedOffer?.id}
           />
         </CardContent>
       </Card>

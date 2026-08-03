@@ -132,6 +132,31 @@ async function upsertAd({ slotType, category, slotPosition, listingId, advertise
   return ad;
 }
 
+async function upsertAuction(sellerId, data) {
+  const existing = await db.auction.findFirst({ where: { title: data.title, sellerId } });
+  if (existing) {
+    console.log("Auction exists:", data.title, existing.id);
+    return existing;
+  }
+  const auction = await db.auction.create({
+    data: {
+      sellerId,
+      title: data.title,
+      description: data.description,
+      images: [PLACEHOLDER],
+      category: data.category,
+      metal: data.metal ?? "NOT_APPLICABLE",
+      startingPriceCents: data.startingPriceCents,
+      bidIncrementCents: data.bidIncrementCents ?? 5000,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      status: data.status ?? "LIVE",
+    },
+  });
+  console.log("Created auction:", data.title, auction.id);
+  return auction;
+}
+
 async function ensureIndexes() {
   const specs = [
     ["CertificateLock", { certificateId: 1 }, "CertificateLock_certificateId_key", true],
@@ -233,6 +258,30 @@ await upsertAd({
   targetUrl: `/listings/${standardCoin.id}`,
 });
 
+const now = Date.now();
+const liveAuction = await upsertAuction(gold.id, {
+  title: "1898 ZAR 'Single 9' Pond — Live Auction",
+  description: "Rare overdate variety Single 9 Pond, offered at auction with no reserve.",
+  category: "COINS",
+  metal: "GOLD",
+  startingPriceCents: 15_000_00,
+  bidIncrementCents: 50_000,
+  startsAt: new Date(now - 60 * 60 * 1000),
+  endsAt: new Date(now + 2 * 60 * 60 * 1000),
+  status: "LIVE",
+});
+const upcomingAuction = await upsertAuction(silver.id, {
+  title: "Set of 3 Silver Proof Rands — Upcoming Auction",
+  description: "A curated 3-coin proof silver Rand set, opening soon.",
+  category: "COINS",
+  metal: "SILVER",
+  startingPriceCents: 2_500_00,
+  bidIncrementCents: 10_000,
+  startsAt: new Date(now + 24 * 60 * 60 * 1000),
+  endsAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
+  status: "SCHEDULED",
+});
+
 console.log(
   JSON.stringify(
     {
@@ -246,6 +295,10 @@ console.log(
         goldKrug: goldKrug.id,
         standardCoin: standardCoin.id,
         silverBullion: silverBullion.id,
+      },
+      auctions: {
+        live: liveAuction.id,
+        upcoming: upcomingAuction.id,
       },
     },
     null,
