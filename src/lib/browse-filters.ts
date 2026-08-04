@@ -96,9 +96,30 @@ function parseIntParam(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/**
+ * Homepage quick-nav and marketing deep-links historically used
+ * `?category=…`. The browse sidebar speaks `?taxonomy=…` (see
+ * `numismatic-taxonomy.ts`). Accept both, and remap a few friendly
+ * short names (bullion/sets) onto the real taxonomy node ids.
+ */
+const CATEGORY_TO_TAXONOMY: Record<string, string> = {
+  "zar-union": "zar-union",
+  bullion: "republic",
+  banknotes: "banknotes",
+  sets: "sets-wildlife",
+  republic: "republic",
+  "sets-wildlife": "sets-wildlife",
+};
+
+function resolveTaxonomyParam(searchParams: RawSearchParams): string | undefined {
+  const raw = firstString(searchParams.taxonomy) || firstString(searchParams.category);
+  if (!raw) return undefined;
+  return CATEGORY_TO_TAXONOMY[raw] ?? raw;
+}
+
 export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterState {
   return {
-    taxonomy: firstString(searchParams.taxonomy) || undefined,
+    taxonomy: resolveTaxonomyParam(searchParams),
     certifications: parseCsv(firstString(searchParams.cert), CERTIFICATION_OPTIONS),
     gradeBrackets: parseCsv(firstString(searchParams.grade), GRADE_BRACKETS),
     metals: parseCsv(firstString(searchParams.metal), METAL_BUCKETS),

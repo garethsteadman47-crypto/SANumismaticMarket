@@ -1,64 +1,98 @@
-import { AdSlotType, ListingCategory, ListingStatus } from "@prisma/client";
+import { AuctionStatus, ListingStatus } from "@prisma/client";
+import { ShieldCheckIcon, TrendingUpIcon } from "lucide-react";
+import Link from "next/link";
 
 import { db } from "@/lib/db";
-import { getActiveAdPlacements } from "@/lib/ads";
+import { getAuctionPhase } from "@/lib/auctions";
 import { LISTING_CARD_SELECT, toListingCardData } from "@/lib/listing-card";
-import { HeroCarousel } from "@/components/ads/HeroCarousel";
+import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
+import { HomeHero } from "@/components/home/HomeHero";
+import { AuctionTicker } from "@/components/home/AuctionTicker";
+import { CategoryQuickNav } from "@/components/home/CategoryQuickNav";
+import { FeaturedAuctionsSection } from "@/components/home/FeaturedAuctionsSection";
 import { ListingSection } from "@/components/ListingSection";
 
 export const dynamic = "force-dynamic";
 
-const SECTION_TAKE = 8;
+const RECENT_TAKE = 8;
+const FEATURED_AUCTIONS_TAKE = 6;
 
 export default async function HomePage() {
-  const [heroSlots, verifiedGraded, krugerrands, recentListings] = await Promise.all([
-    getActiveAdPlacements(AdSlotType.HOMEPAGE_HERO),
-    db.listing.findMany({
-      where: { status: ListingStatus.ACTIVE, verification: { shieldAwarded: true } },
-      orderBy: { createdAt: "desc" },
-      take: SECTION_TAKE,
-      select: LISTING_CARD_SELECT,
-    }),
-    db.listing.findMany({
-      where: { status: ListingStatus.ACTIVE, category: ListingCategory.KRUGERRAND },
-      orderBy: { createdAt: "desc" },
-      take: SECTION_TAKE,
-      select: LISTING_CARD_SELECT,
+  const now = new Date();
+
+  const [liveAuctionRows, recentListings] = await Promise.all([
+    db.auction.findMany({
+      where: {
+        status: { in: [AuctionStatus.LIVE, AuctionStatus.SCHEDULED] },
+        endsAt: { gt: now },
+      },
+      orderBy: { endsAt: "asc" },
+      take: FEATURED_AUCTIONS_TAKE,
+      include: { _count: { select: { bids: true } } },
     }),
     db.listing.findMany({
       where: { status: ListingStatus.ACTIVE },
       orderBy: { createdAt: "desc" },
-      take: SECTION_TAKE,
+      take: RECENT_TAKE,
       select: LISTING_CARD_SELECT,
     }),
   ]);
 
+  // Effective LIVE only (status can lag; endsAt/startsAt drive the UI phase).
+  const featuredAuctions = liveAuctionRows
+    .filter((auction) => getAuctionPhase(auction, now) === "LIVE")
+    .map((auction) => ({
+      id: auction.id,
+      title: auction.title,
+      images: auction.images,
+      currentBidCents: auction.currentBidCents ?? auction.startingPriceCents,
+      endsAtIso: auction.endsAt.toISOString(),
+      bidCount: auction._count.bids,
+    }));
+
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-6">
-      <HeroCarousel slots={heroSlots} />
+    <main className="flex w-full flex-col gap-12 pb-16">
+      <HomeHero />
+      <AuctionTicker auctions={featuredAuctions} />
+      <CategoryQuickNav />
+      <FeaturedAuctionsSection auctions={featuredAuctions} />
 
-      <ListingSection
-        title="Verified Graded Coins"
-        description="Independently verified certificates, backed by the Verified Authentic Shield."
-        viewAllHref="/category/coins"
-        listings={verifiedGraded.map(toListingCardData)}
-        emptyMessage="No verified listings yet — be the first to list a graded coin."
-      />
+      <div className="mx-auto w-full max-w-7xl px-4">
+        <ListingSection
+          title="Recent additions"
+          description="The newest fixed-price listings from verified sellers across the marketplace."
+          viewAllHref="/listings"
+          listings={recentListings.map(toListingCardData)}
+          emptyMessage="No listings yet — be the first to list a coin or banknote."
+        />
+      </div>
 
-      <ListingSection
-        title="Gold & Silver Krugerrands"
-        description="South Africa's iconic bullion coin, in gold and silver."
-        viewAllHref="/category/krugerrands"
-        listings={krugerrands.map(toListingCardData)}
-        emptyMessage="No Krugerrand listings yet."
-      />
-
-      <ListingSection
-        title="Recent Listings"
-        description="Freshly listed coins, banknotes, and bullion."
-        listings={recentListings.map(toListingCardData)}
-        emptyMessage="No listings yet — check back soon."
-      />
+      <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 sm:grid-cols-2">
+        <Link
+          href="/about"
+          className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
+        >
+          <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
+          <div>
+            <h3 className="font-heading text-lg font-semibold">{BUYER_PROTECTION_LABEL}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Funds held securely until delivery is confirmed — every graded lot carries independent verification.
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/spot-prices"
+          className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
+        >
+          <TrendingUpIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
+          <div>
+            <h3 className="font-heading text-lg font-semibold">Live spot prices</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track gold and silver in ZAR — sanity-check melt value before you bid or buy.
+            </p>
+          </div>
+        </Link>
+      </section>
     </main>
   );
 }
