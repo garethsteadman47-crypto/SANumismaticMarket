@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { createListingAction } from "@/actions/listing";
 import { checkCertificateAction } from "@/actions/verification";
+import { MediaImageSlot } from "@/components/listings/MediaImageSlot";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { formatZarCents, randsToCents } from "@/lib/utils/currency";
 import { calculateOrderFeeBreakdown, getVerificationFeeCents } from "@/lib/utils/fees";
@@ -109,6 +110,13 @@ const INITIAL: WizardState = {
 
 function placeholderImage(seed: string) {
   return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/800`;
+}
+
+function publishableImageUrl(url: string, seed: string): string {
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  // Local blob/data previews aren't durable — fall back to a stable placeholder.
+  return placeholderImage(seed || "mintmark-listing");
 }
 
 export function ListingWizard({
@@ -209,16 +217,23 @@ export function ListingWizard({
       return;
     }
 
-    const images = [
-      state.coverImageUrl,
-      state.obverseImageUrl,
-      state.reverseImageUrl,
-      state.certificateImageUrl,
-    ].filter(Boolean);
+    const seedBase = state.title || "mintmark-listing";
+    const cover = state.coverImageUrl ? publishableImageUrl(state.coverImageUrl, `${seedBase}-cover`) : "";
+    const obverse = state.obverseImageUrl
+      ? publishableImageUrl(state.obverseImageUrl, `${seedBase}-obverse`)
+      : "";
+    const reverse = state.reverseImageUrl
+      ? publishableImageUrl(state.reverseImageUrl, `${seedBase}-reverse`)
+      : "";
+    const certificate = state.certificateImageUrl
+      ? publishableImageUrl(state.certificateImageUrl, `${seedBase}-cert`)
+      : "";
+
+    const images = [cover, obverse, reverse, certificate].filter(Boolean);
 
     // Fallback placeholders so local demos without UploadThing still publish.
     if (images.length === 0) {
-      images.push(placeholderImage(state.title || "mintmark-listing"));
+      images.push(placeholderImage(seedBase));
     }
 
     startTransition(async () => {
@@ -241,10 +256,10 @@ export function ListingWizard({
         saleFormat: state.saleFormat,
         auctionEndsInDays: state.saleFormat === "AUCTION" ? Number(state.auctionEndsInDays) : undefined,
         images,
-        coverImageUrl: state.coverImageUrl || undefined,
-        obverseImageUrl: state.obverseImageUrl || undefined,
-        reverseImageUrl: state.reverseImageUrl || undefined,
-        certificateImageUrl: state.certificateImageUrl || undefined,
+        coverImageUrl: cover || undefined,
+        obverseImageUrl: obverse || undefined,
+        reverseImageUrl: reverse || undefined,
+        certificateImageUrl: certificate || undefined,
         certificateId: state.listingType === ListingType.GRADED ? state.certificateId : undefined,
         verificationProvider:
           state.listingType === ListingType.GRADED ? state.verificationProvider || undefined : undefined,
@@ -636,7 +651,8 @@ export function ListingWizard({
           {step === 4 && (
             <>
               <p className="text-sm text-muted-foreground">
-                Drag-and-drop upload lands with UploadThing next — paste image URLs into labeled slots for now.
+                Drop images into each slot or paste public URLs from Imgur, your site, or a grading database. Previews
+                appear instantly.
               </p>
               {(
                 [
@@ -646,21 +662,13 @@ export function ListingWizard({
                   ["certificateImageUrl", "Certificate / slab serial"],
                 ] as const
               ).map(([key, label]) => (
-                <div
+                <MediaImageSlot
                   key={key}
-                  className="flex flex-col gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-950/40"
-                >
-                  <Label htmlFor={key} className="flex items-center gap-2">
-                    <ImagePlusIcon className="size-4 text-muted-foreground" />
-                    {label}
-                  </Label>
-                  <Input
-                    id={key}
-                    value={state[key]}
-                    onChange={(e) => update(key, e.target.value)}
-                    placeholder="https://…"
-                  />
-                </div>
+                  id={key}
+                  label={label}
+                  value={state[key]}
+                  onChange={(url) => update(key, url)}
+                />
               ))}
 
               <div className="rounded-lg border bg-slate-950 p-5 text-slate-100">

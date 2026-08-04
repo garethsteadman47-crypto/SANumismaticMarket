@@ -7,6 +7,8 @@ export interface MembershipFeeRow {
   value: string;
 }
 
+export type MembershipVisualTone = "standard" | "silver" | "gold";
+
 export interface MembershipTierPlan {
   id: SubscriptionTier;
   name: string;
@@ -18,6 +20,9 @@ export interface MembershipTierPlan {
   feeRows: MembershipFeeRow[];
   commissionRows: { band: string; rate: string }[];
   features: string[];
+  /** Emphasized upgrade feature shown above the rest of the list. */
+  highlightFeature?: string;
+  visual: MembershipVisualTone;
   highlighted?: boolean;
   ctaLabel: string;
 }
@@ -40,7 +45,7 @@ function commissionRowsFor(tier: SubscriptionTier) {
 export const MEMBERSHIP_PLANS: MembershipTierPlan[] = [
   {
     id: SubscriptionTier.STANDARD,
-    name: "Standard User",
+    name: "Standard Collector",
     tagline: "Free to join",
     target: "Occasional buyers and casual sellers",
     monthlyPriceCents: 0,
@@ -51,14 +56,16 @@ export const MEMBERSHIP_PLANS: MembershipTierPlan[] = [
       { label: "Verification fee", value: "R15 applied at checkout" },
       { label: "Escrow payout", value: "48-hour post-delivery hold" },
     ],
-    features: ["Basic search access", "Buy Now, Make Offer, public auctions"],
+    highlightFeature: "Basic Auction Privileges (Standard Search Indexing)",
+    features: ["Buy Now, Make Offer, public auctions", "Wishlist and Wanted requests"],
+    visual: "standard",
     ctaLabel: "Join free",
   },
   {
     id: SubscriptionTier.SILVER,
     name: "Silver Member",
-    tagline: "Active hobbyist tier",
-    target: "Active hobbyists and mid-tier buyers",
+    tagline: "R199 / month",
+    target: "Active hobbyists and mid-tier sellers",
     monthlyPriceCents: 199 * CENTS_PER_RAND,
     yearlyPriceCents: 1_990 * CENTS_PER_RAND,
     verificationFeeCents: BASE_VERIFICATION_FEE_CENTS,
@@ -67,13 +74,15 @@ export const MEMBERSHIP_PLANS: MembershipTierPlan[] = [
       { label: "Verification fee", value: "Standard R15 at checkout" },
       { label: "Escrow payout", value: "Accelerated 24-hour release" },
     ],
-    features: ["Wishlist notifications", "Auction listing access"],
+    highlightFeature: "Priority Auction Indexing (Rank higher in search results)",
+    features: ["15 Active Listings", "Wishlist notifications", "Lower seller commissions"],
+    visual: "silver",
     ctaLabel: "Upgrade to Silver",
   },
   {
     id: SubscriptionTier.GOLD,
-    name: "Gold Dealer",
-    tagline: "High-volume traders",
+    name: "Gold Power Trader",
+    tagline: "R499 / month",
     target: "High-volume traders and investors",
     monthlyPriceCents: 499 * CENTS_PER_RAND,
     yearlyPriceCents: 4_990 * CENTS_PER_RAND,
@@ -84,7 +93,9 @@ export const MEMBERSHIP_PLANS: MembershipTierPlan[] = [
       { label: "Verification fee", value: "R0 — 100% waived at checkout" },
       { label: "Escrow payout", value: "Instant settlement on eligible sales" },
     ],
-    features: ["Unlimited listings", "Priority indexing", "Early auction access"],
+    highlightFeature: "VIP Auction Placement (Featured on Homepage and Top of Search)",
+    features: ["Unlimited Active Listings and Zero Verification Fees", "Lowest commission bands"],
+    visual: "gold",
     ctaLabel: "Upgrade to Gold",
   },
 ];
