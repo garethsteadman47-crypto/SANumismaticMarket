@@ -63,38 +63,39 @@ export async function signUpAction(input: SignUpInput): Promise<AuthActionResult
     data: { userId: user.id, tier: SubscriptionTier.STANDARD, status: "ACTIVE" },
   });
 
-  try {
-    await signIn("credentials", { email, password, redirect: false });
-    return { success: true };
-  } catch (err) {
-    if (err instanceof AuthError) {
-      return {
-        success: false,
-        error: authErrorMessage(
-          err,
-          "Your account was created, but automatic sign-in failed. Please sign in manually.",
-        ),
-      };
-    }
-    throw err;
-  }
+  // Sign-in is performed on the client via next-auth/react (see AuthForm) so
+  // preview/proxy hosts are not blocked by Server Action origin checks.
+  return { success: true };
 }
 
 /**
- * Signs in as the shared demo account for a given subscription tier, for
- * quickly exercising authenticated flows in development. Disabled outside
- * development as a defense-in-depth measure (the UI that surfaces this is
- * also hidden — see `isDevLoginEnabled`).
+ * Ensures the shared demo account for a tier exists and returns credentials
+ * for the client to complete sign-in via next-auth/react. Disabled outside
+ * development (see `isDevLoginEnabled`).
  */
-export async function devSignInAction(tier: SubscriptionTier): Promise<AuthActionResult> {
+export async function prepareDevUserAction(
+  tier: SubscriptionTier,
+): Promise<AuthActionResult & { email?: string; password?: string }> {
   if (!isDevLoginEnabled()) {
     return { success: false, error: "Demo sign-in is disabled in this environment." };
   }
 
   await ensureDevUser(tier);
+  return { success: true, email: DEMO_USERS[tier].email, password: DEV_DEMO_PASSWORD };
+}
+
+/**
+ * @deprecated Prefer prepareDevUserAction + client signIn. Kept for any
+ * remaining callers; still works when Server Actions are allowed.
+ */
+export async function devSignInAction(tier: SubscriptionTier): Promise<AuthActionResult> {
+  const prepared = await prepareDevUserAction(tier);
+  if (!prepared.success || !prepared.email || !prepared.password) {
+    return { success: false, error: prepared.success ? "Could not prepare demo user." : prepared.error };
+  }
 
   try {
-    await signIn("credentials", { email: DEMO_USERS[tier].email, password: DEV_DEMO_PASSWORD, redirect: false });
+    await signIn("credentials", { email: prepared.email, password: prepared.password, redirect: false });
     return { success: true };
   } catch (err) {
     if (err instanceof AuthError) {

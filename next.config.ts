@@ -8,6 +8,22 @@ const nextConfig: NextConfig = {
     // UploadThing/S3, narrow this to that provider's hostname.
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
+  // Cursor cloud previews proxy via *.cursorvm.com / *.agent.cvm.dev; without
+  // these, Server Actions abort on origin mismatch and credential sign-in
+  // never reaches Auth.js.
+  allowedDevOrigins: ["127.0.0.1", "localhost", "*.cursorvm.com", "*.agent.cvm.dev"],
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "localhost:3000",
+        "localhost:3901",
+        "127.0.0.1:3000",
+        "127.0.0.1:3901",
+        "*.cursorvm.com",
+        "*.agent.cvm.dev",
+      ],
+    },
+  },
   // TEMPORARY: unblock the Vercel build pipeline. `npx tsc --noEmit` is
   // already run explicitly (locally, and should be in CI) as a separate,
   // non-blocking-the-deploy check — this only skips Next.js's own

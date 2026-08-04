@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { AwardIcon, Building2Icon, CoinsIcon, CrownIcon, FlaskConicalIcon, Loader2Icon, UserIcon } from "lucide-react";
+import { Building2Icon, CoinsIcon, CrownIcon, FlaskConicalIcon, Loader2Icon, UserIcon } from "lucide-react";
 import { SubscriptionTier } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { devSignInAction } from "@/actions/auth";
+import { prepareDevUserAction } from "@/actions/auth";
 
 const DEMO_TIER_CONFIG: Array<{ tier: SubscriptionTier; label: string; description: string; icon: typeof UserIcon }> = [
   { tier: "STANDARD", label: "Standard User", description: "7.5%–2% commission tier", icon: UserIcon },
@@ -28,23 +29,39 @@ const DEMO_TIER_CONFIG: Array<{ tier: SubscriptionTier; label: string; descripti
 /**
  * Dev/demo-only identity switcher. Rendered by the caller only when
  * `isDevLoginEnabled()` is true (see `lib/dev-users.ts`) — the
- * `devSignInAction` server action re-checks this too, as defense in depth.
+ * prepare action re-checks this too, as defense in depth.
  */
 export function DevUserSwitcher({ variant = "dropdown" }: { variant?: "dropdown" | "buttons" }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
-  function handleSelect(tier: SubscriptionTier) {
-    startTransition(async () => {
-      const result = await devSignInAction(tier);
-      if (!result.success) {
-        toast.error(result.error);
+  async function handleSelect(tier: SubscriptionTier) {
+    setIsPending(true);
+    try {
+      const prepared = await prepareDevUserAction(tier);
+      if (!prepared.success || !prepared.email || !prepared.password) {
+        toast.error(!prepared.success ? prepared.error : "Could not prepare demo user.");
         return;
       }
+
+      const result = await signIn("credentials", {
+        email: prepared.email,
+        password: prepared.password,
+        redirect: false,
+      });
+      if (result?.error) {
+        toast.error("Could not sign in as the demo user.");
+        return;
+      }
+
       toast.success(`Signed in as the demo ${tier.toLowerCase()} account.`);
       router.push("/");
       router.refresh();
-    });
+    } catch {
+      toast.error("Could not sign in as the demo user.");
+    } finally {
+      setIsPending(false);
+    }
   }
 
   if (variant === "buttons") {
