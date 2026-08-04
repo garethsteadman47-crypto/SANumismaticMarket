@@ -1,15 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { AuthForm } from "@/components/auth/AuthForm";
 import { AuthProvidersPanel } from "@/components/auth/AuthProvidersPanel";
 import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isDevLoginEnabled } from "@/lib/dev-users";
 import { SITE_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: `Sign in — ${SITE_NAME}`,
-  description: "Sign in with Google, South African mobile OTP, or SA Coin Club SSO.",
+  description: "Sign in with email, Google, South African mobile OTP, or SA Coin Club SSO.",
 };
 
 export default function LoginPage() {
@@ -21,26 +23,30 @@ export default function LoginPage() {
           <span className="font-heading text-xl font-semibold">{SITE_NAME}</span>
         </Link>
         <h1 className="font-heading text-2xl font-semibold">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">
-          Choose Google, mobile OTP, or SA Coin Club to continue.
-        </p>
+        <p className="text-sm text-muted-foreground">Sign in to buy, sell, and manage your listings.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Email and password</CardTitle>
+          <CardDescription>
+            Demo: <span className="font-medium text-foreground">bassani@demo.local</span> /{" "}
+            <span className="font-medium text-foreground">DemoPass123!</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuthForm />
+        </CardContent>
+      </Card>
 
       <AuthProvidersPanel />
 
       {isDevLoginEnabled() && (
         <div className="rounded-lg border border-dashed p-3">
-          <p className="mb-2 text-xs text-muted-foreground">Dev demo accounts</p>
+          <p className="mb-2 text-xs text-muted-foreground">One-click demo accounts</p>
           <DevUserSwitcher variant="buttons" />
         </div>
       )}
-
-      <p className="text-center text-xs text-muted-foreground">
-        Prefer email?{" "}
-        <Link href="/auth/signin" className="underline underline-offset-2 hover:text-foreground">
-          Sign in with email and password
-        </Link>
-      </p>
     </main>
   );
 }
