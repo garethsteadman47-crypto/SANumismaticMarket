@@ -27,7 +27,7 @@ export const GRADE_BRACKET_LABELS: Record<GradeBracket, string> = {
   AU: "About Uncirculated (AU)",
   XF: "Extremely Fine (XF)",
   VF: "Very Fine (VF)",
-  FINE_BELOW: "Fine & Below",
+  FINE_BELOW: "Fine and Below",
 };
 /** Grade-string prefixes (case-insensitive) that fall into each bracket. */
 const GRADE_BRACKET_PREFIXES: Record<GradeBracket, string[]> = {
@@ -103,11 +103,13 @@ function parseIntParam(value: string | undefined): number | undefined {
  * short names (bullion/sets) onto the real taxonomy node ids.
  */
 const CATEGORY_TO_TAXONOMY: Record<string, string> = {
-  "zar-union": "zar-union",
-  bullion: "republic",
-  banknotes: "banknotes",
-  sets: "sets-wildlife",
+  zar: "zar",
+  "zar-union": "zar",
+  union: "union",
   republic: "republic",
+  bullion: "bullion",
+  banknotes: "banknotes",
+  sets: "sets",
   "sets-wildlife": "sets-wildlife",
 };
 

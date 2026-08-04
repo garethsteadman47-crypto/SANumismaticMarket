@@ -44,7 +44,7 @@ const STEPS = [
   { id: 1, label: "Identification", icon: TagIcon },
   { id: 2, label: "Specifications", icon: PackageIcon },
   { id: 3, label: "Pricing", icon: GavelIcon },
-  { id: 4, label: "Media & Review", icon: ImagePlusIcon },
+  { id: 4, label: "Media and Review", icon: ImagePlusIcon },
 ] as const;
 
 const GRADE_PROVIDERS = [

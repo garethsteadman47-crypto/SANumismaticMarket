@@ -1,37 +1,20 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { BanknoteIcon, CoinsIcon, GemIcon, LayersIcon } from "lucide-react";
+import { BanknoteIcon, CoinsIcon, GemIcon, LandmarkIcon, LayersIcon } from "lucide-react";
+
+import { BROWSE_TAXONOMY_LABELS } from "@/lib/constants";
 
 const CATEGORIES: {
   href: string;
-  label: string;
-  description: string;
+  id: keyof typeof BROWSE_TAXONOMY_LABELS;
   icon: LucideIcon;
 }[] = [
-  {
-    href: "/listings?category=zar-union",
-    label: "ZAR & Union",
-    description: "Ponde, shillings, pennies & farthings",
-    icon: CoinsIcon,
-  },
-  {
-    href: "/listings?category=bullion",
-    label: "Republic & Bullion",
-    description: "Krugerrands, fractional & uncirculated",
-    icon: GemIcon,
-  },
-  {
-    href: "/listings?category=banknotes",
-    label: "World Banknotes",
-    description: "Specimen notes & vintage European",
-    icon: BanknoteIcon,
-  },
-  {
-    href: "/listings?category=sets",
-    label: "Sets & Wildlife",
-    description: "Big Five, Leopard, proofs & errors",
-    icon: LayersIcon,
-  },
+  { href: "/listings?category=zar", id: "zar", icon: CoinsIcon },
+  { href: "/listings?category=union", id: "union", icon: LandmarkIcon },
+  { href: "/listings?category=republic", id: "republic", icon: LandmarkIcon },
+  { href: "/listings?category=bullion", id: "bullion", icon: GemIcon },
+  { href: "/listings?category=sets", id: "sets", icon: LayersIcon },
+  { href: "/listings?category=banknotes", id: "banknotes", icon: BanknoteIcon },
 ];
 
 /** Quick-nav grid into the browse taxonomy via `?category=` deep links. */
@@ -39,24 +22,27 @@ export function CategoryQuickNav() {
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4">
       <div className="flex flex-col gap-1">
-        <h2 className="font-heading text-2xl font-semibold">Browse by category</h2>
-        <p className="text-sm text-muted-foreground">Jump straight into the collections collectors search most.</p>
+        <h2 className="font-heading text-2xl font-semibold text-slate-950 dark:text-white">Browse by category</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Jump into the collections collectors search most.
+        </p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {CATEGORIES.map((category) => {
           const Icon = category.icon;
+          const meta = BROWSE_TAXONOMY_LABELS[category.id];
           return (
             <Link
               key={category.href}
               href={category.href}
-              className="group flex flex-col gap-3 border border-border/80 bg-gradient-to-br from-slate-50 to-white p-5 transition-all hover:border-amber-500/40 hover:shadow-sm dark:from-slate-950 dark:to-slate-900"
+              className="group flex flex-col gap-3 border border-slate-200 bg-white p-4 transition-all hover:border-amber-500/40 hover:shadow-sm dark:border-slate-800 dark:bg-slate-950"
             >
-              <div className="flex size-10 items-center justify-center rounded-full bg-slate-900 text-amber-400 transition-transform group-hover:scale-105 dark:bg-amber-500/15">
-                <Icon className="size-5" aria-hidden />
+              <div className="flex size-9 items-center justify-center rounded-full bg-slate-950 text-amber-400 transition-transform group-hover:scale-105">
+                <Icon className="size-4" aria-hidden />
               </div>
               <div>
-                <h3 className="font-heading text-lg font-semibold">{category.label}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
+                <h3 className="font-heading text-lg font-semibold text-slate-950 dark:text-white">{meta.label}</h3>
+                <p className="mt-1 text-xs text-slate-500">{meta.children.join(", ")}</p>
               </div>
             </Link>
           );

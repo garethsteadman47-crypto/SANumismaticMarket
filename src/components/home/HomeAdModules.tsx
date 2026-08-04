@@ -52,7 +52,7 @@ export function HomeAdModules() {
             MintMark Gold
           </span>
           <h3 className="font-heading text-2xl font-semibold text-amber-50">
-            Waive your R15 verification fee on every checkout &amp; list unlimited items.
+            Waive your R15 verification fee on every checkout and list unlimited items.
           </h3>
           <p className="text-sm text-slate-300">
             Priority search indexing, early auction access, and instant settlement for power traders.

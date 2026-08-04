@@ -41,17 +41,15 @@ export const COMMISSION_SCHEDULE_BPS: Record<SubscriptionTier, Record<PriceTier,
 
 /**
  * Certification verification fee charged at checkout, by membership tier.
- * STANDARD pays full R15; SILVER half (R7.50); GOLD/DEALER waived.
+ * STANDARD and SILVER pay the full R15; GOLD/DEALER waived.
  */
 export function getVerificationFeeCents(tier: SubscriptionTier): number {
   switch (tier) {
-    case SubscriptionTier.STANDARD:
-      return BASE_VERIFICATION_FEE_CENTS;
-    case SubscriptionTier.SILVER:
-      return Math.round(BASE_VERIFICATION_FEE_CENTS / 2);
     case SubscriptionTier.GOLD:
     case SubscriptionTier.DEALER:
       return 0;
+    case SubscriptionTier.STANDARD:
+    case SubscriptionTier.SILVER:
     default:
       return BASE_VERIFICATION_FEE_CENTS;
   }

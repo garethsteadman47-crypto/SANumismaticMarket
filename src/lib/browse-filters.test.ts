@@ -41,10 +41,10 @@ describe("parseBrowseFilters", () => {
   });
 
   it("accepts homepage ?category= deep-links as taxonomy aliases", () => {
-    expect(parseBrowseFilters({ category: "zar-union" }).taxonomy).toBe("zar-union");
-    expect(parseBrowseFilters({ category: "bullion" }).taxonomy).toBe("republic");
+    expect(parseBrowseFilters({ category: "zar" }).taxonomy).toBe("zar");
+    expect(parseBrowseFilters({ category: "bullion" }).taxonomy).toBe("bullion");
     expect(parseBrowseFilters({ category: "banknotes" }).taxonomy).toBe("banknotes");
-    expect(parseBrowseFilters({ category: "sets" }).taxonomy).toBe("sets-wildlife");
+    expect(parseBrowseFilters({ category: "sets" }).taxonomy).toBe("sets");
   });
 
   it("prefers taxonomy= over category= when both are present", () => {
@@ -139,12 +139,12 @@ describe("buildListingWhere", () => {
     expect(where?.AND).toContainEqual({ priceCents: { gte: 10000, lte: 50000 } });
   });
 
-  it("merges in the taxonomy predicate when a node is selected, inheriting the parent's year range too", () => {
-    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "republic-silver-krugerrands" }));
+  it("merges in the taxonomy predicate when a node is selected, inheriting parent constraints", () => {
+    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "bullion-silver-krugerrands" }));
     expect(where?.AND).toContainEqual({
-      category: { in: ["KRUGERRAND", "COINS"] },
+      category: { in: ["BULLION", "KRUGERRAND"] },
+      listingType: { in: ["BULLION", "RAW", "GRADED"] },
       metal: { in: ["SILVER"] },
-      year: { gte: 1961 },
       OR: expect.any(Array),
     });
   });
@@ -197,8 +197,8 @@ describe("getActiveFilterPills", () => {
     expect(pills[0].label).toBe("1874–1902");
   });
 
-  it("shows the taxonomy pill with the 'Parent → Child' label", () => {
+  it("shows the taxonomy pill with the 'Parent / Child' label", () => {
     const pills = getActiveFilterPills(parseBrowseFilters({ taxonomy: "zar-ponde" }));
-    expect(pills[0].label).toContain("→");
+    expect(pills[0].label).toContain("ZAR / Ponde");
   });
 });

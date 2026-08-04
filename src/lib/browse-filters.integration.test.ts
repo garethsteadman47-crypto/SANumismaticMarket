@@ -311,7 +311,7 @@ describe("buildListingWhere against a real database", () => {
       country: "South Africa",
     });
 
-    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "banknotes" }))!;
+    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "banknotes-global" }))!;
     const results = await db.listing.findMany({ where });
     expect(results.map((r) => r.id)).toEqual([german.id]);
   });

@@ -796,7 +796,7 @@ model WantedItem {
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Free-text era/category label (maps loosely onto taxonomy, e.g. "ZAR & Union").
+  // Free-text era/category label (maps loosely onto taxonomy, e.g. "ZAR Union").
   eraCategory   String
   targetYear    Int?
   minimumGrade  String?

@@ -288,7 +288,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
         <Card>
           <CardContent>
-            <ValuationChart points={valuationHistory.points} hernsReferenceValueCents={hernsMetrics.referenceValueCents} />
+            <ValuationChart
+              points={valuationHistory.points}
+              hernsReferenceValueCents={hernsMetrics.referenceValueCents}
+              mintage={listing.mintage ?? listing.verification?.mintage}
+            />
           </CardContent>
         </Card>
 
@@ -297,24 +301,31 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <CardTitle className="text-base">Hern&apos;s Handbook catalog reference</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Catalog number</dt>
-                <dd className="font-medium">{hernsMetrics.catalogNumber}</dd>
+            <div className="relative overflow-hidden rounded-lg">
+              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 blur-sm select-none pointer-events-none opacity-60">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Catalog number</dt>
+                  <dd className="font-medium">{hernsMetrics.catalogNumber}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Rarity rating</dt>
+                  <dd className="font-medium">{hernsMetrics.rarityRating}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Reference value</dt>
+                  <dd className="font-medium">{formatZarCents(hernsMetrics.referenceValueCents)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Edition</dt>
+                  <dd className="font-medium">{hernsMetrics.editionYear}</dd>
+                </div>
+              </dl>
+              <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-slate-950/50">
+                <p className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">
+                  Unlock with SA Coin Club
+                </p>
               </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Rarity rating</dt>
-                <dd className="font-medium">{hernsMetrics.rarityRating}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Reference value</dt>
-                <dd className="font-medium">{formatZarCents(hernsMetrics.referenceValueCents)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Edition</dt>
-                <dd className="font-medium">{hernsMetrics.editionYear}</dd>
-              </div>
-            </dl>
+            </div>
           </CardContent>
         </Card>
       </section>

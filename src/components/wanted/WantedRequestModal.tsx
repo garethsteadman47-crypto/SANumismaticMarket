@@ -78,7 +78,7 @@ export function WantedRequestModal({ triggerLabel = "Create Wanted Request" }: {
               id="era"
               value={eraCategory}
               onChange={(e) => setEraCategory(e.target.value)}
-              placeholder="e.g. ZAR & Union, Silver Krugerrand"
+              placeholder="e.g. ZAR Union, Silver Krugerrand"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

@@ -38,7 +38,7 @@ export default function LoginPage() {
       <p className="text-center text-xs text-muted-foreground">
         Prefer email?{" "}
         <Link href="/auth/signin" className="underline underline-offset-2 hover:text-foreground">
-          Sign in with email &amp; password
+          Sign in with email and password
         </Link>
       </p>
     </main>

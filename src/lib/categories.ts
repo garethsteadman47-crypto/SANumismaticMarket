@@ -19,7 +19,7 @@ export const CATEGORY_LABELS: Record<ListingCategory, string> = {
   BANKNOTES: "Banknotes",
   BULLION: "Bullion",
   KRUGERRAND: "Krugerrands",
-  MEDALLIONS_TOKENS: "Medallions & Tokens",
+  MEDALLIONS_TOKENS: "Medallions and Tokens",
   ACCESSORIES: "Accessories",
   OTHER: "Other",
 };

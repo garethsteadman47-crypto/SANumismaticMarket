@@ -10,7 +10,7 @@ export function HomePromoBanner() {
           <GavelIcon className="size-4 shrink-0 text-amber-400" aria-hidden />
           <span>
             <span className="font-semibold tracking-wide text-amber-400 uppercase">Featured dealer auction:</span>{" "}
-            Rare 1898 Veldpond &amp; Union Proof Sets now live.
+            Rare 1898 Veldpond and Union Proof Sets now live.
           </span>
         </p>
         <Link

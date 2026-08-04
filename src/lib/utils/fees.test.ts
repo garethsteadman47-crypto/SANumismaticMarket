@@ -38,9 +38,9 @@ describe("getPriceTier", () => {
 });
 
 describe("getVerificationFeeCents", () => {
-  it("waives verification fee for Gold and Dealer; halves it for Silver", () => {
+  it("charges R15 for Standard and Silver; waives for Gold and Dealer", () => {
     expect(getVerificationFeeCents(SubscriptionTier.STANDARD)).toBe(1_500);
-    expect(getVerificationFeeCents(SubscriptionTier.SILVER)).toBe(750);
+    expect(getVerificationFeeCents(SubscriptionTier.SILVER)).toBe(1_500);
     expect(getVerificationFeeCents(SubscriptionTier.GOLD)).toBe(0);
     expect(getVerificationFeeCents(SubscriptionTier.DEALER)).toBe(0);
   });

@@ -13,7 +13,7 @@ export default async function NewListingPage() {
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-3xl font-semibold">Create a listing</h1>
         <p className="text-sm text-muted-foreground">
-          Four-step wizard — identification, logistics, pricing strategy, then media &amp; verification preview.
+          Four-step wizard — identification, logistics, pricing strategy, then media and verification preview.
         </p>
       </div>
       <ListingWizard sellerTier={sellerTier} />
