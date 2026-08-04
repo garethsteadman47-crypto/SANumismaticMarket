@@ -15,10 +15,13 @@ export type SpotMetal = "GOLD" | "SILVER";
 
 export const TROY_OUNCE_GRAMS = 31.1034768;
 
-/** Approximate late-2025 ZAR spot levels, used as the mock feed's baseline. */
+/**
+ * Approximate ZAR spot baselines for the mock feed:
+ * Gold ≈ R1,400/g · Silver ≈ R31/g (converted via troy ounce).
+ */
 const BASE_PRICE_PER_OZ_CENTS: Record<SpotMetal, number> = {
-  GOLD: 48_500_00,
-  SILVER: 620_00,
+  GOLD: Math.round(1_400 * 100 * TROY_OUNCE_GRAMS), // ~R1,400/g
+  SILVER: Math.round(31 * 100 * TROY_OUNCE_GRAMS), // ~R31/g
 };
 
 const DAILY_DRIFT_RATIO: Record<SpotMetal, number> = {

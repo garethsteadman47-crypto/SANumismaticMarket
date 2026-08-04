@@ -47,6 +47,7 @@ describe("getTaxonomyNodeLabel", () => {
 
   it("returns 'Parent / Child' for a child node", () => {
     expect(getTaxonomyNodeLabel("zar-ponde")).toBe("ZAR / Ponde");
+    expect(getTaxonomyNodeLabel("republic-50c")).toBe("Republic / 50c");
   });
 });
 
@@ -62,6 +63,15 @@ describe("resolveTaxonomyPredicate", () => {
     expect(predicate?.minYear).toBe(1874);
     expect(predicate?.maxYear).toBe(1902);
     expect(predicate?.metals).toEqual(["GOLD"]);
+  });
+
+  it("exposes expanded denomination leaves for each era", () => {
+    expect(getTaxonomyNode("zar-veldpond")).toBeTruthy();
+    expect(getTaxonomyNode("union-half-crowns")).toBeTruthy();
+    expect(getTaxonomyNode("republic-half-c")).toBeTruthy();
+    expect(getTaxonomyNode("bullion-gold-krugerrands")).toBeTruthy();
+    expect(getTaxonomyNode("sets-natura")).toBeTruthy();
+    expect(getTaxonomyNode("banknotes-vintage-european")).toBeTruthy();
   });
 });
 

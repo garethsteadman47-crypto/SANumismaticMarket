@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GavelIcon, PlusIcon, ShieldCheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HeroSearchBar } from "@/components/home/HeroSearchBar";
 import { BUYER_PROTECTION_LABEL, SITE_NAME } from "@/lib/constants";
 
 /** Full-bleed dark hero — brand-first composition for the MintMark landing page. */
@@ -24,6 +25,8 @@ export function HomeHero() {
             Buy, sell, and bid on verified ZAR, Union, and world numismatic collectables with 100% Buyer Protection.
           </p>
         </div>
+
+        <HeroSearchBar />
 
         <div className="flex flex-wrap items-center gap-3">
           <Button

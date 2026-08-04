@@ -25,10 +25,11 @@ import { SITE_NAME } from "@/lib/constants";
 const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/listings", label: "Buy Coins", icon: CoinsIcon },
   { href: "/auctions", label: "Live Auctions", icon: GavelIcon },
-  { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
   { href: "/about", label: "About Us", icon: InfoIcon },
+  // Wishlist sits directly beside About Us and the Cart action cluster.
+  { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
 ];
 
 async function handleSignOut() {

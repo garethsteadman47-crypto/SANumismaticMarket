@@ -1,45 +1,44 @@
-import { AwardIcon, Building2Icon, CoinsIcon, CrownIcon, UserIcon } from "lucide-react";
+import { CrownIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
 import { SubscriptionTier } from "@prisma/client";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const TIER_CONFIG: Record<
-  SubscriptionTier,
-  { label: string; icon: typeof UserIcon; className: string }
-> = {
-  STANDARD: {
-    label: "Standard",
-    icon: UserIcon,
-    className: "bg-secondary text-secondary-foreground",
-  },
-  SILVER: {
-    label: "Silver Collector",
-    icon: CoinsIcon,
-    className: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100",
-  },
-  GOLD: {
-    label: "Gold Power Trader",
-    icon: CrownIcon,
-    className: "bg-amber-500 text-white hover:bg-amber-500",
-  },
-  DEALER: {
-    label: "Verified Dealer",
-    icon: Building2Icon,
-    className: "bg-slate-900 text-amber-300 hover:bg-slate-900",
-  },
-};
-
-/** Seller trust badge shown on listing cards and the product detail page. */
+/**
+ * Compact membership indicator — icon only (no bulky "Gold Power Trader" /
+ * "Silver Collector" text banners). Standard has no badge.
+ */
 export function TrustBadge({ tier, className }: { tier: SubscriptionTier; className?: string }) {
-  const { label, icon: Icon, className: tierClassName } = TIER_CONFIG[tier] ?? TIER_CONFIG.STANDARD;
+  if (tier === SubscriptionTier.STANDARD) {
+    return null;
+  }
+
+  if (tier === SubscriptionTier.SILVER) {
+    return (
+      <span title="Silver Member" className={cn("inline-flex items-center", className)}>
+        <CrownIcon className="h-4 w-4 text-slate-300" aria-hidden />
+        <span className="sr-only">Silver Member</span>
+      </span>
+    );
+  }
+
+  if (tier === SubscriptionTier.GOLD) {
+    return (
+      <span title="Gold Member" className={cn("inline-flex items-center", className)}>
+        <CrownIcon className="h-4 w-4 text-amber-500" aria-hidden />
+        <span className="sr-only">Gold Member</span>
+      </span>
+    );
+  }
+
+  // DEALER
   return (
-    <Badge className={cn("gap-1", tierClassName, className)}>
-      <Icon />
-      {label}
-    </Badge>
+    <span title="Verified Dealer" className={cn("inline-flex items-center gap-0.5", className)}>
+      <CrownIcon className="h-4 w-4 text-amber-500" aria-hidden />
+      <ShieldCheckIcon className="h-4 w-4 text-amber-500" aria-hidden />
+      <span className="sr-only">Verified Dealer</span>
+    </span>
   );
 }
 
-/** Re-export Award for badge consumers that want the classic award glyph. */
-export { AwardIcon };
+/** Re-export for badge consumers that want a neutral user glyph. */
+export { UserIcon };

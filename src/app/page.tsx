@@ -13,6 +13,7 @@ import { CategoryQuickNav } from "@/components/home/CategoryQuickNav";
 import { FeaturedAuctionsSection } from "@/components/home/FeaturedAuctionsSection";
 import { HomeAdModules } from "@/components/home/HomeAdModules";
 import { ListingSection } from "@/components/ListingSection";
+import { MeltCalculator } from "@/components/MeltCalculator";
 
 export const dynamic = "force-dynamic";
 
@@ -70,31 +71,34 @@ export default async function HomePage() {
         />
       </div>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 sm:grid-cols-2">
-        <Link
-          href="/about"
-          className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
-        >
-          <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
-          <div>
-            <h3 className="font-heading text-lg font-semibold">{BUYER_PROTECTION_LABEL}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Funds held securely until delivery is confirmed — every graded lot carries independent verification.
-            </p>
-          </div>
-        </Link>
-        <Link
-          href="/spot-prices"
-          className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
-        >
-          <TrendingUpIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
-          <div>
-            <h3 className="font-heading text-lg font-semibold">Live spot prices</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track gold and silver in ZAR — sanity-check melt value before you bid or buy.
-            </p>
-          </div>
-        </Link>
+      <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 lg:grid-cols-[1fr_320px]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Link
+            href="/about"
+            className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
+          >
+            <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
+            <div>
+              <h3 className="font-heading text-lg font-semibold">{BUYER_PROTECTION_LABEL}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Funds held securely until delivery is confirmed — every graded lot carries independent verification.
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/spot-prices"
+            className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
+          >
+            <TrendingUpIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />
+            <div>
+              <h3 className="font-heading text-lg font-semibold">Live spot prices</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Track gold (~R1,400/g) and silver (~R31/g) — sanity-check melt value before you bid or buy.
+              </p>
+            </div>
+          </Link>
+        </div>
+        <MeltCalculator />
       </section>
     </main>
   );

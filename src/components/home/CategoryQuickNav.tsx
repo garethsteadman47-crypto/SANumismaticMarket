@@ -42,7 +42,10 @@ export function CategoryQuickNav() {
               </div>
               <div>
                 <h3 className="font-heading text-lg font-semibold text-slate-950 dark:text-white">{meta.label}</h3>
-                <p className="mt-1 text-xs text-slate-500">{meta.children.join(", ")}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                  {meta.children.slice(0, 4).join(", ")}
+                  {meta.children.length > 4 ? "…" : ""}
+                </p>
               </div>
             </Link>
           );

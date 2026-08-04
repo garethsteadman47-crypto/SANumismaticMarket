@@ -2,16 +2,7 @@
 
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { ValuationPoint } from "@/lib/api/valuation";
 import { Button } from "@/components/ui/button";
@@ -29,35 +20,37 @@ function formatQuarterLabel(isoDate: string): string {
 }
 
 /**
- * Historical pricing chart: Minted/mintage realized prices stay fully visible.
- * Hern's Handbook valuation series is visually gated (blurred + lock overlay)
- * until the collector links an SA Coin Club account (SSO placeholder).
+ * Historical pricing chart. When Hern access is locked we never put real Hern
+ * values into the chart series (flat zero only) and cover the plot with an
+ * opaque lock panel — CSS blur is not used for security.
  */
 export function ValuationChart({
   points,
   hernsReferenceValueCents,
   mintage,
+  hernsUnlocked = false,
 }: {
   points: ValuationPoint[];
   hernsReferenceValueCents?: number;
-  /** Optional mintage figure shown as baseline context under the chart. */
   mintage?: number | null;
+  /** True when the viewer has a linked SA Coin Club account. */
+  hernsUnlocked?: boolean;
 }) {
+  const locked = !hernsUnlocked && hernsReferenceValueCents != null;
+
   const data = points.map((point, index) => {
     const progress = points.length <= 1 ? 1 : index / (points.length - 1);
-    const herns =
-      hernsReferenceValueCents != null
+    const hernsUnlockedValue =
+      hernsUnlocked && hernsReferenceValueCents != null
         ? Math.round((hernsReferenceValueCents / 100) * (0.82 + progress * 0.18))
-        : undefined;
+        : 0;
     return {
       label: formatQuarterLabel(point.date),
       realized: point.realizedPriceCents / 100,
-      herns,
-      mintageProxy: mintage != null ? mintage : undefined,
+      // Locked viewers only ever receive a flat zero — never the catalog series.
+      herns: locked ? 0 : hernsUnlockedValue,
     };
   });
-
-  const gated = hernsReferenceValueCents != null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -71,9 +64,9 @@ export function ValuationChart({
         </p>
       )}
 
-      <div className="relative h-64 w-full overflow-hidden">
+      <div className="relative h-64 w-full overflow-hidden rounded-lg">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
             <XAxis dataKey="label" tick={AXIS_TICK_STYLE} interval={1} tickLine={false} axisLine={false} />
             <YAxis
@@ -85,54 +78,44 @@ export function ValuationChart({
             />
             <Tooltip
               formatter={(value, name) => {
-                const label = name === "herns" ? "Hern's (locked)" : "Realized price";
-                return [`R${Number(value).toLocaleString("en-ZA")}`, label];
+                if (name === "herns") {
+                  return locked ? ["Locked", "Hern's"] : [`R${Number(value).toLocaleString("en-ZA")}`, "Hern's"];
+                }
+                return [`R${Number(value).toLocaleString("en-ZA")}`, "Realized price"];
               }}
             />
-            {gated && (
-              <Area
-                type="monotone"
-                dataKey="herns"
-                stroke="#d97706"
-                fill="#f59e0b"
-                fillOpacity={0.25}
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                className="pointer-events-none"
-                isAnimationActive={false}
-              />
-            )}
+            <Line
+              type="monotone"
+              dataKey="herns"
+              stroke={locked ? "#334155" : "#d97706"}
+              strokeWidth={locked ? 1 : 2}
+              strokeDasharray={locked ? undefined : "4 4"}
+              dot={false}
+              name="herns"
+              isAnimationActive={false}
+            />
             <Line type="monotone" dataKey="realized" stroke="#0f172a" strokeWidth={2.5} dot={false} name="realized" />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
 
-        {gated && (
-          <>
-            {/* Blur / mask the Hern area + line while leaving the realized series readable */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 backdrop-blur-[3px] [mask-image:linear-gradient(to_bottom,black_0%,black_42%,transparent_72%)] [-webkit-mask-image:linear-gradient(to_bottom,black_0%,black_42%,transparent_72%)]"
-            />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="pointer-events-auto flex max-w-[240px] flex-col items-center gap-2 rounded-lg border border-slate-200 bg-white/95 p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-950/95">
-                <div className="flex size-9 items-center justify-center rounded-full bg-slate-950 text-amber-400">
-                  <Lock className="size-4" aria-hidden />
-                </div>
-                <p className="text-xs font-medium text-slate-900 dark:text-slate-100">
-                  Hern&apos;s Catalog valuations are locked.
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-slate-950 text-white hover:bg-slate-800"
-                  nativeButton={false}
-                  render={<Link href="/login" />}
-                >
-                  Link SA Coin Club Account
-                </Button>
+        {locked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 p-4">
+            <div className="flex max-w-[240px] flex-col items-center gap-2 text-center">
+              <div className="flex size-10 items-center justify-center rounded-full bg-slate-800 text-amber-400">
+                <Lock className="size-4" aria-hidden />
               </div>
+              <p className="text-sm font-medium text-white">Hern&apos;s Catalog valuations are locked.</p>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-amber-500 text-slate-950 hover:bg-amber-400"
+                nativeButton={false}
+                render={<Link href="/login" />}
+              >
+                Link SA Coin Club Account
+              </Button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
