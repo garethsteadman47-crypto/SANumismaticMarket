@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { GavelIcon, MenuIcon, PlusIcon } from "lucide-react";
+import {
+  CoinsIcon,
+  GavelIcon,
+  InfoIcon,
+  MenuIcon,
+  PlusIcon,
+  TrendingUpIcon,
+  CrownIcon,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,12 +21,13 @@ import { isDevLoginEnabled } from "@/lib/dev-users";
 import { countPendingOffersForSeller } from "@/lib/offers";
 import { SITE_NAME } from "@/lib/constants";
 
-const MAIN_NAV_LINKS = [
-  { href: "/listings", label: "Buy Coins", icon: "🪙" },
-  { href: "/auctions", label: "Live Auctions", icon: "🔨" },
-  { href: "/spot-prices", label: "Spot Prices", icon: "📈" },
-  { href: "/about", label: "About Us", icon: "ℹ️" },
-] as const;
+const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/listings", label: "Buy Coins", icon: CoinsIcon },
+  { href: "/auctions", label: "Live Auctions", icon: GavelIcon },
+  { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
+  { href: "/membership", label: "Membership", icon: CrownIcon },
+  { href: "/about", label: "About Us", icon: InfoIcon },
+];
 
 async function handleSignOut() {
   "use server";
@@ -27,16 +37,19 @@ async function handleSignOut() {
 function NavLinks() {
   return (
     <>
-      {MAIN_NAV_LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <span aria-hidden>{link.icon}</span>
-          {link.label}
-        </Link>
-      ))}
+      {MAIN_NAV_LINKS.map((link) => {
+        const Icon = link.icon;
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Icon className="size-3.5 shrink-0" aria-hidden />
+            {link.label}
+          </Link>
+        );
+      })}
     </>
   );
 }
@@ -60,9 +73,7 @@ export async function Navbar() {
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
                 <MintMarkLogo size={24} />
-                <span className="font-[family-name:var(--font-geist-sans)] font-bold text-slate-900 dark:text-white">
-                  {SITE_NAME}
-                </span>
+                <span className="font-heading text-lg font-semibold text-slate-900 dark:text-white">{SITE_NAME}</span>
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-4 px-4">
@@ -87,12 +98,12 @@ export async function Navbar() {
 
         <Link href="/" className="flex items-center gap-2">
           <MintMarkLogo size={28} />
-          <span className="hidden font-[family-name:var(--font-geist-sans)] text-lg font-bold text-slate-900 sm:inline dark:text-white">
+          <span className="hidden font-heading text-lg font-semibold text-slate-900 sm:inline dark:text-white">
             {SITE_NAME}
           </span>
         </Link>
 
-        <nav className="hidden flex-1 items-center gap-6 md:flex">
+        <nav className="hidden flex-1 items-center gap-5 md:flex lg:gap-6">
           <NavLinks />
         </nav>
 

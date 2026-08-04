@@ -40,6 +40,17 @@ describe("parseBrowseFilters", () => {
     expect(filters.formats).toEqual(["BUY_NOW", "AUCTION"]);
   });
 
+  it("accepts homepage ?category= deep-links as taxonomy aliases", () => {
+    expect(parseBrowseFilters({ category: "zar-union" }).taxonomy).toBe("zar-union");
+    expect(parseBrowseFilters({ category: "bullion" }).taxonomy).toBe("republic");
+    expect(parseBrowseFilters({ category: "banknotes" }).taxonomy).toBe("banknotes");
+    expect(parseBrowseFilters({ category: "sets" }).taxonomy).toBe("sets-wildlife");
+  });
+
+  it("prefers taxonomy= over category= when both are present", () => {
+    expect(parseBrowseFilters({ taxonomy: "banknotes", category: "bullion" }).taxonomy).toBe("banknotes");
+  });
+
   it("silently drops unrecognized values instead of throwing", () => {
     const filters = parseBrowseFilters({ cert: "NGC,NOT_REAL", metal: "GOLD,BOGUS" });
     expect(filters.certifications).toEqual(["NGC"]);
@@ -129,11 +140,12 @@ describe("buildListingWhere", () => {
   });
 
   it("merges in the taxonomy predicate when a node is selected, inheriting the parent's year range too", () => {
-    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "republic-krugerrands" }));
+    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "republic-silver-krugerrands" }));
     expect(where?.AND).toContainEqual({
-      category: { in: ["KRUGERRAND"] },
-      metal: { in: ["GOLD"] },
+      category: { in: ["KRUGERRAND", "COINS"] },
+      metal: { in: ["SILVER"] },
       year: { gte: 1961 },
+      OR: expect.any(Array),
     });
   });
 });

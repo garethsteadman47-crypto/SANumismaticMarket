@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { GavelIcon, ShieldIcon } from "lucide-react";
+import { GavelIcon, RadioIcon, ShieldIcon } from "lucide-react";
 
 import { getAuctionById, getAuctionPhase, getMinimumNextBidCents } from "@/lib/auctions";
 import { formatZarCents } from "@/lib/utils/currency";
@@ -40,8 +40,22 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <Badge variant="outline">{CATEGORY_LABELS[auction.category]}</Badge>
-            <Badge className={isLive ? "bg-red-600 text-white hover:bg-red-600" : ""} variant={isLive ? "default" : "secondary"}>
-              {phase === "LIVE" ? "🔴 Live" : phase === "SCHEDULED" ? "Upcoming" : phase === "ENDED" ? "Ended" : "Cancelled"}
+            <Badge
+              className={isLive ? "gap-1 bg-red-600 text-white hover:bg-red-600" : ""}
+              variant={isLive ? "default" : "secondary"}
+            >
+              {phase === "LIVE" ? (
+                <>
+                  <RadioIcon className="size-3 animate-pulse" aria-hidden />
+                  Live
+                </>
+              ) : phase === "SCHEDULED" ? (
+                "Upcoming"
+              ) : phase === "ENDED" ? (
+                "Ended"
+              ) : (
+                "Cancelled"
+              )}
             </Badge>
           </div>
 

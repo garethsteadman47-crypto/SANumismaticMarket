@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { TAXONOMY_TREE } from "@/lib/numismatic-taxonomy";
 import { serializeBrowseFilters, parseBrowseFilters } from "@/lib/browse-filters";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { TaxonomyIcon } from "@/components/browse/TaxonomyIcon";
 
 /**
  * Collapsible, multi-level category navigation for `/listings`. Selecting a
@@ -32,13 +33,10 @@ export function CategoryTree({ basePath }: { basePath: string }) {
           <AccordionItem key={parent.id} value={parent.id}>
             <AccordionTrigger
               onClick={() => selectNode(parent.id)}
-              className={cn(
-                "text-sm",
-                selectedId === parent.id && "font-semibold text-primary"
-              )}
+              className={cn("text-sm", selectedId === parent.id && "font-semibold text-primary")}
             >
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden>{parent.emoji}</span>
+              <span className="flex items-center gap-2 text-left">
+                <TaxonomyIcon name={parent.icon} className={selectedId === parent.id ? "text-primary" : undefined} />
                 {parent.label}
               </span>
             </AccordionTrigger>
@@ -51,10 +49,14 @@ export function CategoryTree({ basePath }: { basePath: string }) {
                       type="button"
                       onClick={() => selectNode(child.id)}
                       className={cn(
-                        "rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                        "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                         selectedId === child.id && "bg-primary/10 font-medium text-primary"
                       )}
                     >
+                      <TaxonomyIcon
+                        name={child.icon}
+                        className={selectedId === child.id ? "text-primary" : undefined}
+                      />
                       {child.label}
                     </button>
                   ))}
