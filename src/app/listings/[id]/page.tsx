@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageGallery } from "@/components/ImageGallery";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
+import { WishlistToggle } from "@/components/WishlistToggle";
 import { ValuationChart } from "@/components/ValuationChart";
 import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
 import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
@@ -39,7 +40,16 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     db.listing.findUnique({
       where: { id },
       include: {
-        seller: { select: { id: true, name: true, subscriptionTier: true } },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            subscriptionTier: true,
+            isSaandDealer: true,
+            isCoinClubMember: true,
+            completedSalesCount: true,
+          },
+        },
         verification: true,
       },
     }),
@@ -55,6 +65,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const hernsMetrics = getHernsCatalogMetrics(valuationSeedKey, listing.priceCents);
   const shippingCarrier = getShippingCarrier(listing.priceCents);
   const shieldAwarded = listing.verification?.shieldAwarded ?? false;
+
+  const viewer =
+    session?.user?.id != null
+      ? await db.user.findUnique({
+          where: { id: session.user.id },
+          select: { isCoinClubMember: true },
+        })
+      : null;
+  const hernsUnlocked = viewer?.isCoinClubMember === true;
 
   const isOwnListing = session?.user?.id === listing.sellerId;
   const isSoldOut = listing.status !== "ACTIVE";
@@ -91,10 +110,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             {shieldAwarded && <ShieldBadge />}
           </div>
 
-          <h1 className="text-2xl font-semibold">{listing.title}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-semibold">{listing.title}</h1>
+            <WishlistToggle listingId={listing.id} />
+          </div>
 
-          <div className="flex items-center gap-2">
-            <TrustBadge tier={listing.seller.subscriptionTier} />
+          <div className="flex flex-col gap-2">
+            <SellerBadges
+              seller={{
+                subscriptionTier: listing.seller.subscriptionTier,
+                isSaandDealer: listing.seller.isSaandDealer,
+                isCoinClubMember: listing.seller.isCoinClubMember,
+                completedSalesCount: listing.seller.completedSalesCount,
+              }}
+            />
             <span className="text-sm text-muted-foreground">Sold by {listing.seller.name ?? "a private seller"}</span>
           </div>
 
@@ -268,7 +297,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
         <Card>
           <CardContent>
-            <ValuationChart points={valuationHistory.points} hernsReferenceValueCents={hernsMetrics.referenceValueCents} />
+            <ValuationChart
+              points={valuationHistory.points}
+              hernsReferenceValueCents={hernsMetrics.referenceValueCents}
+              mintage={listing.mintage ?? listing.verification?.mintage}
+              hernsUnlocked={hernsUnlocked}
+            />
           </CardContent>
         </Card>
 
@@ -277,24 +311,52 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <CardTitle className="text-base">Hern&apos;s Handbook catalog reference</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">Catalog number</dt>
-                <dd className="font-medium">{hernsMetrics.catalogNumber}</dd>
+            {hernsUnlocked ? (
+              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Catalog number</dt>
+                  <dd className="font-medium">{hernsMetrics.catalogNumber}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Rarity rating</dt>
+                  <dd className="font-medium">{hernsMetrics.rarityRating}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Reference value</dt>
+                  <dd className="font-medium">{formatZarCents(hernsMetrics.referenceValueCents)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Edition</dt>
+                  <dd className="font-medium">{hernsMetrics.editionYear}</dd>
+                </div>
+              </dl>
+            ) : (
+              <div className="relative overflow-hidden rounded-lg">
+                <dl className="pointer-events-none grid grid-cols-2 gap-3 text-sm select-none sm:grid-cols-4 opacity-40">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Catalog number</dt>
+                    <dd className="font-medium">••••</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Rarity rating</dt>
+                    <dd className="font-medium">••••</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Reference value</dt>
+                    <dd className="font-medium">••••</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Edition</dt>
+                    <dd className="font-medium">••••</dd>
+                  </div>
+                </dl>
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95">
+                  <p className="rounded-md border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-medium text-white">
+                    Unlock with SA Coin Club
+                  </p>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Rarity rating</dt>
-                <dd className="font-medium">{hernsMetrics.rarityRating}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Reference value</dt>
-                <dd className="font-medium">{formatZarCents(hernsMetrics.referenceValueCents)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Edition</dt>
-                <dd className="font-medium">{hernsMetrics.editionYear}</dd>
-              </div>
-            </dl>
+            )}
           </CardContent>
         </Card>
       </section>

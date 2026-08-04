@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookmarkIcon,
   CoinsIcon,
   GavelIcon,
   InfoIcon,
@@ -10,7 +11,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { TrustBadge } from "@/components/TrustBadge";
@@ -20,6 +21,7 @@ import { auth, signOut } from "@/lib/auth";
 import { isDevLoginEnabled } from "@/lib/dev-users";
 import { countPendingOffersForSeller } from "@/lib/offers";
 import { SITE_NAME } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/listings", label: "Buy Coins", icon: CoinsIcon },
@@ -27,6 +29,8 @@ const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
   { href: "/about", label: "About Us", icon: InfoIcon },
+  // Wishlist sits directly beside About Us and the Cart action cluster.
+  { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
 ];
 
 async function handleSignOut() {
@@ -113,13 +117,9 @@ export async function Navbar() {
           <CartButton />
 
           {session?.user && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="hidden lg:inline-flex"
-              nativeButton={false}
-              render={<Link href="/dashboard/offers" />}
+            <Link
+              href="/dashboard/offers"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "hidden lg:inline-flex")}
             >
               <GavelIcon />
               Offers
@@ -128,19 +128,16 @@ export async function Navbar() {
                   {pendingOfferCount}
                 </span>
               )}
-            </Button>
+            </Link>
           )}
 
-          <Button
-            type="button"
-            size="sm"
-            className="bg-amber-500 text-white hover:bg-amber-600"
-            nativeButton={false}
-            render={<Link href="/listings/new" />}
+          <Link
+            href="/listings/new"
+            className={cn(buttonVariants({ size: "sm" }), "bg-amber-500 text-white hover:bg-amber-600")}
           >
             <PlusIcon />
             <span className="hidden sm:inline">List an Item</span>
-          </Button>
+          </Link>
 
           {session?.user ? (
             <div className="flex items-center gap-2">
@@ -152,9 +149,9 @@ export async function Navbar() {
               </form>
             </div>
           ) : (
-            <Button type="button" variant="outline" size="sm" nativeButton={false} render={<Link href="/auth/signin" />}>
+            <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
               Sign In / Register
-            </Button>
+            </Link>
           )}
         </div>
       </div>

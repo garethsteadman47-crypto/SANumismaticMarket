@@ -1,24 +1,9 @@
 import { ListingCategory, ListingType, PreciousMetal, Prisma } from "@prisma/client";
 
 /**
- * A curated, collector-facing browse taxonomy for `/listings`, layered on
- * top of the existing flexible `Listing` schema (category/metal/year/
- * denomination/country) rather than replacing it.
- *
- * Why a separate layer instead of reshaping `ListingCategory`? The
- * requested tree mixes era, denomination, and bullion fraction — those
- * aren't naturally a single exclusive enum column, and `ListingCategory`
- * is already load-bearing across the homepage, `/category/[slug]`,
- * `ListingForm`, ad placements, and seed data. Recutting it would be a
- * high-risk, wide-blast-radius migration for what is fundamentally a
- * *browse/merchandising* concept. Instead, each node here declares a
- * `predicate` that's translated into a real Prisma `where` fragment
- * (`buildTaxonomyListingWhere`) — heuristic (denomination text matching),
- * but honest about it, and fully real filtering, not decoration.
- *
- * Selecting a parent applies its own predicate only; selecting a child
- * applies the parent's predicate AND the child's (children narrow, they
- * don't replace).
+ * Collector-facing browse taxonomy for `/listings`. Broad parents with
+ * nested denomination sub-categories — predicates map onto Listing fields
+ * without reshaping the Prisma enum.
  */
 
 export type TaxonomyIconName =
@@ -27,16 +12,12 @@ export type TaxonomyIconName =
   | "CircleDollarSign"
   | "Banknote"
   | "Layers"
-  | "ShieldAlert"
-  | "Deer"
   | "Gem"
   | "Package"
   | "Award"
-  | "Globe"
   | "ScrollText"
-  | "Buffalo"
-  | "Cat"
-  | "AlertTriangle";
+  | "AlertTriangle"
+  | "Cat";
 
 export interface TaxonomyPredicate {
   categories?: ListingCategory[];
@@ -44,174 +25,202 @@ export interface TaxonomyPredicate {
   listingTypes?: ListingType[];
   minYear?: number;
   maxYear?: number;
-  /** Matches if the denomination OR title contains any of these (case-insensitive). */
   keywordsAny?: string[];
-  /** `country != "South Africa"` when true. */
   nonSouthAfrican?: boolean;
 }
 
 export interface TaxonomyNode {
   id: string;
   label: string;
-  /** Lucide-oriented icon key rendered by CategoryTree (no emoji). */
   icon: TaxonomyIconName;
   predicate: TaxonomyPredicate;
   children?: TaxonomyNode[];
 }
 
+function child(
+  id: string,
+  label: string,
+  keywordsAny: string[],
+  extras: Partial<TaxonomyPredicate> & { icon?: TaxonomyIconName } = {},
+): TaxonomyNode {
+  const { icon = "Coins", ...predicate } = extras;
+  return { id, label, icon, predicate: { keywordsAny, ...predicate } };
+}
+
 export const TAXONOMY_TREE: TaxonomyNode[] = [
   {
-    id: "zar-union",
-    label: "South African ZAR & Union",
-    icon: "Landmark",
-    predicate: { categories: [ListingCategory.COINS], minYear: 1874, maxYear: 1960 },
+    id: "zar",
+    label: "ZAR",
+    icon: "Coins",
+    predicate: { categories: [ListingCategory.COINS], minYear: 1874, maxYear: 1902 },
     children: [
-      {
-        id: "zar-ponde",
-        label: "Ponde",
-        icon: "Coins",
-        predicate: { metals: [PreciousMetal.GOLD], keywordsAny: ["pond", "ponde"], maxYear: 1902 },
-      },
-      {
-        id: "zar-half-ponde",
-        label: "Half Ponde",
-        icon: "Coins",
-        predicate: { metals: [PreciousMetal.GOLD], keywordsAny: ["half pond", "half ponde"], maxYear: 1902 },
-      },
-      {
-        id: "zar-shillings",
-        label: "Shillings",
+      child("zar-veldpond", "Veldpond", ["veldpond"], { metals: [PreciousMetal.GOLD], icon: "Gem" }),
+      child("zar-ponde", "Ponde", ["pond", "ponde"], { metals: [PreciousMetal.GOLD], icon: "Gem" }),
+      child("zar-half-ponde", "Half Ponde", ["half pond", "half ponde"], {
+        metals: [PreciousMetal.GOLD],
+        icon: "Gem",
+      }),
+      child("zar-crowns", "Crowns (5 Shillings)", ["crown", "5 shilling", "5s"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "Award",
+      }),
+      child("zar-half-crowns", "Half Crowns (2.5 Shillings)", ["half crown", "2.5 shilling", "2/6"], {
+        metals: [PreciousMetal.SILVER],
         icon: "CircleDollarSign",
-        predicate: {
-          metals: [PreciousMetal.SILVER, PreciousMetal.NICKEL],
-          keywordsAny: ["shilling", "florin", "half crown", "crown"],
-        },
-      },
-      {
-        id: "zar-pennies",
-        label: "Pennies",
-        icon: "Coins",
-        predicate: {
-          metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
-          keywordsAny: ["penny", "pennies", "half penny"],
-        },
-      },
-      {
-        id: "zar-farthings",
-        label: "Farthings",
-        icon: "Coins",
-        predicate: {
-          metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
-          keywordsAny: ["farthing"],
-        },
-      },
+      }),
+      child("zar-florins", "Florins (2 Shillings)", ["florin", "2 shilling", "2s"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "CircleDollarSign",
+      }),
+      child("zar-shillings", "Shillings", ["shilling", "1s"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "CircleDollarSign",
+      }),
+      child("zar-sixpences", "Sixpences (6d)", ["sixpence", "6d", "6 pence"], {
+        metals: [PreciousMetal.SILVER],
+      }),
+      child("zar-threepences", "Threepences (3d)", ["threepence", "3d", "3 pence", "tickey"], {
+        metals: [PreciousMetal.SILVER],
+      }),
+      child("zar-pennies", "Pennies", ["penny", "pennies", "1d"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
+      child("zar-half-pennies", "Half Pennies", ["half penny", "halfpenny", "1/2d"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
+      child("zar-farthings", "Farthings", ["farthing"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
+    ],
+  },
+  {
+    id: "union",
+    label: "Union",
+    icon: "Landmark",
+    predicate: { categories: [ListingCategory.COINS], minYear: 1910, maxYear: 1960 },
+    children: [
+      child("union-crowns", "Crowns", ["crown", "5 shilling"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "Award",
+      }),
+      child("union-half-crowns", "Half Crowns", ["half crown", "2/6"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "CircleDollarSign",
+      }),
+      child("union-florins", "Florins", ["florin", "2 shilling"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "CircleDollarSign",
+      }),
+      child("union-shillings", "Shillings", ["shilling"], {
+        metals: [PreciousMetal.SILVER],
+        icon: "CircleDollarSign",
+      }),
+      child("union-sixpences", "Sixpences", ["sixpence", "6d"], { metals: [PreciousMetal.SILVER] }),
+      child("union-threepences", "Threepences", ["threepence", "3d", "tickey"], {
+        metals: [PreciousMetal.SILVER],
+      }),
+      child("union-pennies", "Pennies", ["penny", "pennies"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
+      child("union-half-pennies", "Half Pennies", ["half penny", "halfpenny"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
+      child("union-farthings", "Farthings", ["farthing"], {
+        metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+      }),
     ],
   },
   {
     id: "republic",
-    label: "South African Republic & Bullion",
-    icon: "Gem",
+    label: "Republic",
+    icon: "Landmark",
     predicate: {
-      categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND, ListingCategory.BULLION],
+      categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND],
       minYear: 1961,
     },
     children: [
-      {
-        id: "republic-silver-krugerrands",
-        label: "Silver Krugerrands",
-        icon: "Coins",
-        predicate: {
-          categories: [ListingCategory.KRUGERRAND, ListingCategory.COINS],
-          metals: [PreciousMetal.SILVER],
-          keywordsAny: ["krugerrand", "silver krugerrand"],
-        },
-      },
-      {
-        id: "republic-commemorative",
-        label: "Commemorative R1 & R2 Silver Coins",
-        icon: "Award",
-        predicate: {
-          categories: [ListingCategory.COINS],
-          metals: [PreciousMetal.SILVER],
-          keywordsAny: ["r1", "r2", "commemorative"],
-        },
-      },
-      {
-        id: "republic-fractional",
-        label: "Fractional Bullion",
+      child("republic-r2", "R2", ["r2", "2 rand"]),
+      child("republic-r1", "R1", ["r1", "1 rand"]),
+      child("republic-r5", "R5", ["r5", "5 rand"]),
+      child("republic-50c", "50c", ["50c", "50 cent"]),
+      child("republic-20c", "20c", ["20c", "20 cent"]),
+      child("republic-10c", "10c", ["10c", "10 cent"]),
+      child("republic-5c", "5c", ["5c", "5 cent"]),
+      child("republic-2c", "2c", ["2c", "2 cent"]),
+      child("republic-1c", "1c", ["1c", "1 cent"]),
+      child("republic-half-c", "1/2c", ["1/2c", "half cent", "0.5c"]),
+    ],
+  },
+  {
+    id: "bullion",
+    label: "Bullion",
+    icon: "Gem",
+    predicate: {
+      categories: [ListingCategory.BULLION, ListingCategory.KRUGERRAND],
+      listingTypes: [ListingType.BULLION, ListingType.RAW, ListingType.GRADED],
+    },
+    children: [
+      child(
+        "bullion-silver-krugerrands",
+        "Silver Krugerrands",
+        ["silver krugerrand", "krugerrand"],
+        { metals: [PreciousMetal.SILVER] },
+      ),
+      child("bullion-gold-krugerrands", "Gold Krugerrands", ["gold krugerrand", "krugerrand"], {
+        metals: [PreciousMetal.GOLD],
         icon: "Gem",
-        predicate: {
-          categories: [ListingCategory.BULLION, ListingCategory.KRUGERRAND],
-          listingTypes: [ListingType.BULLION],
-          keywordsAny: ["1/2 oz", "1/4 oz", "1/10 oz", "fractional", "half ounce", "quarter ounce"],
-        },
-      },
-      {
-        id: "republic-uncirculated",
-        label: "Uncirculated Stock",
-        icon: "Package",
-        predicate: {
-          listingTypes: [ListingType.RAW, ListingType.BULLION],
-          keywordsAny: ["uncirculated", "bu", "brilliant uncirculated", "mint state"],
-        },
-      },
+      }),
+      child(
+        "bullion-fractional",
+        "Fractional Bullion",
+        ["1/2 oz", "1/4 oz", "1/10 oz", "fractional", "half ounce", "quarter ounce"],
+        { icon: "Gem" },
+      ),
+      child("bullion-bars", "Bars", ["bar", "ingot", "cast bar"], { icon: "Package" }),
+    ],
+  },
+  {
+    id: "sets",
+    label: "Sets",
+    icon: "Layers",
+    predicate: { keywordsAny: ["set", "proof set", "mint set", "wildlife", "natura", "protea"] },
+    children: [
+      child("sets-proof", "Proof Sets", ["proof set"], { icon: "Award" }),
+      child("sets-mint", "Mint Sets", ["mint set", "uncirculated set"], { icon: "Layers" }),
+      child("sets-wildlife", "Wildlife Series (Big Five)", ["wildlife", "buffalo", "leopard", "big five"], {
+        icon: "Layers",
+      }),
+      child("sets-natura", "Natura Sets", ["natura"], { icon: "Award" }),
+      child("sets-protea", "Protea Sets", ["protea"], { icon: "Award" }),
     ],
   },
   {
     id: "banknotes",
-    label: "Global & International Banknotes",
+    label: "Banknotes",
     icon: "Banknote",
-    predicate: {
-      categories: [ListingCategory.BANKNOTES],
-      nonSouthAfrican: true,
-    },
+    predicate: { categories: [ListingCategory.BANKNOTES] },
     children: [
-      {
-        id: "banknotes-specimen",
-        label: "Global Specimen Notes",
+      child("banknotes-zar", "ZAR Notes", ["zar note", "zuid-afrikaansche", "kruger note"], {
         icon: "ScrollText",
-        predicate: { keywordsAny: ["specimen", "cuban", "belarusian", "cuba", "belarus"] },
-      },
-      {
-        id: "banknotes-european",
-        label: "Vintage European",
+        maxYear: 1910,
+      }),
+      child("banknotes-union", "Union Notes", ["union note", "reserve bank"], {
         icon: "Landmark",
-        predicate: { keywordsAny: ["notgeld", "german", "european", "weimar"] },
-      },
-    ],
-  },
-  {
-    id: "sets-wildlife",
-    label: "Sets, Wildlife & Varieties",
-    icon: "Layers",
-    predicate: {
-      keywordsAny: ["set", "big five", "buffalo", "leopard", "error", "variety", "proof set"],
-    },
-    children: [
-      {
-        id: "sets-buffalo",
-        label: "Big Five Buffalo Double Coin Sets",
-        icon: "Layers",
-        predicate: { keywordsAny: ["buffalo", "big five buffalo", "double coin"] },
-      },
-      {
-        id: "sets-leopard",
-        label: "Silver Leopard Sets",
-        icon: "Cat",
-        predicate: { keywordsAny: ["leopard", "silver leopard"] },
-      },
-      {
-        id: "sets-proof",
-        label: "Vintage Proof Sets",
-        icon: "Award",
-        predicate: { keywordsAny: ["proof set", "union proof", "sa proof"] },
-      },
-      {
-        id: "errors-coins",
-        label: "Error Coins",
-        icon: "AlertTriangle",
-        predicate: { keywordsAny: ["error", "clipped planchet", "die crack", "off-center", "variety"] },
-      },
+        minYear: 1910,
+        maxYear: 1961,
+      }),
+      child("banknotes-republic", "Republic Notes", ["republic note", "rand note", "r10", "r20", "r50", "r100", "r200"], {
+        icon: "Banknote",
+        minYear: 1961,
+      }),
+      child("banknotes-global-specimen", "Global Specimen", ["specimen"], {
+        icon: "ScrollText",
+        nonSouthAfrican: true,
+      }),
+      child("banknotes-vintage-european", "Vintage European", ["notgeld", "weimar", "european", "vintage"], {
+        icon: "Landmark",
+        nonSouthAfrican: true,
+      }),
     ],
   },
 ];
@@ -224,8 +233,8 @@ interface FlatEntry {
 const FLAT_INDEX: Map<string, FlatEntry> = new Map();
 for (const node of TAXONOMY_TREE) {
   FLAT_INDEX.set(node.id, { node });
-  for (const child of node.children ?? []) {
-    FLAT_INDEX.set(child.id, { node: child, parent: node });
+  for (const childNode of node.children ?? []) {
+    FLAT_INDEX.set(childNode.id, { node: childNode, parent: node });
   }
 }
 
@@ -236,7 +245,7 @@ export function getTaxonomyNode(id: string): FlatEntry | undefined {
 export function getTaxonomyNodeLabel(id: string): string | undefined {
   const entry = getTaxonomyNode(id);
   if (!entry) return undefined;
-  return entry.parent ? `${entry.parent.label} → ${entry.node.label}` : entry.node.label;
+  return entry.parent ? `${entry.parent.label} / ${entry.node.label}` : entry.node.label;
 }
 
 function mergePredicates(a: TaxonomyPredicate, b: TaxonomyPredicate): TaxonomyPredicate {
@@ -251,7 +260,6 @@ function mergePredicates(a: TaxonomyPredicate, b: TaxonomyPredicate): TaxonomyPr
   };
 }
 
-/** Resolves the effective predicate for a node id — parent's predicate merged with (narrowed by) the child's own, if it's a child. */
 export function resolveTaxonomyPredicate(id: string): TaxonomyPredicate | undefined {
   const entry = getTaxonomyNode(id);
   if (!entry) return undefined;
@@ -259,7 +267,6 @@ export function resolveTaxonomyPredicate(id: string): TaxonomyPredicate | undefi
   return mergePredicates(entry.parent.predicate, entry.node.predicate);
 }
 
-/** Converts a resolved predicate into a real Prisma `Listing.where` fragment. */
 export function buildTaxonomyListingWhere(predicate: TaxonomyPredicate): Prisma.ListingWhereInput {
   const where: Prisma.ListingWhereInput = {};
 
@@ -291,11 +298,6 @@ export function buildTaxonomyListingWhere(predicate: TaxonomyPredicate): Prisma.
   return where;
 }
 
-/**
- * Auctions lack year/denomination/country fields, so only category + metal
- * narrow the taxonomy selection there — everything else is left unfiltered
- * for auctions rather than incorrectly excluding them.
- */
 export function buildTaxonomyAuctionWhere(predicate: TaxonomyPredicate): Prisma.AuctionWhereInput {
   const where: Prisma.AuctionWhereInput = {};
   if (predicate.categories?.length) {

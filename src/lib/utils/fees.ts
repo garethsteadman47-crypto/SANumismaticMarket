@@ -11,6 +11,9 @@ import { SubscriptionTier } from "@prisma/client";
 export const CENTS_PER_RAND = 100;
 export const VAT_RATE_BPS = 1500; // SARS standard rate: 15%
 
+/** Flat certification verification fee (ZA cents) before tier discounts. */
+export const BASE_VERIFICATION_FEE_CENTS = 1_500; // R15
+
 export type PriceTier = 1 | 2 | 3 | 4;
 
 /** Upper bound (inclusive) of each price tier, in ZA cents. */
@@ -26,13 +29,31 @@ export const PRICE_TIER_BOUNDARIES_CENTS: Record<Exclude<PriceTier, 4>, number> 
  *              Tier 1 (≤R10k)  Tier 2 (≤R50k)  Tier 3 (≤R150k)  Tier 4 (>R150k)
  * STANDARD          7.5%            5%              2.5%             2%
  * SILVER              6%            4%                2%           1.5%
- * GOLD              4.5%            3%              1.5%             1%   (uncapped floor)
+ * GOLD              4.5%            3%              1.5%             1%
+ * DEALER            3.5%            2%                1%          0.75%
  */
 export const COMMISSION_SCHEDULE_BPS: Record<SubscriptionTier, Record<PriceTier, number>> = {
   STANDARD: { 1: 750, 2: 500, 3: 250, 4: 200 },
   SILVER: { 1: 600, 2: 400, 3: 200, 4: 150 },
   GOLD: { 1: 450, 2: 300, 3: 150, 4: 100 },
+  DEALER: { 1: 350, 2: 200, 3: 100, 4: 75 },
 };
+
+/**
+ * Certification verification fee charged at checkout, by membership tier.
+ * STANDARD and SILVER pay the full R15; GOLD/DEALER waived.
+ */
+export function getVerificationFeeCents(tier: SubscriptionTier): number {
+  switch (tier) {
+    case SubscriptionTier.GOLD:
+    case SubscriptionTier.DEALER:
+      return 0;
+    case SubscriptionTier.STANDARD:
+    case SubscriptionTier.SILVER:
+    default:
+      return BASE_VERIFICATION_FEE_CENTS;
+  }
+}
 
 export class InvalidPriceError extends Error {
   constructor(priceCents: number) {
@@ -52,8 +73,7 @@ function assertValidPriceCents(priceCents: number): void {
  *
  * Tier 4 is the uncapped, open-ended top bracket — there is no upper
  * boundary, so every listing above R150,000 (any amount, however large)
- * still resolves to tier 4, and Gold Dealers get the 1% "uncapped floor"
- * rate for the entire sale amount at that tier.
+ * still resolves to tier 4.
  */
 export function getPriceTier(priceCents: number): PriceTier {
   assertValidPriceCents(priceCents);
@@ -83,11 +103,6 @@ export interface CommissionResult {
 /**
  * Calculates the platform's commission on a sale, given the item's final
  * sale price and the seller's subscription tier at the time of sale.
- *
- * The rate is a flat rate applied to the *entire* sale price based on
- * which price bracket the sale falls into — it is not a marginal/graduated
- * calculation (i.e. a R60,000 sale is charged the Tier 2 rate on the full
- * R60,000, not Tier 1 rate on the first R10k plus Tier 2 on the rest).
  */
 export function calculateCommission(priceCents: number, subscriptionTier: SubscriptionTier): CommissionResult {
   assertValidPriceCents(priceCents);
@@ -134,8 +149,7 @@ export interface OrderFeeBreakdown {
 
 /**
  * Full fee breakdown for a completed sale, mirroring the `Order` model's
- * money fields 1:1 so this can be persisted directly at checkout/settlement
- * time (see `actions/listing.ts` and the future checkout/payout pipeline).
+ * money fields 1:1 so this can be persisted directly at checkout/settlement.
  */
 export function calculateOrderFeeBreakdown({
   itemPriceCents,

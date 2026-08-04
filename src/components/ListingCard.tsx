@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ImageOffIcon } from "lucide-react";
-import type { ListingCategory, SubscriptionTier } from "@prisma/client";
+import type { ListingCategory, ListingType, SubscriptionTier } from "@prisma/client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
+import { WishlistToggle } from "@/components/WishlistToggle";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { formatZarCents } from "@/lib/utils/currency";
+import { cn } from "@/lib/utils";
 
 export interface ListingCardData {
   id: string;
@@ -16,15 +19,30 @@ export interface ListingCardData {
   priceCents: number;
   images: string[];
   shieldAwarded: boolean;
-  seller: { subscriptionTier: SubscriptionTier };
+  listingType?: ListingType;
+  isSponsored?: boolean;
+  seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
 }
 
-export function ListingCard({ listing }: { listing: ListingCardData }) {
+export function ListingCard({
+  listing,
+  wishlisted = false,
+}: {
+  listing: ListingCardData;
+  wishlisted?: boolean;
+}) {
   const coverImage = listing.images[0];
+  const isCertified = listing.listingType === "GRADED" || listing.shieldAwarded;
 
   return (
     <Link href={`/listings/${listing.id}`} className="group block">
-      <Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
+      <Card
+        className={cn(
+          "h-full overflow-hidden transition-shadow group-hover:shadow-md",
+          isCertified && !listing.isSponsored && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent",
+          listing.isSponsored && "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent shadow-[inset_0_0_0_1px_rgba(245,158,11,0.12)]"
+        )}
+      >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {coverImage ? (
             <Image
@@ -44,13 +62,27 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               <ShieldBadge />
             </div>
           )}
+          {listing.isSponsored && (
+            <Badge className="absolute top-2 right-12 bg-amber-500/90 text-[0.65rem] font-semibold tracking-wide text-slate-950 uppercase hover:bg-amber-500">
+              Sponsored
+            </Badge>
+          )}
+          <div className="absolute top-2 right-2">
+            <WishlistToggle listingId={listing.id} initialWishlisted={wishlisted} />
+          </div>
         </div>
         <CardContent className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">{CATEGORY_LABELS[listing.category]}</span>
           <h3 className="line-clamp-2 text-sm font-medium">{listing.title}</h3>
           <div className="flex items-center justify-between gap-2 pt-1">
             <span className="text-base font-semibold">{formatZarCents(listing.priceCents)}</span>
-            <TrustBadge tier={listing.seller.subscriptionTier} className="text-[0.65rem]" />
+            <SellerBadges
+              seller={{
+                subscriptionTier: listing.seller.subscriptionTier,
+                isSaandDealer: listing.seller.isSaandDealer,
+              }}
+              compact
+            />
           </div>
         </CardContent>
       </Card>

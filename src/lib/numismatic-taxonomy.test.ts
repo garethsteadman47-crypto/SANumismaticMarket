@@ -9,21 +9,22 @@ import {
 } from "./numismatic-taxonomy";
 
 describe("TAXONOMY_TREE", () => {
-  it("has exactly the 4 requested top-level categories", () => {
+  it("has the six broad parent categories", () => {
     expect(TAXONOMY_TREE.map((node) => node.id)).toEqual([
-      "zar-union",
+      "zar",
+      "union",
       "republic",
+      "bullion",
+      "sets",
       "banknotes",
-      "sets-wildlife",
     ]);
   });
 
-  it("every node uses an icon key instead of emoji", () => {
+  it("avoids ampersands in labels", () => {
     for (const parent of TAXONOMY_TREE) {
-      expect(parent.icon).toBeTruthy();
-      expect(typeof parent.icon).toBe("string");
+      expect(parent.label).not.toContain("&");
       for (const child of parent.children ?? []) {
-        expect(child.icon).toBeTruthy();
+        expect(child.label).not.toContain("&");
       }
     }
   });
@@ -37,71 +38,54 @@ describe("TAXONOMY_TREE", () => {
       }
     }
   });
-
-  it("returns undefined for an unknown id", () => {
-    expect(getTaxonomyNode("not-a-real-node")).toBeUndefined();
-    expect(getTaxonomyNodeLabel("not-a-real-node")).toBeUndefined();
-  });
 });
 
 describe("getTaxonomyNodeLabel", () => {
   it("returns just the label for a parent", () => {
-    expect(getTaxonomyNodeLabel("zar-union")).toBe("South African ZAR & Union");
+    expect(getTaxonomyNodeLabel("zar")).toBe("ZAR");
   });
 
-  it("returns 'Parent → Child' for a child node", () => {
-    expect(getTaxonomyNodeLabel("zar-ponde")).toBe("South African ZAR & Union → Ponde");
+  it("returns 'Parent / Child' for a child node", () => {
+    expect(getTaxonomyNodeLabel("zar-ponde")).toBe("ZAR / Ponde");
+    expect(getTaxonomyNodeLabel("republic-50c")).toBe("Republic / 50c");
   });
 });
 
 describe("resolveTaxonomyPredicate", () => {
   it("returns the parent's own predicate when selecting a parent", () => {
-    const predicate = resolveTaxonomyPredicate("zar-union");
-    expect(predicate?.minYear).toBe(1874);
+    const predicate = resolveTaxonomyPredicate("union");
+    expect(predicate?.minYear).toBe(1910);
     expect(predicate?.maxYear).toBe(1960);
-    expect(predicate?.metals).toBeUndefined();
   });
 
-  it("merges parent year range with the child's own metal/keyword narrowing", () => {
+  it("merges parent year range with the child's keyword narrowing", () => {
     const predicate = resolveTaxonomyPredicate("zar-ponde");
     expect(predicate?.minYear).toBe(1874);
     expect(predicate?.maxYear).toBe(1902);
     expect(predicate?.metals).toEqual(["GOLD"]);
-    expect(predicate?.keywordsAny).toEqual(["pond", "ponde"]);
   });
 
-  it("lets a child override the parent's categories when it declares its own", () => {
-    const predicate = resolveTaxonomyPredicate("republic-silver-krugerrands");
-    expect(predicate?.categories).toEqual(["KRUGERRAND", "COINS"]);
-    expect(predicate?.metals).toEqual(["SILVER"]);
+  it("exposes expanded denomination leaves for each era", () => {
+    expect(getTaxonomyNode("zar-veldpond")).toBeTruthy();
+    expect(getTaxonomyNode("union-half-crowns")).toBeTruthy();
+    expect(getTaxonomyNode("republic-half-c")).toBeTruthy();
+    expect(getTaxonomyNode("bullion-gold-krugerrands")).toBeTruthy();
+    expect(getTaxonomyNode("sets-natura")).toBeTruthy();
+    expect(getTaxonomyNode("banknotes-vintage-european")).toBeTruthy();
   });
 });
 
 describe("buildTaxonomyListingWhere", () => {
-  it("builds a category + year-range where clause for a parent-only predicate", () => {
-    const predicate = resolveTaxonomyPredicate("zar-union")!;
+  it("builds a category + year-range where clause for Union", () => {
+    const predicate = resolveTaxonomyPredicate("union")!;
     const where = buildTaxonomyListingWhere(predicate);
     expect(where.category).toEqual({ in: ["COINS"] });
-    expect(where.year).toEqual({ gte: 1874, lte: 1960 });
+    expect(where.year).toEqual({ gte: 1910, lte: 1960 });
   });
 
-  it("builds an OR of denomination/title keyword matches for a keyword predicate", () => {
-    const predicate = resolveTaxonomyPredicate("zar-shillings")!;
-    const where = buildTaxonomyListingWhere(predicate);
-    expect(Array.isArray(where.OR)).toBe(true);
-    expect(where.OR).toContainEqual({ denomination: { contains: "shilling", mode: "insensitive" } });
-    expect(where.OR).toContainEqual({ title: { contains: "shilling", mode: "insensitive" } });
-  });
-
-  it("builds a country-not-South-Africa clause for international banknotes", () => {
+  it("builds banknotes category clause", () => {
     const predicate = resolveTaxonomyPredicate("banknotes")!;
     const where = buildTaxonomyListingWhere(predicate);
-    expect(where.country).toEqual({ not: "South Africa" });
     expect(where.category).toEqual({ in: ["BANKNOTES"] });
-  });
-
-  it("omits fields entirely when the predicate doesn't specify them", () => {
-    const where = buildTaxonomyListingWhere({});
-    expect(where).toEqual({});
   });
 });

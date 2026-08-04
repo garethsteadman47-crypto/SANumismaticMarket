@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { lookupCertificate } from "@/lib/api/verification";
 import { generateSlug } from "@/lib/slug";
 import { createListingSchema, type CreateListingInput } from "@/lib/validation/listing";
+import { getVerificationFeeCents } from "@/lib/utils/fees";
+import { createAuctionFromListingInput } from "@/lib/listing-auction";
 
 /**
  * Core "create listing" business logic, deliberately kept out of the
@@ -14,7 +16,7 @@ import { createListingSchema, type CreateListingInput } from "@/lib/validation/l
  */
 
 export type CreateListingResult =
-  | { success: true; listingId: string; slug: string; shieldAwarded: boolean }
+  | { success: true; listingId: string; slug: string; shieldAwarded: boolean; auctionId?: string }
   | { success: false; error: string; field?: string };
 
 export async function createListing(sellerId: string, input: CreateListingInput): Promise<CreateListingResult> {
@@ -30,15 +32,25 @@ export async function createListing(sellerId: string, input: CreateListingInput)
   const data = parsed.data;
   const isGraded = data.listingType === "GRADED";
 
+  const seller = await db.user.findUnique({
+    where: { id: sellerId },
+    select: { subscriptionTier: true },
+  });
+  if (!seller) {
+    return { success: false, error: "Seller account not found." };
+  }
+
+  // Auction path — create an Auction instead of (or in addition to) a fixed listing.
+  if (data.saleFormat === "AUCTION") {
+    return createAuctionFromListingInput(sellerId, data);
+  }
+
   let verificationLookup: Awaited<ReturnType<typeof lookupCertificate>> | null = null;
 
   if (isGraded) {
     const certificateId = data.certificateId!;
     const provider = data.verificationProvider as VerificationProvider;
 
-    // Fast, friendly pre-check. The unique index on `CertificateLock` below
-    // is the real, race-safe guarantee — this just avoids doing an
-    // external "API" lookup for a certificate we already know is taken.
     const existingLock = await db.certificateLock.findUnique({ where: { certificateId } });
     if (existingLock) {
       return {
@@ -59,6 +71,18 @@ export async function createListing(sellerId: string, input: CreateListingInput)
   }
 
   const slug = generateSlug(data.title);
+  const verificationFeeCents = getVerificationFeeCents(seller.subscriptionTier);
+  const feeStatus =
+    verificationFeeCents === 0 ? VerificationFeeStatus.WAIVED : VerificationFeeStatus.PENDING;
+
+  const imageUrls = [
+    data.coverImageUrl,
+    data.obverseImageUrl,
+    data.reverseImageUrl,
+    data.certificateImageUrl,
+    ...data.images,
+  ].filter((url): url is string => Boolean(url && url.length > 0));
+  const uniqueImages = [...new Set(imageUrls)];
 
   try {
     const listing = await db.$transaction(async (tx) => {
@@ -76,9 +100,18 @@ export async function createListing(sellerId: string, input: CreateListingInput)
           denomination: data.denomination || null,
           mintage: data.mintage,
           weightGrams: data.weightGrams,
+          diameterMm: data.diameterMm,
+          packageLengthCm: data.packageLengthCm,
+          packageWidthCm: data.packageWidthCm,
+          packageHeightCm: data.packageHeightCm,
           purityPercent: data.purityPercent,
           priceCents: data.priceCents,
-          images: data.images,
+          acceptsOffers: data.acceptsOffers ?? true,
+          images: uniqueImages.length > 0 ? uniqueImages : data.images,
+          coverImageUrl: data.coverImageUrl || null,
+          obverseImageUrl: data.obverseImageUrl || null,
+          reverseImageUrl: data.reverseImageUrl || null,
+          certificateImageUrl: data.certificateImageUrl || null,
           certificateId: isGraded ? data.certificateId : null,
           status: ListingStatus.ACTIVE,
         },
@@ -90,24 +123,16 @@ export async function createListing(sellerId: string, input: CreateListingInput)
             listingId: created.id,
             provider: data.verificationProvider as VerificationProvider,
             certificateId: data.certificateId!,
-            grade: verificationLookup.grade,
+            grade: verificationLookup.grade ?? data.condition ?? null,
             mintage: verificationLookup.mintage,
             historicalNotes: verificationLookup.historicalNotes,
             rawApiResponse: verificationLookup.rawApiResponse as Prisma.InputJsonValue,
             shieldAwarded: verificationLookup.shieldEligible,
-            // R15 flat fee — never charged upfront. Only deducted from the
-            // seller's escrow payout once the sale settles (see
-            // lib/utils/fees.ts `calculateOrderFeeBreakdown`).
-            feeCents: 1500,
-            feeStatus: VerificationFeeStatus.PENDING,
+            feeCents: verificationFeeCents,
+            feeStatus,
           },
         });
 
-        // The unique index on `certificateId` is the real anti-fraud
-        // guarantee: if another request raced us and locked this
-        // certificate first, this insert throws (Prisma error P2002) and
-        // the whole transaction — including the listing above — rolls
-        // back atomically.
         await tx.certificateLock.create({
           data: {
             certificateId: data.certificateId!,
@@ -119,6 +144,17 @@ export async function createListing(sellerId: string, input: CreateListingInput)
 
       return created;
     });
+
+    // Fire-and-forget wanted-item matching (logs notification stub).
+    void import("@/lib/wanted").then(({ matchWantedItemsForListing }) =>
+      matchWantedItemsForListing({
+        id: listing.id,
+        title: data.title,
+        year: data.year ?? null,
+        priceCents: data.priceCents,
+        condition: data.condition || null,
+      })
+    );
 
     return {
       success: true,

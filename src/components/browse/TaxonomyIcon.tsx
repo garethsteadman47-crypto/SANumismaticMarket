@@ -11,7 +11,6 @@ import {
   LayersIcon,
   PackageIcon,
   ScrollTextIcon,
-  ShieldAlertIcon,
 } from "lucide-react";
 
 import type { TaxonomyIconName } from "@/lib/numismatic-taxonomy";
@@ -23,16 +22,12 @@ const ICON_MAP: Record<TaxonomyIconName, LucideIcon> = {
   CircleDollarSign: CircleDollarSignIcon,
   Banknote: BanknoteIcon,
   Layers: LayersIcon,
-  ShieldAlert: ShieldAlertIcon,
-  Deer: GemIcon,
   Gem: GemIcon,
   Package: PackageIcon,
   Award: AwardIcon,
-  Globe: LandmarkIcon,
   ScrollText: ScrollTextIcon,
-  Buffalo: LayersIcon,
-  Cat: CatIcon,
   AlertTriangle: AlertTriangleIcon,
+  Cat: CatIcon,
 };
 
 export function TaxonomyIcon({

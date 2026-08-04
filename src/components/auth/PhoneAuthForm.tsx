@@ -83,7 +83,7 @@ export function PhoneAuthForm() {
         </div>
         <Button type="button" disabled={isPending || code.length !== OTP_LENGTH} onClick={handleVerify}>
           {isPending && <Loader2Icon className="animate-spin" />}
-          Verify & Sign in
+          Verify and Sign in
         </Button>
       </div>
     );

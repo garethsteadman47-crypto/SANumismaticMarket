@@ -1,16 +1,22 @@
-import { ListingForm } from "@/components/ListingForm";
+import { auth } from "@/lib/auth";
+import { ListingWizard } from "@/components/listings/ListingWizard";
+import { SubscriptionTier } from "@prisma/client";
 
-export default function NewListingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewListingPage() {
+  const session = await auth();
+  const sellerTier = session?.user?.subscriptionTier ?? SubscriptionTier.STANDARD;
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Create a listing</h1>
+        <h1 className="font-heading text-3xl font-semibold">Create a listing</h1>
         <p className="text-sm text-muted-foreground">
-          List a coin, banknote, or bullion item. Graded items can be verified against SANGS, NGC, PCGS, or Hern&apos;s
-          Handbook before you publish.
+          Four-step wizard — identification, logistics, pricing, then media (drag-drop or image URL) and review.
         </p>
       </div>
-      <ListingForm />
+      <ListingWizard sellerTier={sellerTier} />
     </main>
   );
 }

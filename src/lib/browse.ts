@@ -23,6 +23,7 @@ export interface BrowseItem {
   priceCents: number;
   shieldAwarded: boolean;
   sellerTier: SubscriptionTier;
+  isSaandDealer?: boolean;
   formats: BrowseItemFormat[];
   auctionPhase?: AuctionPhase;
   endsAtIso?: string;
@@ -39,7 +40,7 @@ export interface ListingForBrowse {
   images: string[];
   acceptsOffers: boolean;
   createdAt: Date;
-  seller: { subscriptionTier: SubscriptionTier };
+  seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
   verification: { shieldAwarded: boolean } | null;
 }
 
@@ -58,6 +59,7 @@ export function toBrowseItemFromListing(listing: ListingForBrowse): BrowseItem {
     priceCents: listing.priceCents,
     shieldAwarded: listing.verification?.shieldAwarded ?? false,
     sellerTier: listing.seller.subscriptionTier,
+    isSaandDealer: listing.seller.isSaandDealer,
     formats,
     sortKey: listing.createdAt.getTime(),
   };
@@ -74,7 +76,7 @@ export interface AuctionForBrowse {
   startsAt: Date;
   endsAt: Date;
   createdAt: Date;
-  seller: { subscriptionTier: SubscriptionTier };
+  seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
   _count: { bids: number };
 }
 
@@ -92,6 +94,7 @@ export function toBrowseItemFromAuction(auction: AuctionForBrowse, phase: Auctio
     priceCents: effectivePriceCents,
     shieldAwarded: false,
     sellerTier: auction.seller.subscriptionTier,
+    isSaandDealer: auction.seller.isSaandDealer,
     formats: ["AUCTION"],
     auctionPhase: phase,
     endsAtIso: (phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString(),

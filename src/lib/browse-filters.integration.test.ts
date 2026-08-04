@@ -289,7 +289,7 @@ describe("buildListingWhere against a real database", () => {
     expect(results.map((r) => r.id)).toEqual([offersOk.id]);
   });
 
-  it("matches the Global banknotes taxonomy via country != South Africa", async () => {
+  it("matches Vintage European banknotes via country != South Africa", async () => {
     const { buildListingWhere, parseBrowseFilters } = await import("@/lib/browse-filters");
     const { db } = await import("@/lib/db");
     const seller = await makeSeller();
@@ -311,7 +311,7 @@ describe("buildListingWhere against a real database", () => {
       country: "South Africa",
     });
 
-    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "banknotes" }))!;
+    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "banknotes-vintage-european" }))!;
     const results = await db.listing.findMany({ where });
     expect(results.map((r) => r.id)).toEqual([german.id]);
   });

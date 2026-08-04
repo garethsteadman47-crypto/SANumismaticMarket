@@ -29,11 +29,16 @@ describe("spot price quotes", () => {
     expect(quote.history7d[quote.history7d.length - 1].pricePerOzCents).toBe(quote.pricePerOzCents);
   });
 
-  it("differs across metals", () => {
+  it("targets approximately R1,400/g gold and R31/g silver", () => {
     const now = new Date("2026-03-15T12:00:00.000Z");
     const gold = getSpotPriceQuote("GOLD", now);
     const silver = getSpotPriceQuote("SILVER", now);
-    expect(gold.pricePerOzCents).not.toBe(silver.pricePerOzCents);
+    const goldPerGramRands = gold.pricePerGramCents / 100;
+    const silverPerGramRands = silver.pricePerGramCents / 100;
+    expect(goldPerGramRands).toBeGreaterThan(1_300);
+    expect(goldPerGramRands).toBeLessThan(1_500);
+    expect(silverPerGramRands).toBeGreaterThan(28);
+    expect(silverPerGramRands).toBeLessThan(34);
   });
 });
 

@@ -326,7 +326,13 @@ export function ListingForm() {
                         <SelectValue placeholder="Select a registry" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.values(VerificationProvider).map((value) => (
+                        {(
+                          [
+                            VerificationProvider.NGC,
+                            VerificationProvider.SANGS,
+                            VerificationProvider.PCGS,
+                          ] as const
+                        ).map((value) => (
                           <SelectItem key={value} value={value}>
                             {getProviderLabel(value)}
                           </SelectItem>

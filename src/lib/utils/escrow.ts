@@ -19,7 +19,9 @@ import { OrderStatus, SubscriptionTier } from "@prisma/client";
 export const ESCROW_HOLD_DURATION_MS = 48 * 60 * 60 * 1000;
 
 export function determinePayoutVelocity(subscriptionTier: SubscriptionTier): "INSTANT" | "HOLD_48H" {
-  return subscriptionTier === SubscriptionTier.GOLD ? "INSTANT" : "HOLD_48H";
+  return subscriptionTier === SubscriptionTier.GOLD || subscriptionTier === SubscriptionTier.DEALER
+    ? "INSTANT"
+    : "HOLD_48H";
 }
 
 export interface SettlementSchedule {

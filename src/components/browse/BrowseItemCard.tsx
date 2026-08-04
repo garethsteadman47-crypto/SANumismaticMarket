@@ -5,15 +5,24 @@ import { GavelIcon, ImageOffIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
+import { WishlistToggle } from "@/components/WishlistToggle";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import type { BrowseItem } from "@/lib/browse";
 import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
+import { cn } from "@/lib/utils";
 
-export function BrowseItemCard({ item }: { item: BrowseItem }) {
+export function BrowseItemCard({ item, wishlisted = false }: { item: BrowseItem; wishlisted?: boolean }) {
+  const isCertified = item.shieldAwarded;
+
   return (
     <Link href={item.href} className="group block">
-      <Card className="h-full overflow-hidden transition-shadow group-hover:shadow-md">
+      <Card
+        className={cn(
+          "h-full overflow-hidden transition-shadow group-hover:shadow-md",
+          isCertified && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent"
+        )}
+      >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {item.image ? (
             <Image
@@ -34,10 +43,15 @@ export function BrowseItemCard({ item }: { item: BrowseItem }) {
             </div>
           )}
           {item.kind === "auction" && (
-            <Badge className="absolute top-2 right-2 gap-1 bg-black/70 text-white hover:bg-black/70">
+            <Badge className="absolute bottom-2 left-2 gap-1 bg-black/70 text-white hover:bg-black/70">
               <GavelIcon className="size-3" />
               {item.auctionPhase === "LIVE" ? "Live" : "Upcoming"}
             </Badge>
+          )}
+          {item.kind === "listing" && (
+            <div className="absolute top-2 right-2">
+              <WishlistToggle listingId={item.id} initialWishlisted={wishlisted} />
+            </div>
           )}
         </div>
         <CardContent className="flex flex-col gap-1.5">
@@ -52,10 +66,19 @@ export function BrowseItemCard({ item }: { item: BrowseItem }) {
               )}
               <span className="text-base font-semibold">{item.priceLabel}</span>
             </div>
-            <TrustBadge tier={item.sellerTier} className="text-[0.65rem]" />
+            <SellerBadges
+              seller={{
+                subscriptionTier: item.sellerTier,
+                isSaandDealer: item.isSaandDealer,
+              }}
+              compact
+            />
           </div>
           {item.kind === "auction" && item.endsAtIso && (
-            <AuctionCountdown targetIso={item.endsAtIso} label={item.auctionPhase === "SCHEDULED" ? "Starts in" : "Ends in"} />
+            <AuctionCountdown
+              targetIso={item.endsAtIso}
+              label={item.auctionPhase === "SCHEDULED" ? "Starts in" : "Ends in"}
+            />
           )}
         </CardContent>
       </Card>

@@ -20,7 +20,7 @@ const LISTING_BROWSE_SELECT = {
   images: true,
   acceptsOffers: true,
   createdAt: true,
-  seller: { select: { subscriptionTier: true } },
+  seller: { select: { subscriptionTier: true, isSaandDealer: true } },
   verification: { select: { shieldAwarded: true } },
 } as const;
 
@@ -45,7 +45,10 @@ export default async function BuyCoinsPage({
           where: auctionWhere,
           orderBy: { createdAt: "desc" },
           take: 60,
-          include: { seller: { select: { subscriptionTier: true } }, _count: { select: { bids: true } } },
+          include: {
+            seller: { select: { subscriptionTier: true, isSaandDealer: true } },
+            _count: { select: { bids: true } },
+          },
         })
       : Promise.resolve([]),
   ]);

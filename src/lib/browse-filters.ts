@@ -27,7 +27,7 @@ export const GRADE_BRACKET_LABELS: Record<GradeBracket, string> = {
   AU: "About Uncirculated (AU)",
   XF: "Extremely Fine (XF)",
   VF: "Very Fine (VF)",
-  FINE_BELOW: "Fine & Below",
+  FINE_BELOW: "Fine and Below",
 };
 /** Grade-string prefixes (case-insensitive) that fall into each bracket. */
 const GRADE_BRACKET_PREFIXES: Record<GradeBracket, string[]> = {
@@ -65,6 +65,8 @@ export const BUYING_FORMAT_LABELS: Record<BuyingFormat, string> = {
 
 export interface BrowseFilterState {
   taxonomy?: string;
+  /** Free-text catalogue search from the hero / browse search bar. */
+  q?: string;
   certifications: CertificationOption[];
   gradeBrackets: GradeBracket[];
   metals: MetalBucket[];
@@ -103,11 +105,13 @@ function parseIntParam(value: string | undefined): number | undefined {
  * short names (bullion/sets) onto the real taxonomy node ids.
  */
 const CATEGORY_TO_TAXONOMY: Record<string, string> = {
-  "zar-union": "zar-union",
-  bullion: "republic",
-  banknotes: "banknotes",
-  sets: "sets-wildlife",
+  zar: "zar",
+  "zar-union": "zar",
+  union: "union",
   republic: "republic",
+  bullion: "bullion",
+  banknotes: "banknotes",
+  sets: "sets",
   "sets-wildlife": "sets-wildlife",
 };
 
@@ -118,8 +122,10 @@ function resolveTaxonomyParam(searchParams: RawSearchParams): string | undefined
 }
 
 export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterState {
+  const q = firstString(searchParams.q)?.trim();
   return {
     taxonomy: resolveTaxonomyParam(searchParams),
+    q: q || undefined,
     certifications: parseCsv(firstString(searchParams.cert), CERTIFICATION_OPTIONS),
     gradeBrackets: parseCsv(firstString(searchParams.grade), GRADE_BRACKETS),
     metals: parseCsv(firstString(searchParams.metal), METAL_BUCKETS),
@@ -135,6 +141,7 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
 export function serializeBrowseFilters(filters: BrowseFilterState): string {
   const params = new URLSearchParams();
   if (filters.taxonomy) params.set("taxonomy", filters.taxonomy);
+  if (filters.q) params.set("q", filters.q);
   if (filters.certifications.length) params.set("cert", filters.certifications.join(","));
   if (filters.gradeBrackets.length) params.set("grade", filters.gradeBrackets.join(","));
   if (filters.metals.length) params.set("metal", filters.metals.join(","));
@@ -149,6 +156,7 @@ export function serializeBrowseFilters(filters: BrowseFilterState): string {
 export function isAnyFilterActive(filters: BrowseFilterState): boolean {
   return Boolean(
     filters.taxonomy ||
+      filters.q ||
       filters.certifications.length ||
       filters.gradeBrackets.length ||
       filters.metals.length ||
@@ -181,6 +189,16 @@ export function buildListingWhere(filters: BrowseFilterState): Prisma.ListingWhe
   if (filters.taxonomy) {
     const predicate = resolveTaxonomyPredicate(filters.taxonomy);
     if (predicate) and.push(buildTaxonomyListingWhere(predicate));
+  }
+
+  if (filters.q) {
+    and.push({
+      OR: [
+        { title: { contains: filters.q, mode: "insensitive" } },
+        { description: { contains: filters.q, mode: "insensitive" } },
+        { denomination: { contains: filters.q, mode: "insensitive" } },
+      ],
+    });
   }
 
   const certOr: Prisma.ListingWhereInput[] = [];
@@ -249,6 +267,15 @@ export function buildAuctionWhere(filters: BrowseFilterState): Prisma.AuctionWhe
     if (predicate) and.push(buildTaxonomyAuctionWhere(predicate));
   }
 
+  if (filters.q) {
+    and.push({
+      OR: [
+        { title: { contains: filters.q, mode: "insensitive" } },
+        { description: { contains: filters.q, mode: "insensitive" } },
+      ],
+    });
+  }
+
   if (filters.metals.length) {
     const metalValues = filters.metals.flatMap((bucket) => METAL_BUCKET_VALUES[bucket]);
     and.push({ metal: { in: metalValues } });
@@ -286,6 +313,14 @@ export function getActiveFilterPills(filters: BrowseFilterState): FilterPill[] {
   if (filters.taxonomy) {
     const label = getTaxonomyNodeLabel(filters.taxonomy) ?? filters.taxonomy;
     pills.push({ id: "taxonomy", label, hrefQuery: serializeBrowseFilters({ ...filters, taxonomy: undefined }) });
+  }
+
+  if (filters.q) {
+    pills.push({
+      id: "q",
+      label: `“${filters.q}”`,
+      hrefQuery: serializeBrowseFilters({ ...filters, q: undefined }),
+    });
   }
 
   for (const cert of filters.certifications) {

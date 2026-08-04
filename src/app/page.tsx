@@ -6,10 +6,12 @@ import { db } from "@/lib/db";
 import { getAuctionPhase } from "@/lib/auctions";
 import { LISTING_CARD_SELECT, toListingCardData } from "@/lib/listing-card";
 import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
+import { HomePromoBanner } from "@/components/home/HomePromoBanner";
 import { HomeHero } from "@/components/home/HomeHero";
 import { AuctionTicker } from "@/components/home/AuctionTicker";
 import { CategoryQuickNav } from "@/components/home/CategoryQuickNav";
 import { FeaturedAuctionsSection } from "@/components/home/FeaturedAuctionsSection";
+import { HomeAdModules } from "@/components/home/HomeAdModules";
 import { ListingSection } from "@/components/ListingSection";
 
 export const dynamic = "force-dynamic";
@@ -32,13 +34,12 @@ export default async function HomePage() {
     }),
     db.listing.findMany({
       where: { status: ListingStatus.ACTIVE },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ isSponsored: "desc" }, { createdAt: "desc" }],
       take: RECENT_TAKE,
       select: LISTING_CARD_SELECT,
     }),
   ]);
 
-  // Effective LIVE only (status can lag; endsAt/startsAt drive the UI phase).
   const featuredAuctions = liveAuctionRows
     .filter((auction) => getAuctionPhase(auction, now) === "LIVE")
     .map((auction) => ({
@@ -52,10 +53,12 @@ export default async function HomePage() {
 
   return (
     <main className="flex w-full flex-col gap-12 pb-16">
+      <HomePromoBanner />
       <HomeHero />
       <AuctionTicker auctions={featuredAuctions} />
       <CategoryQuickNav />
       <FeaturedAuctionsSection auctions={featuredAuctions} />
+      <HomeAdModules />
 
       <div className="mx-auto w-full max-w-7xl px-4">
         <ListingSection
@@ -88,7 +91,7 @@ export default async function HomePage() {
           <div>
             <h3 className="font-heading text-lg font-semibold">Live spot prices</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Track gold and silver in ZAR — sanity-check melt value before you bid or buy.
+              Track gold (~R1,400/g) and silver (~R31/g) — use the melt calculator in Buy Coins filters while browsing.
             </p>
           </div>
         </Link>

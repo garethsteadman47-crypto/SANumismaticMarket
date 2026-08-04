@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GavelIcon, PlusIcon, ShieldCheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HeroSearchBar } from "@/components/home/HeroSearchBar";
 import { BUYER_PROTECTION_LABEL, SITE_NAME } from "@/lib/constants";
 
 /** Full-bleed dark hero — brand-first composition for the MintMark landing page. */
@@ -18,12 +19,14 @@ export function HomeHero() {
         <div className="flex max-w-3xl flex-col gap-5">
           <p className="text-xs font-medium tracking-[0.22em] text-amber-400/90 uppercase">{SITE_NAME}</p>
           <h1 className="font-heading text-4xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-            The Premier Marketplace for Rare Coins &amp; Bullion
+            The Premier Marketplace for Rare Coins and Bullion
           </h1>
           <p className="max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
             Buy, sell, and bid on verified ZAR, Union, and world numismatic collectables with 100% Buyer Protection.
           </p>
         </div>
+
+        <HeroSearchBar />
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
