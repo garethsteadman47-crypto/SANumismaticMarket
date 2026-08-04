@@ -15,6 +15,15 @@ import {
   type SignUpInput,
 } from "@/lib/validation/auth";
 
+function authErrorMessage(err: AuthError, fallback: string): string {
+  // CredentialsSignin is the only case that means a bad email/password.
+  // Other AuthErrors (UntrustedHost, Configuration, etc.) used to be
+  // misreported as "Invalid email or password."
+  if (err.type === "CredentialsSignin") return fallback;
+  console.error("[auth]", err.type, err.message);
+  return "Sign-in failed. Please try again.";
+}
+
 /** Signs in with email + password. Uses `redirect: false` so we can surface a friendly error via toast. */
 export async function signInWithCredentialsAction(input: SignInInput): Promise<AuthActionResult> {
   const parsed = signInSchema.safeParse(input);
@@ -27,7 +36,7 @@ export async function signInWithCredentialsAction(input: SignInInput): Promise<A
     return { success: true };
   } catch (err) {
     if (err instanceof AuthError) {
-      return { success: false, error: "Invalid email or password." };
+      return { success: false, error: authErrorMessage(err, "Invalid email or password.") };
     }
     throw err;
   }
@@ -61,7 +70,10 @@ export async function signUpAction(input: SignUpInput): Promise<AuthActionResult
     if (err instanceof AuthError) {
       return {
         success: false,
-        error: "Your account was created, but automatic sign-in failed. Please sign in manually.",
+        error: authErrorMessage(
+          err,
+          "Your account was created, but automatic sign-in failed. Please sign in manually.",
+        ),
       };
     }
     throw err;
@@ -86,7 +98,7 @@ export async function devSignInAction(tier: SubscriptionTier): Promise<AuthActio
     return { success: true };
   } catch (err) {
     if (err instanceof AuthError) {
-      return { success: false, error: "Could not sign in as the demo user." };
+      return { success: false, error: authErrorMessage(err, "Could not sign in as the demo user.") };
     }
     throw err;
   }
