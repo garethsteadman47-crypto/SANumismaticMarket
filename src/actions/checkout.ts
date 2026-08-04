@@ -11,7 +11,8 @@ import { createOrder, type OrderActionResult } from "@/lib/orders";
  */
 export async function createOrderAction(
   listingId: string,
-  paymentProvider: PaymentProvider
+  paymentProvider: PaymentProvider,
+  offerId?: string
 ): Promise<OrderActionResult> {
   let buyerId: string | undefined;
   try {
@@ -27,7 +28,7 @@ export async function createOrderAction(
   }
 
   try {
-    return await createOrder({ buyerId, listingId, paymentProvider });
+    return await createOrder({ buyerId, listingId, paymentProvider, offerId });
   } catch (err) {
     console.error("createOrderAction: unexpected error", err);
     return { success: false, error: "Something went wrong while placing your order. Please try again." };

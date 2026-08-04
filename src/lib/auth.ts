@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
+import { findOrCreateUserForPhone, verifyPhoneOtp } from "@/lib/phone-otp";
 
 /**
  * Auth.js (NextAuth v5) configuration.
@@ -48,6 +49,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           image: user.image,
           role: user.role,
           subscriptionTier: user.subscriptionTier,
+        };
+      },
+    }),
+    // Phone-number OTP sign-in — see `lib/phone-otp.ts` for the challenge/
+    // verify logic and `components/auth/PhoneAuthForm.tsx` for the two-step
+    // UI (send code -> enter code) that calls this provider via
+    // `signIn("phone-otp", { phone, code, redirect: false })`.
+    Credentials({
+      id: "phone-otp",
+      name: "Phone number",
+      credentials: {
+        phone: { label: "Phone", type: "text" },
+        code: { label: "Code", type: "text" },
+      },
+      async authorize(credentials) {
+        const phone = credentials?.phone?.toString().trim();
+        const code = credentials?.code?.toString().trim();
+        if (!phone || !code) return null;
+
+        const result = await verifyPhoneOtp(phone, code);
+        if (!result.success) return null;
+
+        const user = await findOrCreateUserForPhone(phone);
+        const fullUser = await db.user.findUnique({ where: { id: user.id } });
+        if (!fullUser) return null;
+
+        return {
+          id: fullUser.id,
+          name: fullUser.name,
+          email: fullUser.email,
+          image: fullUser.image,
+          role: fullUser.role,
+          subscriptionTier: fullUser.subscriptionTier,
         };
       },
     }),

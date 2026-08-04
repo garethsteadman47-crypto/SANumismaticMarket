@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ShieldCheckIcon, TruckIcon } from "lucide-react";
+import { ShieldCheckIcon, ShieldIcon, TruckIcon } from "lucide-react";
 
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHernsCatalogMetrics, getMintedValuationHistory } from "@/lib/api/valuation";
 import { getProviderLabel } from "@/lib/api/verification";
+import { calculateMeltValueCents, calculatePremiumPercent, getSpotPriceQuote, isSpotTrackedMetal } from "@/lib/api/spot-prices";
 import { getShippingCarrier } from "@/lib/shipping";
 import { formatZarCents } from "@/lib/utils/currency";
 import { CATEGORY_LABELS } from "@/lib/categories";
+import { getAcceptedOfferForBuyer, getAcceptedOfferPriceCents, getOpenOfferForBuyer } from "@/lib/offers";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +20,10 @@ import { ImageGallery } from "@/components/ImageGallery";
 import { ShieldBadge } from "@/components/ShieldBadge";
 import { TrustBadge } from "@/components/TrustBadge";
 import { ValuationChart } from "@/components/ValuationChart";
+import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
+import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
+import { OfferStatusAlert } from "@/components/offers/OfferStatusAlert";
+import { AddToCartButton } from "@/components/cart/AddToCartButton";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +35,16 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const listing = await db.listing.findUnique({
-    where: { id },
-    include: {
-      seller: { select: { id: true, name: true, subscriptionTier: true } },
-      verification: true,
-    },
-  });
+  const [listing, session] = await Promise.all([
+    db.listing.findUnique({
+      where: { id },
+      include: {
+        seller: { select: { id: true, name: true, subscriptionTier: true } },
+        verification: true,
+      },
+    }),
+    auth(),
+  ]);
 
   if (!listing) {
     notFound();
@@ -44,6 +55,30 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const hernsMetrics = getHernsCatalogMetrics(valuationSeedKey, listing.priceCents);
   const shippingCarrier = getShippingCarrier(listing.priceCents);
   const shieldAwarded = listing.verification?.shieldAwarded ?? false;
+
+  const isOwnListing = session?.user?.id === listing.sellerId;
+  const isSoldOut = listing.status !== "ACTIVE";
+  const buyingDisabled = isOwnListing || isSoldOut;
+
+  const [openOffer, acceptedOffer] = session?.user
+    ? await Promise.all([getOpenOfferForBuyer(listing.id, session.user.id), getAcceptedOfferForBuyer(listing.id, session.user.id)])
+    : [null, null];
+
+  let spotWidget: { quote: ReturnType<typeof getSpotPriceQuote>; meltValueCents?: number; premiumPercent?: number } | null = null;
+  if (isSpotTrackedMetal(listing.metal)) {
+    const quote = getSpotPriceQuote(listing.metal);
+    let meltValueCents: number | undefined;
+    let premiumPercent: number | undefined;
+    if (listing.weightGrams && listing.purityPercent) {
+      meltValueCents = calculateMeltValueCents({
+        pricePerGramCents: quote.pricePerGramCents,
+        weightGrams: listing.weightGrams,
+        purityPercent: listing.purityPercent,
+      });
+      premiumPercent = calculatePremiumPercent(listing.priceCents, meltValueCents);
+    }
+    spotWidget = { quote, meltValueCents, premiumPercent };
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6">
@@ -65,9 +100,53 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
           <p className="text-3xl font-bold">{formatZarCents(listing.priceCents)}</p>
 
-          <Button type="button" size="lg" nativeButton={false} render={<Link href={`/checkout/${listing.id}`} />}>
-            Initiate Escrow Purchase
-          </Button>
+          {acceptedOffer && (
+            <Alert>
+              <AlertTitle>Your offer was accepted!</AlertTitle>
+              <AlertDescription>
+                You can buy this item at your negotiated price of{" "}
+                {formatZarCents(getAcceptedOfferPriceCents(acceptedOffer))}.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!acceptedOffer && openOffer && (
+            <OfferStatusAlert
+              offerId={openOffer.id}
+              status={openOffer.status}
+              offerAmountCents={openOffer.offerAmountCents}
+              counterAmountCents={openOffer.counterAmountCents}
+            />
+          )}
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="lg"
+                className="bg-amber-500 text-white hover:bg-amber-600"
+                disabled={buyingDisabled}
+                nativeButton={false}
+                render={<Link href={`/checkout/${listing.id}`} />}
+              >
+                Buy Now
+              </Button>
+              <AddToCartButton
+                listingId={listing.id}
+                title={listing.title}
+                priceCents={listing.priceCents}
+                image={listing.images[0] ?? null}
+                disabled={buyingDisabled}
+              />
+              {!acceptedOffer && !openOffer && (
+                <MakeOfferModal listingId={listing.id} listingPriceCents={listing.priceCents} disabled={buyingDisabled} />
+              )}
+            </div>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ShieldIcon className="size-3.5 text-emerald-600" />
+              Guaranteed Authentic | 100% Buyer Protection Guaranteed
+            </p>
+          </div>
 
           <Card>
             <CardContent className="flex items-start gap-3">
@@ -152,6 +231,23 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
       </div>
+
+      {spotWidget && (
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Live Metal Spot Price</h2>
+            <p className="text-sm text-muted-foreground">
+              Compare this listing against the raw commodity value of its {listing.metal.toLowerCase()} content.
+            </p>
+          </div>
+          <SpotPriceWidget
+            quote={spotWidget.quote}
+            metalLabel={listing.metal === "GOLD" ? "Gold (XAU/ZAR)" : "Silver (XAG/ZAR)"}
+            meltValueCents={spotWidget.meltValueCents}
+            premiumPercent={spotWidget.premiumPercent}
+          />
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <div>

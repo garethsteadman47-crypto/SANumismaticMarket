@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatZarCents } from "@/lib/utils/currency";
 import { PrintButton } from "@/components/orders/PrintButton";
+import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
 
 export interface InvoiceViewData {
   id: string;
@@ -98,7 +99,7 @@ export function InvoiceView({
 
         {invoice.type === InvoiceType.PLATFORM_TO_SELLER && (
           <Badge variant="outline" className="w-fit">
-            Deducted from your escrow payout
+            Deducted from your {BUYER_PROTECTION_LABEL} payout
           </Badge>
         )}
       </CardContent>

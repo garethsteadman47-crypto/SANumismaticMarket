@@ -8,6 +8,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ActiveAdPlacement } from "@/lib/ads";
 import { cn } from "@/lib/utils";
+import { BUYER_PROTECTION_LABEL, SITE_NAME } from "@/lib/constants";
 
 const ROTATE_INTERVAL_MS = 6000;
 
@@ -32,10 +33,12 @@ export function HeroCarousel({ slots }: { slots: ActiveAdPlacement[] }) {
     return (
       <div className="relative flex aspect-[16/6] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-amber-100 via-background to-slate-100 dark:from-amber-950/40 dark:to-slate-900">
         <div className="flex flex-col items-center gap-2 px-6 text-center">
-          <h1 className="text-2xl font-semibold sm:text-3xl">South Africa&apos;s trusted numismatic marketplace</h1>
+          <h1 className="text-2xl font-semibold sm:text-3xl">
+            {SITE_NAME} — South Africa&apos;s trusted numismatic marketplace
+          </h1>
           <p className="max-w-lg text-sm text-muted-foreground">
-            Buy and sell certified coins, banknotes, and bullion with escrow protection and independent verification
-            on every graded listing.
+            Buy and sell certified coins, banknotes, and bullion with {BUYER_PROTECTION_LABEL} and independent
+            verification on every graded listing.
           </p>
         </div>
       </div>

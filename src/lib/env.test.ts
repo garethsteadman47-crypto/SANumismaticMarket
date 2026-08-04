@@ -70,7 +70,7 @@ describe("env validation", () => {
         VERCEL_ENV: "production",
       })
     ).toBe(false);
-    expect(isBuildTime({ NEXT_PHASE: "phase-production-build" })).toBe(true);
+    expect(isBuildTime({ NODE_ENV: "production", NEXT_PHASE: "phase-production-build" })).toBe(true);
   });
 
   it("stays permissive in development without required upload secrets", () => {

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signInSchema, signUpSchema, type SignInInput, type SignUpInput } from "@/lib/validation/auth";
 import { signInWithCredentialsAction, signUpAction } from "@/actions/auth";
+import { PhoneAuthForm } from "@/components/auth/PhoneAuthForm";
 
 function SignInPanel() {
   const [isPending, startTransition] = useTransition();
@@ -109,12 +110,16 @@ export function AuthForm() {
       <TabsList className="w-full">
         <TabsTrigger value="signin">Sign in</TabsTrigger>
         <TabsTrigger value="signup">Create account</TabsTrigger>
+        <TabsTrigger value="phone">Phone</TabsTrigger>
       </TabsList>
       <TabsContent value="signin" className="pt-2">
         <SignInPanel />
       </TabsContent>
       <TabsContent value="signup" className="pt-2">
         <SignUpPanel />
+      </TabsContent>
+      <TabsContent value="phone" className="pt-2">
+        <PhoneAuthForm />
       </TabsContent>
     </Tabs>
   );

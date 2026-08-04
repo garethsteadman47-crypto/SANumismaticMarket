@@ -18,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { openDisputeAction } from "@/actions/order";
+import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
 
 export function DisputeDialog({ orderId }: { orderId: string }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +37,7 @@ export function DisputeDialog({ orderId }: { orderId: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Dispute opened — escrow funds are on hold until it's resolved.");
+      toast.success(`Dispute opened — your ${BUYER_PROTECTION_LABEL} funds are on hold until it's resolved.`);
       setOpen(false);
       router.refresh();
     });
@@ -52,7 +53,8 @@ export function DisputeDialog({ orderId }: { orderId: string }) {
         <DialogHeader>
           <DialogTitle>Open a dispute</DialogTitle>
           <DialogDescription>
-            This locks the escrow hold — funds will not release to the seller until the dispute is resolved.
+            This locks your {BUYER_PROTECTION_LABEL} hold — funds will not release to the seller until the dispute
+            is resolved.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">

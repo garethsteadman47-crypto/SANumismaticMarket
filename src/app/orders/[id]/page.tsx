@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { getOrderForViewer } from "@/lib/orders";
 import { canTransitionToSettled } from "@/lib/utils/escrow";
 import { formatZarCents } from "@/lib/utils/currency";
+import { BUYER_PROTECTION_LABEL, PLATFORM_LEGAL_NAME } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,7 +155,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           {showHoldSection && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">48-hour escrow hold</CardTitle>
+                <CardTitle className="text-base">48-hour {BUYER_PROTECTION_LABEL} hold</CardTitle>
                 <CardDescription>
                   Delivery was confirmed on {order.deliveredAt?.toLocaleString("en-ZA")}. Funds release to the
                   seller{" "}
@@ -180,8 +181,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <AlertDescription>
                 <p>{order.disputeReason}</p>
                 <p className="mt-1 text-xs">
-                  Opened {order.disputeOpenedAt?.toLocaleString("en-ZA")}. Escrow funds are locked until this is
-                  resolved.
+                  Opened {order.disputeOpenedAt?.toLocaleString("en-ZA")}. Your {BUYER_PROTECTION_LABEL} funds are
+                  locked until this is resolved.
                 </p>
               </AlertDescription>
             </Alert>
@@ -254,7 +255,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   fromLabel={
                     invoice.issuedById === order.sellerId
                       ? order.seller.name ?? order.seller.email
-                      : "SA Numismatic Marketplace (Pty) Ltd"
+                      : PLATFORM_LEGAL_NAME
                   }
                   toLabel={
                     invoice.issuedToId === order.buyerId

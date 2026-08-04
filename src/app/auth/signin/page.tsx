@@ -14,7 +14,7 @@ export default function SignInPage() {
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
       <div className="flex flex-col gap-1 text-center">
         <Link href="/" className="text-lg font-semibold">
-          SA Numismatic Marketplace
+          MintMark
         </Link>
         <p className="text-sm text-muted-foreground">Sign in to buy, sell, and manage your listings.</p>
       </div>

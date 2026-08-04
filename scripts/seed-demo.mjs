@@ -27,7 +27,7 @@ const PLACEHOLDER =
       </linearGradient></defs>
       <rect width="1200" height="800" fill="url(#g)"/>
       <circle cx="600" cy="360" r="140" fill="#d4af37" opacity="0.9"/>
-      <text x="600" y="620" text-anchor="middle" fill="#fafaf9" font-family="Georgia,serif" font-size="42">SA Numismatic</text>
+      <text x="600" y="620" text-anchor="middle" fill="#fafaf9" font-family="Georgia,serif" font-size="42">MintMark</text>
     </svg>`
   );
 
@@ -132,6 +132,31 @@ async function upsertAd({ slotType, category, slotPosition, listingId, advertise
   return ad;
 }
 
+async function upsertAuction(sellerId, data) {
+  const existing = await db.auction.findFirst({ where: { title: data.title, sellerId } });
+  if (existing) {
+    console.log("Auction exists:", data.title, existing.id);
+    return existing;
+  }
+  const auction = await db.auction.create({
+    data: {
+      sellerId,
+      title: data.title,
+      description: data.description,
+      images: [PLACEHOLDER],
+      category: data.category,
+      metal: data.metal ?? "NOT_APPLICABLE",
+      startingPriceCents: data.startingPriceCents,
+      bidIncrementCents: data.bidIncrementCents ?? 5000,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      status: data.status ?? "LIVE",
+    },
+  });
+  console.log("Created auction:", data.title, auction.id);
+  return auction;
+}
+
 async function ensureIndexes() {
   const specs = [
     ["CertificateLock", { certificateId: 1 }, "CertificateLock_certificateId_key", true],
@@ -210,6 +235,123 @@ const silverBullion = await upsertListing(silver.id, {
   purityPercent: 99.9,
 });
 
+// Additional listings spanning the numismatic taxonomy + filter facets, so
+// /listings has real content across categories, grades, metals, eras, and
+// buying formats to click through.
+const zarPond = await upsertListing(gold.id, {
+  slug: "demo-1898-zar-full-pond",
+  title: "1898 ZAR Full Pond — Uncertified",
+  description: "Classic ZAR gold Pond from the Kruger era, raw/ungraded.",
+  category: "COINS",
+  listingType: "RAW",
+  metal: "GOLD",
+  year: 1898,
+  denomination: "1 Pond",
+  priceCents: 4_800_000,
+});
+
+const zarShilling = await upsertListing(standard.id, {
+  slug: "demo-1895-zar-shilling",
+  title: "1895 ZAR Shilling — ANACS AU55",
+  description: "Well-preserved ZAR shilling, ANACS certified.",
+  category: "COINS",
+  listingType: "GRADED",
+  metal: "SILVER",
+  condition: "AU55",
+  year: 1895,
+  denomination: "1 Shilling",
+  priceCents: 320_000,
+  certificateId: "ANACS-DEMO-SHILLING-1895",
+  provider: "ANACS",
+});
+
+const unionHalfCrown = await upsertListing(silver.id, {
+  slug: "demo-1935-union-half-crown",
+  title: "1935 Union Half Crown — SA Mint Proof",
+  description: "Silver Half Crown from the Union period, SA Mint certified proof.",
+  category: "COINS",
+  listingType: "GRADED",
+  metal: "SILVER",
+  condition: "Proof",
+  year: 1935,
+  denomination: "Half Crown",
+  priceCents: 280_000,
+  certificateId: "SAMINT-DEMO-HALFCROWN-1935",
+  provider: "SA_MINT",
+});
+
+const unionPenny = await upsertListing(standard.id, {
+  slug: "demo-1942-union-penny",
+  title: "1942 Union Penny — VF20",
+  description: "Bronze Union penny, circulated Very Fine grade.",
+  category: "COINS",
+  listingType: "GRADED",
+  metal: "BRONZE",
+  condition: "VF20",
+  year: 1942,
+  denomination: "1 Penny",
+  priceCents: 45_000,
+  certificateId: "PCGS-DEMO-PENNY-1942",
+  provider: "PCGS",
+});
+
+const republicCommemorative = await upsertListing(gold.id, {
+  slug: "demo-2000-r2-commemorative-silver",
+  title: "2000 R2 Commemorative Silver Coin — XF45",
+  description: "Republic-era commemorative R2 silver coin, Extremely Fine.",
+  category: "COINS",
+  listingType: "GRADED",
+  metal: "SILVER",
+  condition: "XF45",
+  year: 2000,
+  denomination: "R2 Commemorative",
+  priceCents: 65_000,
+  certificateId: "NGC-DEMO-R2-2000",
+  provider: "NGC",
+});
+
+const strikeError = await upsertListing(silver.id, {
+  slug: "demo-strike-error-krugerrand",
+  title: "Silver Krugerrand — Off-Center Strike Error",
+  description: "A dramatic off-center strike error variety, highly sought by error collectors.",
+  category: "OTHER",
+  listingType: "RAW",
+  metal: "SILVER",
+  year: 2018,
+  denomination: "Strike Error",
+  priceCents: 180_000,
+});
+
+const germanNotgeld = await upsertListing(standard.id, {
+  slug: "demo-german-notgeld-1921",
+  title: "1921 German Notgeld Emergency Banknote",
+  description: "Vintage European emergency currency (Notgeld) issued during the Weimar era.",
+  category: "BANKNOTES",
+  listingType: "RAW",
+  metal: "NOT_APPLICABLE",
+  year: 1921,
+  priceCents: 25_000,
+  country: "Germany",
+});
+
+// Listing with offers disabled, to exercise the "Accepting Offers" filter meaningfully.
+const noOffersListing = await db.listing.findUnique({ where: { slug: "demo-no-offers-krugerrand" } });
+if (!noOffersListing) {
+  const created = await upsertListing(gold.id, {
+    slug: "demo-no-offers-krugerrand",
+    title: "1980 Gold Krugerrand — Fixed Price Only",
+    description: "Seller has disabled offers on this Krugerrand — Buy Now only.",
+    category: "KRUGERRAND",
+    listingType: "BULLION",
+    metal: "GOLD",
+    year: 1980,
+    denomination: "1 oz Krugerrand",
+    priceCents: 6_900_000,
+  });
+  await db.listing.update({ where: { id: created.id }, data: { acceptsOffers: false } });
+  console.log("Set acceptsOffers=false on:", created.id);
+}
+
 await upsertAd({
   slotType: "HOMEPAGE_HERO",
   slotPosition: 1,
@@ -233,6 +375,30 @@ await upsertAd({
   targetUrl: `/listings/${standardCoin.id}`,
 });
 
+const now = Date.now();
+const liveAuction = await upsertAuction(gold.id, {
+  title: "1898 ZAR 'Single 9' Pond — Live Auction",
+  description: "Rare overdate variety Single 9 Pond, offered at auction with no reserve.",
+  category: "COINS",
+  metal: "GOLD",
+  startingPriceCents: 15_000_00,
+  bidIncrementCents: 50_000,
+  startsAt: new Date(now - 60 * 60 * 1000),
+  endsAt: new Date(now + 2 * 60 * 60 * 1000),
+  status: "LIVE",
+});
+const upcomingAuction = await upsertAuction(silver.id, {
+  title: "Set of 3 Silver Proof Rands — Upcoming Auction",
+  description: "A curated 3-coin proof silver Rand set, opening soon.",
+  category: "COINS",
+  metal: "SILVER",
+  startingPriceCents: 2_500_00,
+  bidIncrementCents: 10_000,
+  startsAt: new Date(now + 24 * 60 * 60 * 1000),
+  endsAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
+  status: "SCHEDULED",
+});
+
 console.log(
   JSON.stringify(
     {
@@ -246,6 +412,17 @@ console.log(
         goldKrug: goldKrug.id,
         standardCoin: standardCoin.id,
         silverBullion: silverBullion.id,
+        zarPond: zarPond.id,
+        zarShilling: zarShilling.id,
+        unionHalfCrown: unionHalfCrown.id,
+        unionPenny: unionPenny.id,
+        republicCommemorative: republicCommemorative.id,
+        strikeError: strikeError.id,
+        germanNotgeld: germanNotgeld.id,
+      },
+      auctions: {
+        live: liveAuction.id,
+        upcoming: upcomingAuction.id,
       },
     },
     null,

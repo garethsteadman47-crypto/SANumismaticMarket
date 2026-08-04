@@ -1,10 +1,11 @@
-import { Prisma, ListingStatus, OrderStatus, PaymentProvider } from "@prisma/client";
+import { Prisma, ListingStatus, OfferStatus, OrderStatus, PaymentProvider } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { calculateOrderFeeBreakdown } from "@/lib/utils/fees";
 import { canTransitionToSettled, computeSettlementSchedule } from "@/lib/utils/escrow";
 import { buildOrderInvoices } from "@/lib/utils/invoicing";
 import { generateOtpCode, isOtpFormatValid, MAX_OTP_ATTEMPTS, OTP_EXPIRY_MS } from "@/lib/otp";
+import { getAcceptedOfferPriceCents } from "@/lib/offers";
 import { getAvailablePaymentProviders } from "@/lib/payments";
 import { getShippingCarrier } from "@/lib/shipping";
 
@@ -25,12 +26,15 @@ export interface CreateOrderInput {
   buyerId: string;
   listingId: string;
   paymentProvider: PaymentProvider;
+  /** An ACCEPTED offer belonging to this buyer+listing — charges the negotiated price instead of `listing.priceCents`. */
+  offerId?: string;
 }
 
 export async function createOrder({
   buyerId,
   listingId,
   paymentProvider,
+  offerId,
 }: CreateOrderInput): Promise<OrderActionResult> {
   const listing = await db.listing.findUnique({
     where: { id: listingId },
@@ -45,7 +49,25 @@ export async function createOrder({
   if (listing.sellerId === buyerId) {
     return { success: false, error: "You can't purchase your own listing." };
   }
-  if (!getAvailablePaymentProviders(listing.priceCents).includes(paymentProvider)) {
+
+  // If an accepted offer is supplied, verify it belongs to this exact
+  // buyer + listing and is still ACCEPTED before trusting its price —
+  // never trust a client-supplied override amount directly.
+  let effectivePriceCents = listing.priceCents;
+  if (offerId) {
+    const offer = await db.offer.findUnique({ where: { id: offerId } });
+    if (
+      !offer ||
+      offer.listingId !== listingId ||
+      offer.buyerId !== buyerId ||
+      offer.status !== OfferStatus.ACCEPTED
+    ) {
+      return { success: false, error: "That accepted offer is no longer valid." };
+    }
+    effectivePriceCents = getAcceptedOfferPriceCents(offer);
+  }
+
+  if (!getAvailablePaymentProviders(effectivePriceCents).includes(paymentProvider)) {
     return { success: false, error: "That payment method isn't available for this order value." };
   }
 
@@ -55,14 +77,14 @@ export async function createOrder({
   });
 
   const feeBreakdown = calculateOrderFeeBreakdown({
-    itemPriceCents: listing.priceCents,
+    itemPriceCents: effectivePriceCents,
     subscriptionTier: listing.seller.subscriptionTier,
     verificationFeeCents: verification?.feeCents ?? 0,
   });
 
   const now = new Date();
   const otpCode = generateOtpCode();
-  const courierName = getShippingCarrier(listing.priceCents).name;
+  const courierName = getShippingCarrier(effectivePriceCents).name;
 
   try {
     const order = await db.$transaction(async (tx) => {

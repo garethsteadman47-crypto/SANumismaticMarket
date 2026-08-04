@@ -36,6 +36,7 @@ const METAL_LABELS: Record<PreciousMetal, string> = {
   COPPER: "Copper",
   BRONZE: "Bronze",
   NICKEL: "Nickel",
+  STEEL: "Steel",
   OTHER: "Other",
   NOT_APPLICABLE: "Not applicable",
 };
