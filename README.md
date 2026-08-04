@@ -149,7 +149,7 @@ Vitest configs:
 | `npm run test:integration` | Integration tests |
 | `npm run lint` | ESLint |
 | `npm run db:memory` | Ephemeral Mongo replica set |
-| `npm run db:seed` | Idempotent demo seed + indexes |
+| `npm run db:seed` | Idempotent demo seed (`prisma/seed.ts`) — ≥15 listings, live auctions, indexes |
 
 ## Build roadmap
 
