@@ -70,7 +70,7 @@ export function ListingCard({
               Sponsored
             </Badge>
           )}
-          <div className="absolute top-2 right-2" onClick={(e) => e.preventDefault()}>
+          <div className="absolute top-2 right-2">
             <WishlistToggle listingId={listing.id} initialWishlisted={wishlisted} />
           </div>
         </div>

@@ -49,7 +49,7 @@ export function BrowseItemCard({ item, wishlisted = false }: { item: BrowseItem;
             </Badge>
           )}
           {item.kind === "listing" && (
-            <div className="absolute top-2 right-2" onClick={(e) => e.preventDefault()}>
+            <div className="absolute top-2 right-2">
               <WishlistToggle listingId={item.id} initialWishlisted={wishlisted} />
             </div>
           )}
