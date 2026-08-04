@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "db:memory": "node scripts/start-mongo-memory.mjs",
-    "db:seed": "node scripts/seed-demo.mjs"
+    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -47,7 +47,11 @@
     "eslint-config-next": "16.2.12",
     "mongodb-memory-server": "^11.2.0",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }

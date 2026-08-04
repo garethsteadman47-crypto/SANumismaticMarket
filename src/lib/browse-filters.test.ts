@@ -129,11 +129,12 @@ describe("buildListingWhere", () => {
   });
 
   it("merges in the taxonomy predicate when a node is selected, inheriting the parent's year range too", () => {
-    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "republic-krugerrands" }));
+    const where = buildListingWhere(parseBrowseFilters({ taxonomy: "republic-silver-krugerrands" }));
     expect(where?.AND).toContainEqual({
-      category: { in: ["KRUGERRAND"] },
-      metal: { in: ["GOLD"] },
+      category: { in: ["KRUGERRAND", "COINS"] },
+      metal: { in: ["SILVER"] },
       year: { gte: 1961 },
+      OR: expect.any(Array),
     });
   });
 });

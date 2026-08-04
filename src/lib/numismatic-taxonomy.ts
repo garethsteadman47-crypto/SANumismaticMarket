@@ -21,6 +21,23 @@ import { ListingCategory, ListingType, PreciousMetal, Prisma } from "@prisma/cli
  * don't replace).
  */
 
+export type TaxonomyIconName =
+  | "Landmark"
+  | "Coins"
+  | "CircleDollarSign"
+  | "Banknote"
+  | "Layers"
+  | "ShieldAlert"
+  | "Deer"
+  | "Gem"
+  | "Package"
+  | "Award"
+  | "Globe"
+  | "ScrollText"
+  | "Buffalo"
+  | "Cat"
+  | "AlertTriangle";
+
 export interface TaxonomyPredicate {
   categories?: ListingCategory[];
   metals?: PreciousMetal[];
@@ -36,83 +53,83 @@ export interface TaxonomyPredicate {
 export interface TaxonomyNode {
   id: string;
   label: string;
-  emoji: string;
+  /** Lucide-oriented icon key rendered by CategoryTree (no emoji). */
+  icon: TaxonomyIconName;
   predicate: TaxonomyPredicate;
   children?: TaxonomyNode[];
 }
 
 export const TAXONOMY_TREE: TaxonomyNode[] = [
   {
-    id: "zar",
-    label: "South African ZAR (1874 – 1902)",
-    emoji: "🇿🇦",
-    predicate: { categories: [ListingCategory.COINS], minYear: 1874, maxYear: 1902 },
+    id: "zar-union",
+    label: "South African ZAR & Union",
+    icon: "Landmark",
+    predicate: { categories: [ListingCategory.COINS], minYear: 1874, maxYear: 1960 },
     children: [
       {
         id: "zar-ponde",
-        label: "Ponde & Half Ponde",
-        emoji: "🇿🇦",
-        predicate: { metals: [PreciousMetal.GOLD], keywordsAny: ["pond"] },
+        label: "Ponde",
+        icon: "Coins",
+        predicate: { metals: [PreciousMetal.GOLD], keywordsAny: ["pond", "ponde"], maxYear: 1902 },
+      },
+      {
+        id: "zar-half-ponde",
+        label: "Half Ponde",
+        icon: "Coins",
+        predicate: { metals: [PreciousMetal.GOLD], keywordsAny: ["half pond", "half ponde"], maxYear: 1902 },
       },
       {
         id: "zar-shillings",
-        label: "Shillings, Pennies & Farthings",
-        emoji: "🇿🇦",
+        label: "Shillings",
+        icon: "CircleDollarSign",
         predicate: {
-          metals: [PreciousMetal.SILVER, PreciousMetal.COPPER, PreciousMetal.BRONZE, PreciousMetal.NICKEL],
-          keywordsAny: ["shilling", "penny", "pennies", "farthing"],
+          metals: [PreciousMetal.SILVER, PreciousMetal.NICKEL],
+          keywordsAny: ["shilling", "florin", "half crown", "crown"],
         },
       },
-    ],
-  },
-  {
-    id: "union",
-    label: "South African Union (1910 – 1960)",
-    emoji: "🏛️",
-    predicate: { categories: [ListingCategory.COINS], minYear: 1910, maxYear: 1960 },
-    children: [
       {
-        id: "union-crowns",
-        label: "Silver Crowns (5 Shillings)",
-        emoji: "🏛️",
-        predicate: { metals: [PreciousMetal.SILVER], keywordsAny: ["crown", "5 shilling"] },
-      },
-      {
-        id: "union-halfcrowns",
-        label: "Half Crowns, Florins & Shillings",
-        emoji: "🏛️",
-        predicate: { metals: [PreciousMetal.SILVER], keywordsAny: ["half crown", "florin", "shilling"] },
-      },
-      {
-        id: "union-pennies",
-        label: "Pennies, Half Pennies & Farthings",
-        emoji: "🏛️",
+        id: "zar-pennies",
+        label: "Pennies",
+        icon: "Coins",
         predicate: {
-          metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE, PreciousMetal.NICKEL],
-          keywordsAny: ["penny", "half penny", "farthing"],
+          metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+          keywordsAny: ["penny", "pennies", "half penny"],
+        },
+      },
+      {
+        id: "zar-farthings",
+        label: "Farthings",
+        icon: "Coins",
+        predicate: {
+          metals: [PreciousMetal.COPPER, PreciousMetal.BRONZE],
+          keywordsAny: ["farthing"],
         },
       },
     ],
   },
   {
     id: "republic",
-    label: "South African Republic (1961 – Present)",
-    emoji: "🦌",
+    label: "South African Republic & Bullion",
+    icon: "Gem",
     predicate: {
       categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND, ListingCategory.BULLION],
       minYear: 1961,
     },
     children: [
       {
-        id: "republic-krugerrands",
-        label: "Gold Krugerrands (1 oz, 1/2 oz, 1/4 oz, 1/10 oz)",
-        emoji: "🦌",
-        predicate: { categories: [ListingCategory.KRUGERRAND], metals: [PreciousMetal.GOLD] },
+        id: "republic-silver-krugerrands",
+        label: "Silver Krugerrands",
+        icon: "Coins",
+        predicate: {
+          categories: [ListingCategory.KRUGERRAND, ListingCategory.COINS],
+          metals: [PreciousMetal.SILVER],
+          keywordsAny: ["krugerrand", "silver krugerrand"],
+        },
       },
       {
         id: "republic-commemorative",
         label: "Commemorative R1 & R2 Silver Coins",
-        emoji: "🦌",
+        icon: "Award",
         predicate: {
           categories: [ListingCategory.COINS],
           metals: [PreciousMetal.SILVER],
@@ -120,67 +137,80 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
         },
       },
       {
-        id: "republic-bullion",
-        label: "Fractional Bullion & Uncirculated Stock",
-        emoji: "🦌",
-        predicate: { categories: [ListingCategory.BULLION], listingTypes: [ListingType.BULLION, ListingType.RAW] },
+        id: "republic-fractional",
+        label: "Fractional Bullion",
+        icon: "Gem",
+        predicate: {
+          categories: [ListingCategory.BULLION, ListingCategory.KRUGERRAND],
+          listingTypes: [ListingType.BULLION],
+          keywordsAny: ["1/2 oz", "1/4 oz", "1/10 oz", "fractional", "half ounce", "quarter ounce"],
+        },
+      },
+      {
+        id: "republic-uncirculated",
+        label: "Uncirculated Stock",
+        icon: "Package",
+        predicate: {
+          listingTypes: [ListingType.RAW, ListingType.BULLION],
+          keywordsAny: ["uncirculated", "bu", "brilliant uncirculated", "mint state"],
+        },
       },
     ],
   },
   {
-    id: "sets",
-    label: "Sets & Collections",
-    emoji: "🏆",
-    predicate: { keywordsAny: ["set"] },
-    children: [
-      {
-        id: "sets-proof",
-        label: "Vintage Proof Sets",
-        emoji: "🏆",
-        predicate: { keywordsAny: ["proof set"] },
-      },
-      {
-        id: "sets-mint",
-        label: "Mint Sets",
-        emoji: "🏆",
-        predicate: { keywordsAny: ["mint set"] },
-      },
-    ],
-  },
-  {
-    id: "errors",
-    label: "Errors & Varieties",
-    emoji: "⚠️",
-    predicate: { keywordsAny: ["error", "clipped planchet", "die crack", "variety"] },
-    children: [
-      {
-        id: "errors-strike",
-        label: "Strike Errors, Clipped Planchets, Die Cracks",
-        emoji: "⚠️",
-        predicate: { keywordsAny: ["strike error", "clipped planchet", "die crack"] },
-      },
-    ],
-  },
-  {
-    id: "world",
-    label: "World Coins & Banknotes",
-    emoji: "🌍",
+    id: "banknotes",
+    label: "Global & International Banknotes",
+    icon: "Banknote",
     predicate: {
-      categories: [ListingCategory.BANKNOTES, ListingCategory.COINS, ListingCategory.OTHER],
+      categories: [ListingCategory.BANKNOTES],
       nonSouthAfrican: true,
     },
     children: [
       {
-        id: "world-european",
-        label: "Vintage European (e.g. German Notgeld)",
-        emoji: "🌍",
-        predicate: { keywordsAny: ["notgeld", "german", "european"] },
+        id: "banknotes-specimen",
+        label: "Global Specimen Notes",
+        icon: "ScrollText",
+        predicate: { keywordsAny: ["specimen", "cuban", "belarusian", "cuba", "belarus"] },
       },
       {
-        id: "world-specimen",
-        label: "Global Specimen Notes (e.g. Cuban, Belarusian)",
-        emoji: "🌍",
-        predicate: { categories: [ListingCategory.BANKNOTES], keywordsAny: ["specimen", "cuban", "belarusian"] },
+        id: "banknotes-european",
+        label: "Vintage European",
+        icon: "Landmark",
+        predicate: { keywordsAny: ["notgeld", "german", "european", "weimar"] },
+      },
+    ],
+  },
+  {
+    id: "sets-wildlife",
+    label: "Sets, Wildlife & Varieties",
+    icon: "Layers",
+    predicate: {
+      keywordsAny: ["set", "big five", "buffalo", "leopard", "error", "variety", "proof set"],
+    },
+    children: [
+      {
+        id: "sets-buffalo",
+        label: "Big Five Buffalo Double Coin Sets",
+        icon: "Layers",
+        predicate: { keywordsAny: ["buffalo", "big five buffalo", "double coin"] },
+      },
+      {
+        id: "sets-leopard",
+        label: "Silver Leopard Sets",
+        icon: "Cat",
+        predicate: { keywordsAny: ["leopard", "silver leopard"] },
+      },
+      {
+        id: "sets-proof",
+        label: "Vintage Proof Sets",
+        icon: "Award",
+        predicate: { keywordsAny: ["proof set", "union proof", "sa proof"] },
+      },
+      {
+        id: "errors-coins",
+        label: "Error Coins",
+        icon: "AlertTriangle",
+        predicate: { keywordsAny: ["error", "clipped planchet", "die crack", "off-center", "variety"] },
       },
     ],
   },

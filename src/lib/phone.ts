@@ -16,9 +16,9 @@ export interface CountryCodeOption {
 }
 
 export const COUNTRY_CODE_OPTIONS: CountryCodeOption[] = [
-  { code: "+27", iso2: "ZA", label: "🇿🇦 South Africa (+27)" },
-  { code: "+1", iso2: "US", label: "🇺🇸 United States (+1)" },
-  { code: "+44", iso2: "GB", label: "🇬🇧 United Kingdom (+44)" },
+  { code: "+27", iso2: "ZA", label: "South Africa (+27)" },
+  { code: "+1", iso2: "US", label: "United States (+1)" },
+  { code: "+44", iso2: "GB", label: "United Kingdom (+44)" },
 ];
 
 export const DEFAULT_COUNTRY_CODE = "+27";

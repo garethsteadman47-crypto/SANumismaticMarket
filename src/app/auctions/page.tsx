@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ImageOffIcon } from "lucide-react";
+import { GavelIcon, ImageOffIcon, RadioIcon } from "lucide-react";
 
 import { getAuctionPhase, getAuctions, getMinimumNextBidCents } from "@/lib/auctions";
 import { formatZarCents } from "@/lib/utils/currency";
@@ -19,7 +19,10 @@ export default async function AuctionsPage() {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">🔨 Live Auctions</h1>
+        <h1 className="flex items-center gap-2 text-3xl font-semibold">
+          <GavelIcon className="size-7 text-amber-600" aria-hidden />
+          Live Auctions
+        </h1>
         <p className="text-sm text-muted-foreground">
           Bid on rare coins, banknotes, and bullion in real time — every winning bid is buyer-protected like any
           other MintMark purchase.
@@ -48,8 +51,24 @@ export default async function AuctionsPage() {
                     <ImageOffIcon className="size-8" />
                   </div>
                 )}
-                <Badge className="absolute top-2 left-2" variant={isLive ? "default" : "secondary"}>
-                  {phase === "LIVE" ? "🔴 Live" : phase === "SCHEDULED" ? "Upcoming" : "Ended"}
+                <Badge
+                  className={
+                    isLive
+                      ? "absolute top-2 left-2 gap-1 bg-red-600 text-white hover:bg-red-600"
+                      : "absolute top-2 left-2"
+                  }
+                  variant={isLive ? "default" : "secondary"}
+                >
+                  {phase === "LIVE" ? (
+                    <>
+                      <RadioIcon className="size-3 animate-pulse" aria-hidden />
+                      Live
+                    </>
+                  ) : phase === "SCHEDULED" ? (
+                    "Upcoming"
+                  ) : (
+                    "Ended"
+                  )}
                 </Badge>
               </Link>
               <CardContent className="flex flex-col gap-2">
