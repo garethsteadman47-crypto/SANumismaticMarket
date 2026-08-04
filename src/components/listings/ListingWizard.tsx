@@ -48,10 +48,9 @@ const STEPS = [
 ] as const;
 
 const GRADE_PROVIDERS = [
-  VerificationProvider.NGC,
-  VerificationProvider.PCGS,
-  VerificationProvider.SA_MINT,
-  VerificationProvider.ANACS,
+  { value: VerificationProvider.NGC, label: "NGC (Numismatic Guaranty Company)" },
+  { value: VerificationProvider.SANGS, label: "SANGS (South African Numismatic Grading Service)" },
+  { value: VerificationProvider.PCGS, label: "PCGS (Professional Coin Grading Service)" },
 ] as const;
 
 type SaleFormat = "FIXED" | "AUCTION";
@@ -407,8 +406,8 @@ export function ListingWizard({
                         </SelectTrigger>
                         <SelectContent>
                           {GRADE_PROVIDERS.map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {p === "SA_MINT" ? "SA Mint" : p}
+                            <SelectItem key={p.value} value={p.value}>
+                              {p.label}
                             </SelectItem>
                           ))}
                         </SelectContent>

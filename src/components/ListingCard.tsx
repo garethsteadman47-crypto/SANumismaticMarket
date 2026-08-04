@@ -39,8 +39,8 @@ export function ListingCard({
       <Card
         className={cn(
           "h-full overflow-hidden transition-shadow group-hover:shadow-md",
-          isCertified && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent",
-          listing.isSponsored && "border-slate-700/40 bg-gradient-to-b from-slate-900/[0.04] to-transparent dark:from-slate-100/[0.04]"
+          isCertified && !listing.isSponsored && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent",
+          listing.isSponsored && "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent shadow-[inset_0_0_0_1px_rgba(245,158,11,0.12)]"
         )}
       >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
@@ -63,10 +63,7 @@ export function ListingCard({
             </div>
           )}
           {listing.isSponsored && (
-            <Badge
-              variant="secondary"
-              className="absolute top-2 left-2 bg-slate-800/80 text-[0.65rem] text-slate-100"
-            >
+            <Badge className="absolute top-2 right-12 bg-amber-500/90 text-[0.65rem] font-semibold tracking-wide text-slate-950 uppercase hover:bg-amber-500">
               Sponsored
             </Badge>
           )}
