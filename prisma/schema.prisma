@@ -40,6 +40,7 @@ enum SubscriptionTier {
   STANDARD
   SILVER
   GOLD
+  DEALER
 }
 
 enum SubscriptionStatus {
@@ -279,6 +280,11 @@ model User {
   // Kept in sync with `subscription.tier` whenever the subscription changes.
   subscriptionTier SubscriptionTier @default(STANDARD)
 
+  // Seller accolades — surfaced via `SellerBadges` on cards and PDPs.
+  isSaandDealer       Boolean @default(false)
+  isCoinClubMember    Boolean @default(false)
+  completedSalesCount Int     @default(0)
+
   bankAccount BankAccount?
 
   accounts Account[]
@@ -307,6 +313,8 @@ model User {
   bids                 Bid[]
 
   savedSearches SavedSearch[]
+  wishlistItems WishlistItem[]
+  wantedItems   WantedItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -324,7 +332,7 @@ model Subscription {
   status SubscriptionStatus @default(ACTIVE)
 
   // Monthly price snapshot at time of subscribing, in ZA cents.
-  // Standard = 0, Silver = 49900, Gold = 99900.
+  // Standard = 0, Silver = 19900, Gold = 49900, Dealer = 99900.
   priceCents Int @default(0)
 
   currentPeriodStart DateTime  @default(now())
@@ -393,18 +401,32 @@ model Listing {
   weightGrams   Float?
   purityPercent Float?
 
+  // Logistics for courier quote automation (PostNet / The Courier Guy).
+  diameterMm       Float?
+  packageLengthCm  Float?
+  packageWidthCm   Float?
+  packageHeightCm  Float?
+
   priceCents Int
   currency   String @default("ZAR")
 
   images String[]
 
+  // Optional labeled media slots from the listing wizard (URLs).
+  coverImageUrl        String?
+  obverseImageUrl      String?
+  reverseImageUrl      String?
+  certificateImageUrl  String?
+
   status ListingStatus @default(DRAFT)
 
   // Drives the "Accepting Offers" browse-format filter and the PDP's "Make
   // an Offer" button. Defaults to true (today every seller allows offers);
-  // no seller-facing toggle exists yet, but the flag lets that ship later
-  // without another schema change.
+  // the listing wizard exposes a seller-facing toggle.
   acceptsOffers Boolean @default(true)
+
+  // Paid / boost placements get a charcoal "Sponsored" treatment on cards.
+  isSponsored Boolean @default(false)
 
   // Present only for GRADED listings. Nulls out once app logic clears it.
   certificateId String?
@@ -412,9 +434,10 @@ model Listing {
   verification    Verification?
   certificateLock CertificateLock?
 
-  orders       Order[]       @relation("ListingOrders")
-  adPlacements AdPlacement[]
-  offers       Offer[]
+  orders        Order[]        @relation("ListingOrders")
+  adPlacements  AdPlacement[]
+  offers        Offer[]
+  wishlistItems WishlistItem[]
 
   viewCount Int @default(0)
 
@@ -743,6 +766,54 @@ model SavedSearch {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Buyer's personal bookmark list — toggled from listing / browse cards.
+model WishlistItem {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @db.ObjectId
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String  @db.ObjectId
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+}
+
+enum WantedItemStatus {
+  OPEN
+  MATCHED
+  FULFILLED
+  CANCELLED
+}
+
+// "Item Wanted" alert — fires when a new listing matches the request.
+model WantedItem {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Free-text era/category label (maps loosely onto taxonomy, e.g. "ZAR & Union").
+  eraCategory   String
+  targetYear    Int?
+  minimumGrade  String?
+  // Max budget in ZA cents.
+  budgetCents   Int
+  notes         String?
+  status        WantedItemStatus @default(OPEN)
+
+  // Set when a matching listing is detected (notification stub logs this).
+  matchedListingId String?   @db.ObjectId
+  notifiedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([status, targetYear])
 }
 
 model AdPlacement {

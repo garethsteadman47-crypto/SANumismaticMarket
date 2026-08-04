@@ -6,6 +6,7 @@ import {
   calculateOrderFeeBreakdown,
   calculateVat,
   getPriceTier,
+  getVerificationFeeCents,
 } from "./fees";
 
 describe("getPriceTier", () => {
@@ -33,6 +34,15 @@ describe("getPriceTier", () => {
     expect(() => getPriceTier(0)).toThrow(InvalidPriceError);
     expect(() => getPriceTier(-500)).toThrow(InvalidPriceError);
     expect(() => getPriceTier(99.5)).toThrow(InvalidPriceError);
+  });
+});
+
+describe("getVerificationFeeCents", () => {
+  it("waives verification fee for Gold and Dealer; halves it for Silver", () => {
+    expect(getVerificationFeeCents(SubscriptionTier.STANDARD)).toBe(1_500);
+    expect(getVerificationFeeCents(SubscriptionTier.SILVER)).toBe(750);
+    expect(getVerificationFeeCents(SubscriptionTier.GOLD)).toBe(0);
+    expect(getVerificationFeeCents(SubscriptionTier.DEALER)).toBe(0);
   });
 });
 

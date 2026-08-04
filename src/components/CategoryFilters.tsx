@@ -13,8 +13,9 @@ import { getProviderLabel } from "@/lib/api/verification";
 
 const SELLER_TIER_LABELS: Record<SubscriptionTier, string> = {
   STANDARD: "Standard",
-  SILVER: "Silver Trader",
-  GOLD: "Gold Dealer",
+  SILVER: "Silver Collector",
+  GOLD: "Gold Power Trader",
+  DEALER: "Verified Dealer",
 };
 
 const ANY_VALUE = "any";

@@ -9,8 +9,9 @@ import {
 } from "./escrow";
 
 describe("determinePayoutVelocity", () => {
-  it("settles Gold Dealers instantly", () => {
+  it("settles Gold and Dealer instantly", () => {
     expect(determinePayoutVelocity(SubscriptionTier.GOLD)).toBe("INSTANT");
+    expect(determinePayoutVelocity(SubscriptionTier.DEALER)).toBe("INSTANT");
   });
 
   it("holds Standard and Silver sellers for 48 hours", () => {

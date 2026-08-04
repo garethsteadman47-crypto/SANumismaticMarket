@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageGallery } from "@/components/ImageGallery";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
+import { WishlistToggle } from "@/components/WishlistToggle";
 import { ValuationChart } from "@/components/ValuationChart";
 import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
 import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
@@ -39,7 +40,16 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     db.listing.findUnique({
       where: { id },
       include: {
-        seller: { select: { id: true, name: true, subscriptionTier: true } },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            subscriptionTier: true,
+            isSaandDealer: true,
+            isCoinClubMember: true,
+            completedSalesCount: true,
+          },
+        },
         verification: true,
       },
     }),
@@ -91,10 +101,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             {shieldAwarded && <ShieldBadge />}
           </div>
 
-          <h1 className="text-2xl font-semibold">{listing.title}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-semibold">{listing.title}</h1>
+            <WishlistToggle listingId={listing.id} />
+          </div>
 
-          <div className="flex items-center gap-2">
-            <TrustBadge tier={listing.seller.subscriptionTier} />
+          <div className="flex flex-col gap-2">
+            <SellerBadges
+              seller={{
+                subscriptionTier: listing.seller.subscriptionTier,
+                isSaandDealer: listing.seller.isSaandDealer,
+                isCoinClubMember: listing.seller.isCoinClubMember,
+                completedSalesCount: listing.seller.completedSalesCount,
+              }}
+            />
             <span className="text-sm text-muted-foreground">Sold by {listing.seller.name ?? "a private seller"}</span>
           </div>
 

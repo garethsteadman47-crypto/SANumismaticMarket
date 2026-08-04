@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AwardIcon, CoinsIcon, FlaskConicalIcon, Loader2Icon, UserIcon } from "lucide-react";
+import { AwardIcon, Building2Icon, CoinsIcon, CrownIcon, FlaskConicalIcon, Loader2Icon, UserIcon } from "lucide-react";
 import { SubscriptionTier } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,9 @@ import { devSignInAction } from "@/actions/auth";
 
 const DEMO_TIER_CONFIG: Array<{ tier: SubscriptionTier; label: string; description: string; icon: typeof UserIcon }> = [
   { tier: "STANDARD", label: "Standard User", description: "7.5%–2% commission tier", icon: UserIcon },
-  { tier: "SILVER", label: "Silver Trader", description: "6%–1.5% commission, 48h hold", icon: CoinsIcon },
-  { tier: "GOLD", label: "Gold Dealer", description: "4.5%–1% commission, instant payout", icon: AwardIcon },
+  { tier: "SILVER", label: "Silver Collector", description: "6%–1.5% commission, R7.50 cert fee", icon: CoinsIcon },
+  { tier: "GOLD", label: "Gold Power Trader", description: "4.5%–1% commission, instant payout", icon: CrownIcon },
+  { tier: "DEALER", label: "Verified Dealer", description: "Lowest commission, SAAND badge", icon: Building2Icon },
 ];
 
 /**

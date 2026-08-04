@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { BellIcon, FilterXIcon, Loader2Icon, SearchXIcon } from "lucide-react";
 
@@ -19,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveSearchAction } from "@/actions/saved-search";
+import { WantedRequestModal } from "@/components/wanted/WantedRequestModal";
 
 export function BrowseEmptyState({ basePath, queryString }: { basePath: string; queryString: string }) {
   const [label, setLabel] = useState("");
@@ -84,6 +86,11 @@ export function BrowseEmptyState({ basePath, queryString }: { basePath: string; 
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <WantedRequestModal />
+        <Button type="button" variant="ghost" size="sm" nativeButton={false} render={<Link href="/listings/wanted" />}>
+          View my wanted list
+        </Button>
       </CardContent>
     </Card>
   );

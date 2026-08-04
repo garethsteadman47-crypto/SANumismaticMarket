@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookmarkIcon,
   CoinsIcon,
   GavelIcon,
   InfoIcon,
@@ -24,6 +25,7 @@ import { SITE_NAME } from "@/lib/constants";
 const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/listings", label: "Buy Coins", icon: CoinsIcon },
   { href: "/auctions", label: "Live Auctions", icon: GavelIcon },
+  { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
   { href: "/about", label: "About Us", icon: InfoIcon },
@@ -152,7 +154,7 @@ export async function Navbar() {
               </form>
             </div>
           ) : (
-            <Button type="button" variant="outline" size="sm" nativeButton={false} render={<Link href="/auth/signin" />}>
+            <Button type="button" variant="outline" size="sm" nativeButton={false} render={<Link href="/login" />}>
               Sign In / Register
             </Button>
           )}

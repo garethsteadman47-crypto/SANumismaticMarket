@@ -1,30 +1,37 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { findOrCreateUserForPhone, verifyPhoneOtp } from "@/lib/phone-otp";
 
+const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
 /**
  * Auth.js (NextAuth v5) configuration.
  *
- * Credentials provider requires JWT sessions (Auth.js does not support
- * database sessions for Credentials-based sign-in), so the Prisma adapter
- * here is mainly future-proofing for OAuth providers added later — it lets
- * `Account` linking work out of the box the moment a provider like Google
- * is added, without any schema changes (see `prisma/schema.prisma`).
- *
- * The sign-in/sign-up UI lives at `/auth/signin` (see `actions/auth.ts` and
- * `app/auth/signin/page.tsx`).
+ * Providers: email/password, phone OTP (+27), and Google OAuth when
+ * GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are set. SA Coin Club SSO is a
+ * UI placeholder until their IdP credentials ship.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/login",
   },
   providers: [
+    ...(googleConfigured
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     Credentials({
       name: "Email and password",
       credentials: {
@@ -52,10 +59,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
-    // Phone-number OTP sign-in — see `lib/phone-otp.ts` for the challenge/
-    // verify logic and `components/auth/PhoneAuthForm.tsx` for the two-step
-    // UI (send code -> enter code) that calls this provider via
-    // `signIn("phone-otp", { phone, code, redirect: false })`.
     Credentials({
       id: "phone-otp",
       name: "Phone number",
@@ -93,13 +96,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = user.role;
         token.subscriptionTier = user.subscriptionTier;
       }
+      if (token.id && !token.subscriptionTier) {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, subscriptionTier: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.subscriptionTier = dbUser.subscriptionTier;
+        }
+      }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
-        session.user.id = token.id;
-        session.user.role = token.role ?? "USER";
-        session.user.subscriptionTier = token.subscriptionTier ?? "STANDARD";
+        session.user.id = token.id as string;
+        session.user.role = (token.role as "USER" | "ADMIN" | "SUPPORT") ?? "USER";
+        session.user.subscriptionTier =
+          (token.subscriptionTier as "STANDARD" | "SILVER" | "GOLD" | "DEALER") ?? "STANDARD";
       }
       return session;
     },

@@ -1,4 +1,4 @@
-import type { ListingCategory, SubscriptionTier } from "@prisma/client";
+import type { ListingCategory, ListingType, SubscriptionTier } from "@prisma/client";
 import type { ListingCardData } from "@/components/ListingCard";
 
 interface ListingWithCardRelations {
@@ -7,6 +7,8 @@ interface ListingWithCardRelations {
   category: ListingCategory;
   priceCents: number;
   images: string[];
+  listingType?: ListingType;
+  isSponsored?: boolean;
   seller: { subscriptionTier: SubscriptionTier };
   verification: { shieldAwarded: boolean } | null;
 }
@@ -20,6 +22,8 @@ export function toListingCardData(listing: ListingWithCardRelations): ListingCar
     priceCents: listing.priceCents,
     images: listing.images,
     shieldAwarded: listing.verification?.shieldAwarded ?? false,
+    listingType: listing.listingType,
+    isSponsored: listing.isSponsored ?? false,
     seller: { subscriptionTier: listing.seller.subscriptionTier },
   };
 }
@@ -30,6 +34,8 @@ export const LISTING_CARD_SELECT = {
   category: true,
   priceCents: true,
   images: true,
+  listingType: true,
+  isSponsored: true,
   seller: { select: { subscriptionTier: true } },
   verification: { select: { shieldAwarded: true } },
 } as const;

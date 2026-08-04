@@ -1,41 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  CheckIcon,
-  CrownIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  ZapIcon,
-} from "lucide-react";
+import { CheckIcon, CrownIcon, SparklesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { MEMBERSHIP_PLANS } from "@/lib/membership-plans";
+import { formatZarCents } from "@/lib/utils/currency";
 import { SITE_NAME } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: `Membership — ${SITE_NAME}`,
-  description:
-    "Compare Guest / Standard and MintMark Gold membership. Zero verification fees, priority placement, and early auction access.",
+  description: "Compare Standard, Silver, Gold, and Verified Dealer membership tiers on MintMark.",
 };
-
-const STANDARD_FEATURES = [
-  "Free to join — no monthly subscription",
-  "Full marketplace access to Buy Now, Make Offer, and live auctions",
-  "Standard escrow fees on settled sales",
-  "R15 certification verification deduction applied at checkout",
-  "Verified Authentic Shield on graded listings",
-] as const;
-
-const GOLD_FEATURES = [
-  "R15 certification verification fee waived at every checkout",
-  "Prioritized search placement across Buy Coins & auctions",
-  "Early access window to live auctions before the public floor",
-  "Gold Trust Badge on every listing and seller profile",
-  "Instant settlement velocity on eligible sales",
-] as const;
 
 export default function MembershipPage() {
   return (
-    <main className="relative mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-12">
+    <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-12">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,_rgba(217,119,6,0.12),_transparent_60%)]"
@@ -43,112 +23,151 @@ export default function MembershipPage() {
 
       <div className="mx-auto max-w-2xl text-center">
         <p className="mb-3 text-xs font-medium tracking-[0.2em] text-amber-700 uppercase">Membership</p>
-        <h1 className="text-4xl font-semibold text-slate-900 sm:text-5xl dark:text-white">
-          Collect with distinction
+        <h1 className="font-heading text-4xl font-semibold text-slate-900 sm:text-5xl dark:text-white">
+          Choose your collecting tier
         </h1>
         <p className="mt-4 text-base text-muted-foreground">
-          Two clear tiers. Join free as a Guest / Standard member, or elevate to MintMark Gold for waived
-          verification fees and preferential marketplace placement.
+          Four strategic plans — from free Standard access to SAAND Verified Dealer partnership.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
-        {/* Guest / Standard */}
-        <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <ShieldCheckIcon className="size-5" aria-hidden />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold">Guest / Standard</h2>
-              <p className="text-sm text-muted-foreground">Essential marketplace access</p>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {MEMBERSHIP_PLANS.map((plan) => {
+          const isGold = plan.highlighted;
+          const isDealer = plan.id === "DEALER";
+          return (
+            <article
+              key={plan.id}
+              className={cn(
+                "relative flex flex-col rounded-2xl border p-6",
+                isGold && "border-amber-500/50 bg-slate-900 text-slate-100 shadow-xl shadow-amber-950/20",
+                isDealer && !isGold && "border-slate-800 bg-slate-950 text-slate-100",
+                !isGold && !isDealer && "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+              )}
+            >
+              {isGold && (
+                <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide text-amber-300 uppercase">
+                  <SparklesIcon className="size-3" />
+                  Recommended
+                </span>
+              )}
 
-          <div className="mb-6">
-            <p className="font-sans text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Free</p>
-            <p className="mt-1 text-sm text-muted-foreground">to join — no card required</p>
-          </div>
-
-          <ul className="mb-8 flex flex-1 flex-col gap-3">
-            {STANDARD_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
-                <CheckIcon className="mt-0.5 size-4 shrink-0 text-slate-500" aria-hidden />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            nativeButton={false}
-            render={<Link href="/auth/signin" />}
-          >
-            Create free account
-          </Button>
-        </article>
-
-        {/* MintMark Gold — premium dark card with animated gradient border */}
-        <article className="group relative rounded-2xl p-[1px]">
-          <div
-            aria-hidden
-            className="absolute inset-0 animate-[gold-border-spin_4s_linear_infinite] rounded-2xl bg-[conic-gradient(from_var(--gold-angle),#b45309,#fbbf24,#fef3c7,#b45309)] opacity-70 transition-opacity duration-500 group-hover:opacity-100"
-          />
-          <div className="relative flex h-full flex-col rounded-[calc(1rem-1px)] border border-amber-500/50 bg-slate-900 p-8 text-slate-100 shadow-xl shadow-amber-950/20">
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
-                  <CrownIcon className="size-5" aria-hidden />
-                </div>
+              <div className="mb-4 flex items-center gap-2">
+                {isGold && <CrownIcon className="size-5 text-amber-400" />}
                 <div>
-                  <h2 className="text-2xl font-semibold text-amber-50">MintMark Gold</h2>
-                  <p className="text-sm text-slate-400">Priority collector membership</p>
+                  <h2
+                    className={cn(
+                      "font-heading text-xl font-semibold",
+                      (isGold || isDealer) && "text-amber-50"
+                    )}
+                  >
+                    {plan.name}
+                  </h2>
+                  <p className={cn("text-xs", isGold || isDealer ? "text-slate-400" : "text-muted-foreground")}>
+                    {plan.target}
+                  </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide text-amber-300 uppercase">
-                <SparklesIcon className="size-3" aria-hidden />
-                Recommended
-              </span>
-            </div>
 
-            <div className="mb-6">
-              <p className="font-sans text-4xl font-semibold tracking-tight text-amber-50">
-                R499
-                <span className="text-lg font-medium text-slate-400">/month</span>
-              </p>
-              <p className="mt-1 text-sm text-slate-400">or R4,990/year — two months complimentary</p>
-            </div>
+              <div className="mb-4">
+                {plan.monthlyPriceCents === 0 ? (
+                  <p className="font-sans text-3xl font-semibold">Free</p>
+                ) : (
+                  <>
+                    <p className="font-sans text-3xl font-semibold">
+                      {formatZarCents(plan.monthlyPriceCents)}
+                      <span className={cn("text-sm font-medium", isGold || isDealer ? "text-slate-400" : "text-muted-foreground")}>
+                        /mo
+                      </span>
+                    </p>
+                    <p className={cn("mt-1 text-xs", isGold || isDealer ? "text-slate-400" : "text-muted-foreground")}>
+                      or {formatZarCents(plan.yearlyPriceCents)}/year
+                    </p>
+                  </>
+                )}
+                <p className={cn("mt-2 text-xs", isGold || isDealer ? "text-slate-400" : "text-muted-foreground")}>
+                  Verification fee:{" "}
+                  {plan.verificationFeeCents === 0
+                    ? "Waived"
+                    : formatZarCents(plan.verificationFeeCents)}
+                </p>
+              </div>
 
-            <ul className="mb-8 flex flex-1 flex-col gap-3">
-              {GOLD_FEATURES.map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5 text-sm text-slate-200">
-                  <ZapIcon className="mt-0.5 size-4 shrink-0 text-amber-400" aria-hidden />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
+              <ul className="mb-6 flex flex-1 flex-col gap-2.5">
+                {plan.features.map((feature) => (
+                  <li
+                    key={feature}
+                    className={cn(
+                      "flex items-start gap-2 text-sm",
+                      isGold || isDealer ? "text-slate-200" : "text-slate-700 dark:text-slate-300"
+                    )}
+                  >
+                    <CheckIcon
+                      className={cn(
+                        "mt-0.5 size-4 shrink-0",
+                        isGold || isDealer ? "text-amber-400" : "text-slate-500"
+                      )}
+                    />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <Button
-              type="button"
-              size="lg"
-              className="w-full bg-amber-500 text-slate-950 hover:bg-amber-400"
-              nativeButton={false}
-              render={<Link href="/auth/signin" />}
-            >
-              Upgrade to Gold
-            </Button>
-          </div>
-        </article>
+              <Button
+                type="button"
+                size="lg"
+                className={cn(
+                  "w-full",
+                  isGold || isDealer
+                    ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+                    : undefined
+                )}
+                variant={isGold || isDealer ? "default" : "outline"}
+                nativeButton={false}
+                render={<Link href="/login" />}
+              >
+                {plan.ctaLabel}
+              </Button>
+            </article>
+          );
+        })}
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
-        The R15 certification verification fee is deducted at checkout for Standard accounts and waived for active
-        Gold members. Escrow commission schedules are unchanged by tier; Gold primarily improves verification cost,
-        discovery, and auction access.
-      </p>
+      {/* Comparison matrix */}
+      <section className="overflow-x-auto rounded-xl border">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead className="border-b bg-slate-50 dark:bg-slate-900">
+            <tr>
+              <th className="px-4 py-3 font-heading font-semibold">Feature</th>
+              {MEMBERSHIP_PLANS.map((p) => (
+                <th key={p.id} className="px-4 py-3 font-heading font-semibold">
+                  {p.name.split(" ")[0]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["Monthly price", ...MEMBERSHIP_PLANS.map((p) => (p.monthlyPriceCents === 0 ? "Free" : formatZarCents(p.monthlyPriceCents)))],
+              ["Verification fee", ...MEMBERSHIP_PLANS.map((p) => (p.verificationFeeCents === 0 ? "Waived" : formatZarCents(p.verificationFeeCents)))],
+              ["Wishlist alerts", "—", "Yes", "Yes", "Yes"],
+              ["Auction listing cap", "Standard", "5 / month", "Unlimited", "Unlimited"],
+              ["Early auction access", "—", "—", "Yes", "Yes"],
+              ["SAAND dealer badge", "—", "—", "—", "Yes"],
+              ["Bulk CSV upload", "—", "—", "—", "Yes"],
+              ["Commission", "Standard", "Reduced", "Lower", "Lowest"],
+            ].map((row) => (
+              <tr key={row[0]} className="border-b last:border-0">
+                {row.map((cell, i) => (
+                  <td key={`${row[0]}-${i}`} className={cn("px-4 py-2.5", i === 0 && "font-medium text-muted-foreground")}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </main>
   );
 }

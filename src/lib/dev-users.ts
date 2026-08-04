@@ -16,6 +16,7 @@ export const DEMO_USERS: Record<SubscriptionTier, { email: string; name: string 
   STANDARD: { email: "standard@demo.local", name: "Demo Standard User" },
   SILVER: { email: "silver@demo.local", name: "Demo Silver Trader" },
   GOLD: { email: "gold@demo.local", name: "Demo Gold Dealer" },
+  DEALER: { email: "dealer@demo.local", name: "Demo SAAND Dealer" },
 };
 
 export function isDevLoginEnabled(): boolean {
@@ -29,8 +30,23 @@ export async function ensureDevUser(tier: SubscriptionTier) {
 
   const user = await db.user.upsert({
     where: { email },
-    update: { subscriptionTier: tier, passwordHash },
-    create: { email, name, passwordHash, role: "USER", subscriptionTier: tier },
+    update: {
+      subscriptionTier: tier,
+      passwordHash,
+      isSaandDealer: tier === SubscriptionTier.DEALER,
+      isCoinClubMember: tier === SubscriptionTier.SILVER || tier === SubscriptionTier.GOLD || tier === SubscriptionTier.DEALER,
+      completedSalesCount: tier === SubscriptionTier.DEALER ? 160 : tier === SubscriptionTier.GOLD ? 42 : 0,
+    },
+    create: {
+      email,
+      name,
+      passwordHash,
+      role: "USER",
+      subscriptionTier: tier,
+      isSaandDealer: tier === SubscriptionTier.DEALER,
+      isCoinClubMember: tier === SubscriptionTier.SILVER || tier === SubscriptionTier.GOLD || tier === SubscriptionTier.DEALER,
+      completedSalesCount: tier === SubscriptionTier.DEALER ? 160 : 0,
+    },
   });
 
   await db.subscription.upsert({
