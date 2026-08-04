@@ -17,6 +17,10 @@ const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOO
  * UI placeholder until their IdP credentials ship.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Required behind proxies / preview hosts (Cursor VM, Vercel, etc.). Without
+  // this, Auth.js throws UntrustedHost and credential sign-in surfaces as
+  // "Invalid email or password."
+  trustHost: true,
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {
