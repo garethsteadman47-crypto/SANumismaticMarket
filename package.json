@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "db:memory": "node scripts/start-mongo-memory.mjs",
-    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -52,6 +52,6 @@
     "vitest": "^4.1.10"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   }
 }
