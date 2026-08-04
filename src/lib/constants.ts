@@ -57,7 +57,7 @@ export const BROWSE_TAXONOMY_LABELS = {
   },
   republic: {
     label: "Republic",
-    children: ["R2", "R1", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
+    children: ["R2", "R1", "R5", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
   },
   bullion: {
     label: "Bullion",

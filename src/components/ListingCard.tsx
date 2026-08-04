@@ -6,7 +6,7 @@ import type { ListingCategory, ListingType, SubscriptionTier } from "@prisma/cli
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
 import { WishlistToggle } from "@/components/WishlistToggle";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { formatZarCents } from "@/lib/utils/currency";
@@ -21,7 +21,7 @@ export interface ListingCardData {
   shieldAwarded: boolean;
   listingType?: ListingType;
   isSponsored?: boolean;
-  seller: { subscriptionTier: SubscriptionTier };
+  seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
 }
 
 export function ListingCard({
@@ -76,7 +76,13 @@ export function ListingCard({
           <h3 className="line-clamp-2 text-sm font-medium">{listing.title}</h3>
           <div className="flex items-center justify-between gap-2 pt-1">
             <span className="text-base font-semibold">{formatZarCents(listing.priceCents)}</span>
-            <TrustBadge tier={listing.seller.subscriptionTier} className="text-[0.65rem]" />
+            <SellerBadges
+              seller={{
+                subscriptionTier: listing.seller.subscriptionTier,
+                isSaandDealer: listing.seller.isSaandDealer,
+              }}
+              compact
+            />
           </div>
         </CardContent>
       </Card>

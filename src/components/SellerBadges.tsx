@@ -24,7 +24,7 @@ export function SellerBadges({
   compact?: boolean;
 }) {
   const iconSize = compact ? "h-3.5 w-3.5" : "h-4 w-4";
-  const showGold = seller.subscriptionTier === "GOLD" || seller.subscriptionTier === "DEALER";
+  const showGold = seller.subscriptionTier === "GOLD";
   const showSilver = seller.subscriptionTier === "SILVER";
   const showSaand = seller.isSaandDealer || seller.subscriptionTier === "DEALER";
 

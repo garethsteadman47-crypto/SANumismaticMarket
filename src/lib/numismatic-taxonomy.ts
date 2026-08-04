@@ -141,6 +141,7 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     children: [
       child("republic-r2", "R2", ["r2", "2 rand"]),
       child("republic-r1", "R1", ["r1", "1 rand"]),
+      child("republic-r5", "R5", ["r5", "5 rand"]),
       child("republic-50c", "50c", ["50c", "50 cent"]),
       child("republic-20c", "20c", ["20c", "20 cent"]),
       child("republic-10c", "10c", ["10c", "10 cent"]),

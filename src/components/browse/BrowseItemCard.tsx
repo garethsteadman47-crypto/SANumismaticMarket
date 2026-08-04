@@ -5,7 +5,7 @@ import { GavelIcon, ImageOffIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldBadge } from "@/components/ShieldBadge";
-import { TrustBadge } from "@/components/TrustBadge";
+import { SellerBadges } from "@/components/SellerBadges";
 import { WishlistToggle } from "@/components/WishlistToggle";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import type { BrowseItem } from "@/lib/browse";
@@ -66,7 +66,13 @@ export function BrowseItemCard({ item, wishlisted = false }: { item: BrowseItem;
               )}
               <span className="text-base font-semibold">{item.priceLabel}</span>
             </div>
-            <TrustBadge tier={item.sellerTier} className="text-[0.65rem]" />
+            <SellerBadges
+              seller={{
+                subscriptionTier: item.sellerTier,
+                isSaandDealer: item.isSaandDealer,
+              }}
+              compact
+            />
           </div>
           {item.kind === "auction" && item.endsAtIso && (
             <AuctionCountdown
