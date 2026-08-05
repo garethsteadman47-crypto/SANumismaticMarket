@@ -17,9 +17,11 @@ import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { TrustBadge } from "@/components/TrustBadge";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
 import { AccountNavMenu } from "@/components/AccountNavMenu";
+import { MoreInfoNavMenu } from "@/components/MoreInfoNavMenu";
 import { CartButton } from "@/components/cart/CartButton";
 import { auth } from "@/lib/auth";
 import { isDevLoginEnabled } from "@/lib/dev-users";
+import { MORE_INFO_LINKS } from "@/lib/info-nav";
 import { countPendingOffersForSeller } from "@/lib/offers";
 import { SITE_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -49,6 +51,9 @@ function NavLinks() {
           </Link>
         );
       })}
+      <div className="hidden md:block">
+        <MoreInfoNavMenu />
+      </div>
     </>
   );
 }
@@ -76,7 +81,34 @@ export async function Navbar() {
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-4 px-4">
-              <NavLinks />
+              {MAIN_NAV_LINKS.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Icon className="size-3.5 shrink-0" aria-hidden />
+                    {link.label}
+                  </Link>
+                );
+              })}
+              <div className="border-t pt-3">
+                <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">More Info</p>
+                <div className="flex flex-col gap-3">
+                  {MORE_INFO_LINKS.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <Icon className="size-3.5 shrink-0" aria-hidden />
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
               {session?.user && (
                 <>
                   <Link

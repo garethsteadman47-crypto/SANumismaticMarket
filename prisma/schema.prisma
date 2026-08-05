@@ -856,3 +856,36 @@ model AdPlacement {
 
   @@index([slotType, category, isActive])
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Marketing / support inbox
+// ─────────────────────────────────────────────────────────────────────────
+
+model NewsletterSubscriber {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  source    String   @default("newsletters_page")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+enum ContactSubject {
+  GENERAL
+  DISPUTE
+  SAAND_VERIFICATION
+  ADVERTISING
+}
+
+model ContactMessage {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String
+  subject   ContactSubject
+  message   String
+  createdAt DateTime       @default(now())
+
+  @@index([createdAt])
+  @@index([subject])
+}
+
