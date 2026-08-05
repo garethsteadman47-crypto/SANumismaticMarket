@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { SubscriptionTier } from "@prisma/client";
 
 import { db } from "@/lib/db";
+import type { AccoladeId } from "@/lib/accolades";
 
 /**
  * Shared demo accounts — emails/names must match `prisma/seed.ts` MOCK_USERS
@@ -17,6 +18,12 @@ export const DEMO_USERS: Record<
     isSaandDealer: boolean;
     isCoinClubMember: boolean;
     completedSalesCount: number;
+    phoneNumber: string;
+    location: string;
+    bio: string;
+    avatarUrl: string;
+    bannerUrl: string;
+    accolades: AccoladeId[];
   }
 > = {
   STANDARD: {
@@ -25,6 +32,12 @@ export const DEMO_USERS: Record<
     isSaandDealer: false,
     isCoinClubMember: false,
     completedSalesCount: 0,
+    phoneNumber: "+27 83 555 0101",
+    location: "Durban, KZN",
+    bio: "New to organised collecting — building a starter cabinet of modern SA commemoratives.",
+    avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    bannerUrl: "https://images.unsplash.com/photo-1605335805561-12c8a245585f?auto=format&fit=crop&w=1600&q=80",
+    accolades: ["EARLY_ADOPTER"],
   },
   SILVER: {
     email: "unionhunter@demo.local",
@@ -32,6 +45,12 @@ export const DEMO_USERS: Record<
     isSaandDealer: false,
     isCoinClubMember: true,
     completedSalesCount: 12,
+    phoneNumber: "+27 71 555 0199",
+    location: "Cape Town, WC",
+    bio: "Collecting Union florins, shillings, and early Republic circulating crowns.",
+    avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80",
+    bannerUrl: "https://images.unsplash.com/photo-1599557997972-00ab56bc7404?auto=format&fit=crop&w=1600&q=80",
+    accolades: ["COIN_CLUB"],
   },
   GOLD: {
     email: "pretoriagold@demo.local",
@@ -39,13 +58,25 @@ export const DEMO_USERS: Record<
     isSaandDealer: false,
     isCoinClubMember: true,
     completedSalesCount: 54,
+    phoneNumber: "+27 82 555 0142",
+    location: "Johannesburg, GP",
+    bio: "Power trader focused on Krugerrands, Natura series, and high-grade Union silver.",
+    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
+    bannerUrl: "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1600&q=80",
+    accolades: ["COIN_CLUB", "EARLY_ADOPTER"],
   },
   DEALER: {
     email: "bassani@demo.local",
-    name: "Bassani_Numismatics",
+    name: "Bassani Numismatics",
     isSaandDealer: true,
     isCoinClubMember: true,
     completedSalesCount: 186,
+    phoneNumber: "+27 12 555 0186",
+    location: "Pretoria, GP",
+    bio: "SAAND dealer specialising in ZAR gold, Union proofs, and scarce Republic R1–R5 varieties.",
+    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    bannerUrl: "https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=1600&q=80",
+    accolades: ["SAAND_VERIFIED", "COIN_CLUB", "TOP_SELLER_100", "EARLY_ADOPTER"],
   },
 };
 
@@ -76,6 +107,13 @@ export async function ensureDevUser(tier: SubscriptionTier) {
       isSaandDealer: demo.isSaandDealer,
       isCoinClubMember: demo.isCoinClubMember,
       completedSalesCount: demo.completedSalesCount,
+      phoneNumber: demo.phoneNumber,
+      location: demo.location,
+      bio: demo.bio,
+      avatarUrl: demo.avatarUrl,
+      bannerUrl: demo.bannerUrl,
+      image: demo.avatarUrl,
+      accolades: demo.accolades,
     },
     create: {
       email: demo.email,
@@ -86,6 +124,13 @@ export async function ensureDevUser(tier: SubscriptionTier) {
       isSaandDealer: demo.isSaandDealer,
       isCoinClubMember: demo.isCoinClubMember,
       completedSalesCount: demo.completedSalesCount,
+      phoneNumber: demo.phoneNumber,
+      location: demo.location,
+      bio: demo.bio,
+      avatarUrl: demo.avatarUrl,
+      bannerUrl: demo.bannerUrl,
+      image: demo.avatarUrl,
+      accolades: demo.accolades,
     },
   });
 

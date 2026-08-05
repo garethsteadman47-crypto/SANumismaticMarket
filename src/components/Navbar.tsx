@@ -16,8 +16,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { TrustBadge } from "@/components/TrustBadge";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
+import { AccountNavMenu } from "@/components/AccountNavMenu";
 import { CartButton } from "@/components/cart/CartButton";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { isDevLoginEnabled } from "@/lib/dev-users";
 import { countPendingOffersForSeller } from "@/lib/offers";
 import { SITE_NAME } from "@/lib/constants";
@@ -29,14 +30,8 @@ const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
   { href: "/about", label: "About Us", icon: InfoIcon },
-  // Wishlist sits directly beside About Us and the Cart action cluster.
   { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
 ];
-
-async function handleSignOut() {
-  "use server";
-  await signOut({ redirectTo: "/" });
-}
 
 function NavLinks() {
   return (
@@ -83,18 +78,26 @@ export async function Navbar() {
             <nav className="flex flex-col gap-4 px-4">
               <NavLinks />
               {session?.user && (
-                <Link
-                  href="/dashboard/offers"
-                  className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <GavelIcon className="size-4" />
-                  My Offers
-                  {pendingOfferCount > 0 && (
-                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
-                      {pendingOfferCount}
-                    </span>
-                  )}
-                </Link>
+                <>
+                  <Link
+                    href="/account"
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    My Account
+                  </Link>
+                  <Link
+                    href="/dashboard/offers"
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <GavelIcon className="size-4" />
+                    My Offers
+                    {pendingOfferCount > 0 && (
+                      <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
+                        {pendingOfferCount}
+                      </span>
+                    )}
+                  </Link>
+                </>
               )}
             </nav>
           </SheetContent>
@@ -142,11 +145,7 @@ export async function Navbar() {
           {session?.user ? (
             <div className="flex items-center gap-2">
               <TrustBadge tier={session.user.subscriptionTier} className="hidden sm:inline-flex" />
-              <form action={handleSignOut}>
-                <Button type="submit" variant="ghost" size="sm">
-                  Sign out
-                </Button>
-              </form>
+              <AccountNavMenu displayName={session.user.name} />
             </div>
           ) : (
             <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
