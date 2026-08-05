@@ -63,15 +63,20 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 3. Demo accounts (non-production)
+### 3. Demo accounts
 
-Seeded by `npm run db:seed` and also creatable via the header **Demo login** switcher:
+Seeded by `npm run db:seed`. On Vercel, visiting `/login` also upserts these accounts
+into whatever `DATABASE_URL` the deploy uses (so Atlas works without a manual seed).
 
 | Tier | Email | Password |
 | --- | --- | --- |
-| Standard | `standard@demo.local` | `DemoPass123!` |
-| Silver | `silver@demo.local` | `DemoPass123!` |
-| Gold | `gold@demo.local` | `DemoPass123!` |
+| Dealer (SAAND) | `bassani@demo.local` | `DemoPass123!` |
+| Gold | `pretoriagold@demo.local` | `DemoPass123!` |
+| Silver | `unionhunter@demo.local` | `DemoPass123!` |
+| Standard | `casual@demo.local` | `DemoPass123!` |
+
+One-click demo buttons on `/login` show in non-production and on Vercel **preview**
+deploys (or when `DEMO_LOGIN_ENABLED=1`).
 
 ## Environment variables
 
