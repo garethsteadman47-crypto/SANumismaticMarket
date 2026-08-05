@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { findOrCreateUserForPhone, verifyPhoneOtp } from "@/lib/phone-otp";
+import { ensureDemoUserIfMatchingCredentials } from "@/lib/dev-users";
 
 const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
@@ -47,11 +48,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password?.toString();
         if (!email || !password) return null;
 
-        const user = await db.user.findUnique({ where: { email } });
+        // Bootstrap known demo accounts on first sign-in (Vercel/Atlas often
+        // has never been seeded — without this, bassani@demo.local 404s).
+        let user = await db.user.findUnique({ where: { email } });
+        if (!user?.passwordHash) {
+          user = (await ensureDemoUserIfMatchingCredentials(email, password)) ?? null;
+        }
         if (!user?.passwordHash) return null;
 
         const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-        if (!isValidPassword) return null;
+        if (!isValidPassword) {
+          // Password may have been rotated on Atlas; re-sync demo hash if
+          // credentials match the shared demo password.
+          const synced = await ensureDemoUserIfMatchingCredentials(email, password);
+          if (!synced) return null;
+          user = synced;
+        }
 
         return {
           id: user.id,
