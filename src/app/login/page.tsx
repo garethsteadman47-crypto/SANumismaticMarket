@@ -6,7 +6,7 @@ import { AuthProvidersPanel } from "@/components/auth/AuthProvidersPanel";
 import { MintMarkLogo } from "@/components/MintMarkLogo";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { isDevLoginEnabled } from "@/lib/dev-users";
+import { ensureAllDemoUsers, isDevLoginEnabled } from "@/lib/dev-users";
 import { SITE_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -14,7 +14,17 @@ export const metadata: Metadata = {
   description: "Sign in with email, Google, South African mobile OTP, or SA Coin Club SSO.",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Ensure bassani@demo.local (and the other tier demos) exist on whatever
+  // DATABASE_URL this deploy uses — including Vercel → Atlas before seed.
+  try {
+    await ensureAllDemoUsers();
+  } catch (err) {
+    console.error("[login] ensureAllDemoUsers failed", err);
+  }
+
+  const showDemoSwitcher = isDevLoginEnabled();
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -41,7 +51,7 @@ export default function LoginPage() {
 
       <AuthProvidersPanel />
 
-      {isDevLoginEnabled() && (
+      {showDemoSwitcher && (
         <div className="rounded-lg border border-dashed p-3">
           <p className="mb-2 text-xs text-muted-foreground">One-click demo accounts</p>
           <DevUserSwitcher variant="buttons" />

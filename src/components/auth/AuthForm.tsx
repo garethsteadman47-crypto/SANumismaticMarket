@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -12,33 +13,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signInSchema, signUpSchema, type SignInInput, type SignUpInput } from "@/lib/validation/auth";
-import { signInWithCredentialsAction, signUpAction } from "@/actions/auth";
+import { signUpAction } from "@/actions/auth";
 import { PhoneAuthForm } from "@/components/auth/PhoneAuthForm";
 
+/** Demo account shown on the login card — pre-filled so preview hosts can't mistype it. */
+const DEMO_EMAIL = "bassani@demo.local";
+const DEMO_PASSWORD = "DemoPass123!";
+
+async function credentialsSignIn(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
+  // Client-side Auth.js callback — same path as /api/auth/callback/credentials.
+  // Avoids Server Action host mismatches on Cursor/proxy preview URLs that were
+  // previously surfaced as "Invalid email or password."
+  const result = await signIn("credentials", {
+    email,
+    password,
+    redirect: false,
+  });
+
+  if (result?.error) {
+    return { ok: false, error: "Invalid email or password." };
+  }
+  return { ok: true };
+}
+
 function SignInPanel() {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignInInput>({ resolver: zodResolver(signInSchema) });
+  } = useForm<SignInInput>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: DEMO_EMAIL, password: DEMO_PASSWORD },
+  });
 
-  function onSubmit(values: SignInInput) {
-    startTransition(async () => {
-      const result = await signInWithCredentialsAction(values);
-      if (!result.success) {
+  async function onSubmit(values: SignInInput) {
+    setIsPending(true);
+    try {
+      const result = await credentialsSignIn(values.email, values.password);
+      if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success("Signed in.");
       router.push("/");
       router.refresh();
-    });
+    } catch {
+      toast.error("Sign-in failed. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" method="post">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="signin-email">Email</Label>
         <Input id="signin-email" type="email" autoComplete="email" {...register("email")} />
@@ -73,6 +102,13 @@ function SignUpPanel() {
         toast.error(result.error);
         return;
       }
+
+      // Account exists — sign in via the client Auth.js path (not the server action).
+      const signedIn = await credentialsSignIn(values.email, values.password);
+      if (!signedIn.ok) {
+        toast.error("Account created — please sign in with your new password.");
+        return;
+      }
       toast.success("Account created!");
       router.push("/");
       router.refresh();
@@ -80,7 +116,7 @@ function SignUpPanel() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" method="post">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="signup-name">Full name</Label>
         <Input id="signup-name" autoComplete="name" {...register("name")} />
