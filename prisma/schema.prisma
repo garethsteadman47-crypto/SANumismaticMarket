@@ -276,6 +276,15 @@ model User {
   phone   String?
   address Address?
 
+  // Rich profile (My Account dashboard).
+  phoneNumber String?
+  bio         String?
+  location    String?
+  avatarUrl   String?
+  bannerUrl   String?
+  /// Badge IDs: SAAND_VERIFIED | COIN_CLUB | TOP_SELLER_100 | EARLY_ADOPTER
+  accolades   String[] @default([])
+
   // Denormalized for fast reads by the fee-calculation utility (Step 3).
   // Kept in sync with `subscription.tier` whenever the subscription changes.
   subscriptionTier SubscriptionTier @default(STANDARD)
