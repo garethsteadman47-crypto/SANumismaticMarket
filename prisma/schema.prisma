@@ -324,6 +324,7 @@ model User {
   savedSearches SavedSearch[]
   wishlistItems WishlistItem[]
   wantedItems   WantedItem[]
+  bulkListingImports BulkListingImport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -887,5 +888,34 @@ model ContactMessage {
 
   @@index([createdAt])
   @@index([subject])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Dealer bulk inventory import
+// ─────────────────────────────────────────────────────────────────────────
+
+enum BulkImportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model BulkListingImport {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId String @db.ObjectId
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  filename     String?
+  status       BulkImportStatus @default(PENDING)
+  totalRows    Int              @default(0)
+  successCount Int              @default(0)
+  errorCount   Int              @default(0)
+  /// Row-level error messages from the last run: [{ row, message }]
+  errors       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sellerId, createdAt])
 }
 

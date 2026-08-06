@@ -36,6 +36,14 @@ import {
 import { createListingAction } from "@/actions/listing";
 import { checkCertificateAction } from "@/actions/verification";
 import { MediaImageSlot } from "@/components/listings/MediaImageSlot";
+import {
+  createEmptyListingMedia,
+  LISTING_MEDIA_SLOT_META,
+  mediaSlotHasAnyContent,
+  resolvePublishableSlotUrl,
+  type ListingMediaSlotId,
+  type ListingMediaState,
+} from "@/lib/listing-media";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { formatZarCents, randsToCents } from "@/lib/utils/currency";
 import { calculateOrderFeeBreakdown, getVerificationFeeCents } from "@/lib/utils/fees";
@@ -76,10 +84,6 @@ interface WizardState {
   priceRands: string;
   acceptsOffers: boolean;
   auctionEndsInDays: string;
-  coverImageUrl: string;
-  obverseImageUrl: string;
-  reverseImageUrl: string;
-  certificateImageUrl: string;
 }
 
 const INITIAL: WizardState = {
@@ -102,21 +106,10 @@ const INITIAL: WizardState = {
   priceRands: "",
   acceptsOffers: true,
   auctionEndsInDays: "7",
-  coverImageUrl: "",
-  obverseImageUrl: "",
-  reverseImageUrl: "",
-  certificateImageUrl: "",
 };
 
 function placeholderImage(seed: string) {
   return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/800`;
-}
-
-function publishableImageUrl(url: string, seed: string): string {
-  const trimmed = url.trim();
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  // Local blob/data previews aren't durable — fall back to a stable placeholder.
-  return placeholderImage(seed || "mintmark-listing");
 }
 
 export function ListingWizard({
@@ -127,11 +120,16 @@ export function ListingWizard({
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [state, setState] = useState<WizardState>(INITIAL);
+  const [media, setMedia] = useState<ListingMediaState>(() => createEmptyListingMedia());
   const [isPending, startTransition] = useTransition();
   const [certNote, setCertNote] = useState<string | null>(null);
 
   function update<K extends keyof WizardState>(key: K, value: WizardState[K]) {
     setState((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateMediaSlot(slotId: ListingMediaSlotId, next: ListingMediaState[ListingMediaSlotId]) {
+    setMedia((prev) => ({ ...prev, [slotId]: next }));
   }
 
   const priceCents = useMemo(() => {
@@ -172,8 +170,8 @@ export function ListingWizard({
       }
     }
     if (current === 4) {
-      if (!state.coverImageUrl && !state.obverseImageUrl) {
-        return "Add at least a cover or obverse image URL.";
+      if (!mediaSlotHasAnyContent(media.cover) && !mediaSlotHasAnyContent(media.obverse)) {
+        return "Add at least a cover or obverse image.";
       }
     }
     return null;
@@ -218,18 +216,12 @@ export function ListingWizard({
     }
 
     const seedBase = state.title || "mintmark-listing";
-    const cover = state.coverImageUrl ? publishableImageUrl(state.coverImageUrl, `${seedBase}-cover`) : "";
-    const obverse = state.obverseImageUrl
-      ? publishableImageUrl(state.obverseImageUrl, `${seedBase}-obverse`)
-      : "";
-    const reverse = state.reverseImageUrl
-      ? publishableImageUrl(state.reverseImageUrl, `${seedBase}-reverse`)
-      : "";
-    const certificate = state.certificateImageUrl
-      ? publishableImageUrl(state.certificateImageUrl, `${seedBase}-cert`)
-      : "";
+    const cover = resolvePublishableSlotUrl(media.cover, placeholderImage, `${seedBase}-cover`);
+    const obverse = resolvePublishableSlotUrl(media.obverse, placeholderImage, `${seedBase}-obverse`);
+    const reverse = resolvePublishableSlotUrl(media.reverse, placeholderImage, `${seedBase}-reverse`);
+    const certificate = resolvePublishableSlotUrl(media.slab, placeholderImage, `${seedBase}-slab`);
 
-    const images = [cover, obverse, reverse, certificate].filter(Boolean);
+    const images = [cover, obverse, reverse, certificate].filter((url): url is string => Boolean(url));
 
     // Fallback placeholders so local demos without UploadThing still publish.
     if (images.length === 0) {
@@ -651,23 +643,16 @@ export function ListingWizard({
           {step === 4 && (
             <>
               <p className="text-sm text-muted-foreground">
-                Drop images into each slot or paste public URLs from Imgur, your site, or a grading database. Previews
-                appear instantly.
+                Drop images into each named slot or paste public URLs. Each slot keeps its own file and preview — Cover
+                never swaps with Obverse.
               </p>
-              {(
-                [
-                  ["coverImageUrl", "Cover photo"],
-                  ["obverseImageUrl", "Obverse (front)"],
-                  ["reverseImageUrl", "Reverse (back)"],
-                  ["certificateImageUrl", "Certificate / slab serial"],
-                ] as const
-              ).map(([key, label]) => (
+              {LISTING_MEDIA_SLOT_META.map(({ id, label }) => (
                 <MediaImageSlot
-                  key={key}
-                  id={key}
+                  key={id}
+                  slotId={id}
                   label={label}
-                  value={state[key]}
-                  onChange={(url) => update(key, url)}
+                  value={media[id]}
+                  onChange={(next) => updateMediaSlot(id, next)}
                 />
               ))}
 
