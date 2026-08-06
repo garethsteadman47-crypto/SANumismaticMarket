@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && npm run db:seed && next build",
+    "build": "prisma generate && (npm run db:seed || echo '[build] db:seed failed — continuing without reseeding') && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
