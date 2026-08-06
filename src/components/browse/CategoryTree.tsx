@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { cn } from "@/lib/utils";
 import { TAXONOMY_TREE } from "@/lib/numismatic-taxonomy";
 import { serializeBrowseFilters, parseBrowseFilters } from "@/lib/browse-filters";
@@ -8,10 +9,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { TaxonomyIcon } from "@/components/browse/TaxonomyIcon";
 
 /**
- * Collapsible, multi-level category navigation for `/listings`. Selecting a
- * parent or child both applies that node's filter AND expands/collapses its
- * section — a single click does both, which is the natural expectation for
- * a browse tree (vs. requiring a separate chevron-only toggle).
+ * Collapsible category navigation for the unified `/listings` marketplace.
+ * Updates `taxonomy` + `category` URL params while preserving tab (`format`),
+ * search (`q`), and sort — so switching Union → Farthings on Live Auctions
+ * never drops the auction mode.
  */
 export function CategoryTree({ basePath }: { basePath: string }) {
   const router = useRouter();
@@ -21,8 +22,22 @@ export function CategoryTree({ basePath }: { basePath: string }) {
 
   function selectNode(nodeId: string) {
     const isDeselecting = selectedId === nodeId;
-    const query = serializeBrowseFilters({ ...currentFilters, taxonomy: isDeselecting ? undefined : nodeId });
-    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+    const nextTaxonomy = isDeselecting ? undefined : nodeId;
+    const query = serializeBrowseFilters({
+      ...currentFilters,
+      taxonomy: nextTaxonomy,
+    });
+    // Dual-write `category=` for deep-link / marketing parity with taxonomy.
+    const params = new URLSearchParams(query);
+    if (nextTaxonomy) {
+      params.set("category", nextTaxonomy);
+      params.set("taxonomy", nextTaxonomy);
+    } else {
+      params.delete("category");
+      params.delete("taxonomy");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
   }
 
   return (
@@ -50,7 +65,7 @@ export function CategoryTree({ basePath }: { basePath: string }) {
                       onClick={() => selectNode(child.id)}
                       className={cn(
                         "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                        selectedId === child.id && "bg-primary/10 font-medium text-primary"
+                        selectedId === child.id && "bg-primary/10 font-medium text-primary",
                       )}
                     >
                       <TaxonomyIcon

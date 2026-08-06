@@ -18,7 +18,7 @@ export function FeaturedAuctionsSection({ auctions }: { auctions: AuctionTickerI
           <p className="text-sm text-muted-foreground">Live lots sorted by ending soonest — bid before the hammer falls.</p>
         </div>
         <Link
-          href="/auctions"
+          href="/listings?format=AUCTION&sort=ending_soon"
           className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           View all

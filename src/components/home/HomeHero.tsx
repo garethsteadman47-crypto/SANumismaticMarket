@@ -34,7 +34,7 @@ export function HomeHero() {
             size="lg"
             className="bg-amber-500 px-5 text-slate-950 hover:bg-amber-400"
             nativeButton={false}
-            render={<Link href="/auctions" />}
+            render={<Link href="/listings?format=AUCTION&sort=ending_soon" />}
           >
             <GavelIcon />
             Browse Auctions

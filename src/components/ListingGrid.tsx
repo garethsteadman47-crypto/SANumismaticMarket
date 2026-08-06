@@ -6,9 +6,9 @@ export function ListingGrid({ listings, emptyMessage }: { listings: ListingCardD
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
       {listings.map((listing) => (
-        <ListingCard key={listing.id} listing={listing} />
+        <ListingCard key={`${listing.type ?? "BUY_NOW"}-${listing.id}`} listing={listing} />
       ))}
     </div>
   );

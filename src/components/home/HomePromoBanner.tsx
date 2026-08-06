@@ -14,7 +14,7 @@ export function HomePromoBanner() {
           </span>
         </p>
         <Link
-          href="/auctions"
+          href="/listings?format=AUCTION&sort=ending_soon"
           className="inline-flex items-center gap-1 text-sm font-medium text-amber-400 transition-colors hover:text-amber-300"
         >
           View Featured Catalogue

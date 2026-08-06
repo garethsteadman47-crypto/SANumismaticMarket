@@ -23,7 +23,7 @@ export function AuctionTicker({ auctions }: { auctions: AuctionTickerItem[] }) {
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 text-sm text-slate-400">
           <GavelIcon className="size-4 text-amber-400" aria-hidden />
           No live auctions right now — check back soon or browse upcoming lots.
-          <Link href="/auctions" className="ml-auto text-amber-400 hover:text-amber-300">
+          <Link href="/listings?format=AUCTION&sort=ending_soon" className="ml-auto text-amber-400 hover:text-amber-300">
             View auctions
           </Link>
         </div>
@@ -42,7 +42,7 @@ export function AuctionTicker({ auctions }: { auctions: AuctionTickerItem[] }) {
           <h2 className="font-heading text-sm font-semibold tracking-wide text-amber-100 uppercase">
             Auction ticker
           </h2>
-          <Link href="/auctions" className="ml-auto text-xs font-medium text-amber-400 hover:text-amber-300">
+          <Link href="/listings?format=AUCTION&sort=ending_soon" className="ml-auto text-xs font-medium text-amber-400 hover:text-amber-300">
             View all auctions
           </Link>
         </div>

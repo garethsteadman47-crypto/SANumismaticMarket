@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 
 const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/listings", label: "Buy Coins", icon: CoinsIcon },
-  { href: "/auctions", label: "Live Auctions", icon: GavelIcon },
+  { href: "/listings?format=AUCTION&sort=ending_soon", label: "Live Auctions", icon: GavelIcon },
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
 ];

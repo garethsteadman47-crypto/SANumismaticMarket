@@ -28,6 +28,8 @@ export interface ListingCardData {
   auctionPhase?: "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
   bidCount?: number;
   isSponsored?: boolean;
+  /** Millisecond timestamp for newest-first sorting in the marketplace grid. */
+  sortKey?: number;
   seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
 }
 
