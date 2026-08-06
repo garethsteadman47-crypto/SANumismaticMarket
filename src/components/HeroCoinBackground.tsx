@@ -12,20 +12,53 @@ const GOLD = {
   roughness: 0.2,
 } as const;
 
+/** Brighter, glintier gold for protruding embossed lettering. */
+const LETTERING = {
+  color: "#FFE55C",
+  metalness: 0.95,
+  roughness: 0.08,
+} as const;
+
 const TYPEFACE = "/fonts/helvetiker_bold.typeface.json";
 
-/**
- * Shared polished-gold look for the blank, bezel rims, and embossed reverse text.
- */
 function GoldMaterial() {
   return (
     <meshStandardMaterial color={GOLD.color} metalness={GOLD.metalness} roughness={GOLD.roughness} />
   );
 }
 
+function LetteringMaterial() {
+  return (
+    <meshStandardMaterial
+      color={LETTERING.color}
+      metalness={LETTERING.metalness}
+      roughness={LETTERING.roughness}
+    />
+  );
+}
+
 /**
- * Premium MintMark coin: logo-mapped obverse, raised torus bezels, embossed reverse.
+ * Dual-rim proof border: raised outer lip + subtle inner ring on one face.
+ */
+function DualRim({ z }: { z: number }) {
+  return (
+    <group>
+      <mesh position={[0, 0, z]} castShadow>
+        <torusGeometry args={[2.5, 0.08, 16, 100]} />
+        <GoldMaterial />
+      </mesh>
+      <mesh position={[0, 0, z]} castShadow>
+        <torusGeometry args={[2.38, 0.03, 16, 100]} />
+        <GoldMaterial />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Premium MintMark coin: logo-mapped obverse, dual-rim bezels, embossed lettering.
  * CylinderGeometry material slots: 0 = side, 1 = top (+Y → front after rotX), 2 = bottom.
+ * Spin is locked to the Y axis (turntable) — no X/Z tumble.
  */
 function SpinningGoldCoin() {
   const groupRef = useRef<Group>(null);
@@ -42,24 +75,21 @@ function SpinningGoldCoin() {
   useFrame(() => {
     const group = groupRef.current;
     if (!group) return;
-    group.rotation.y += 0.005;
-    group.rotation.x += 0.002;
+    group.rotation.y += 0.008;
   });
 
   return (
-    <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.55}>
-      <group ref={groupRef} rotation={[0.25, 0.35, 0.08]}>
+    <Float speed={1.1} rotationIntensity={0} floatIntensity={0.35}>
+      <group ref={groupRef} rotation={[0, 0, 0]}>
         {/* Coin blank — logo on the front face only. */}
         <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
           <cylinderGeometry args={[2.5, 2.5, 0.2, 64]} />
-          {/* Side / edge */}
           <meshStandardMaterial
             attach="material-0"
             color={GOLD.color}
             metalness={GOLD.metalness}
             roughness={GOLD.roughness}
           />
-          {/* Obverse (top → +Z after rotX) — MintMark logo texture */}
           <meshStandardMaterial
             attach="material-1"
             map={logo}
@@ -68,7 +98,6 @@ function SpinningGoldCoin() {
             roughness={GOLD.roughness}
             transparent
           />
-          {/* Reverse face — polished gold */}
           <meshStandardMaterial
             attach="material-2"
             color={GOLD.color}
@@ -77,33 +106,46 @@ function SpinningGoldCoin() {
           />
         </mesh>
 
-        {/* Raised metallic bezels on both faces */}
-        <mesh position={[0, 0, 0.1]} castShadow>
-          <torusGeometry args={[2.5, 0.12, 32, 100]} />
-          <GoldMaterial />
-        </mesh>
-        <mesh position={[0, 0, -0.1]} castShadow>
-          <torusGeometry args={[2.5, 0.12, 32, 100]} />
-          <GoldMaterial />
-        </mesh>
+        {/* Authentic double-struck proof border on both faces */}
+        <DualRim z={0.1} />
+        <DualRim z={-0.1} />
+
+        {/* Obverse lettering — protruding above the face */}
+        <Text3D
+          font={TYPEFACE}
+          position={[-1.45, 0.85, 0.12]}
+          rotation={[0, 0, 0]}
+          scale={0.32}
+          size={1}
+          height={0.1}
+          curveSegments={12}
+          bevelEnabled
+          bevelThickness={0.025}
+          bevelSize={0.018}
+          bevelOffset={0}
+          bevelSegments={4}
+        >
+          MINTMARK
+          <LetteringMaterial />
+        </Text3D>
 
         {/* Reverse — FOUNDED 2026, Y-rotated so it reads correctly while spinning */}
         <Text3D
           font={TYPEFACE}
-          position={[-1.6, -0.15, -0.11]}
+          position={[-1.55, -0.15, -0.12]}
           rotation={[0, Math.PI, 0]}
-          scale={0.4}
+          scale={0.38}
           size={1}
-          height={0.05}
+          height={0.1}
           curveSegments={12}
           bevelEnabled
-          bevelThickness={0.02}
-          bevelSize={0.015}
+          bevelThickness={0.025}
+          bevelSize={0.018}
           bevelOffset={0}
           bevelSegments={4}
         >
           FOUNDED 2026
-          <GoldMaterial />
+          <LetteringMaterial />
         </Text3D>
       </group>
     </Float>
@@ -115,7 +157,7 @@ function HeroCoinScene() {
     <>
       <color attach="background" args={["#020617"]} />
       <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={2} />
+      <directionalLight position={[10, 10, 5]} intensity={2.2} />
       <directionalLight position={[-6, -4, 2]} intensity={0.55} color="#fbbf24" />
       <Suspense fallback={null}>
         <Environment preset="city" />
@@ -130,7 +172,7 @@ function HeroCoinScene() {
  *
  * Assets:
  * - `/public/mintmark-logo.png` — high-res transparent MintMark mark for the obverse
- * - `/public/fonts/helvetiker_bold.typeface.json` — typeface for reverse Text3D
+ * - `/public/fonts/helvetiker_bold.typeface.json` — typeface for embossed Text3D
  */
 export function HeroCoinBackground() {
   const [mounted, setMounted] = useState(false);

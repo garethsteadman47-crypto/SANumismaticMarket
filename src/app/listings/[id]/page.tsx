@@ -187,7 +187,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           />
 
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
                 size="lg"
@@ -205,23 +205,25 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 image={listing.images[0] ?? null}
                 disabled={buyingDisabled}
               />
-              {!acceptedOffer && !openOffer && listing.acceptsOffers && (
-                <MakeOfferModal
-                  listingId={listing.id}
-                  listingPriceCents={listing.priceCents}
-                  minOfferPriceCents={listing.minOfferPriceCents}
-                  disabled={buyingDisabled}
-                />
-              )}
-              {!isOwnListing && (
-                <AskQuestionModal
-                  listingId={listing.id}
-                  listingTitle={listing.title}
-                  sellerName={listing.seller.name}
-                  isSignedIn={Boolean(session?.user?.id)}
-                  disabled={isSoldOut}
-                />
-              )}
+              <div className="flex flex-row flex-wrap items-center gap-3">
+                {!acceptedOffer && !openOffer && listing.acceptsOffers && (
+                  <MakeOfferModal
+                    listingId={listing.id}
+                    listingPriceCents={listing.priceCents}
+                    minOfferPriceCents={listing.minOfferPriceCents}
+                    disabled={buyingDisabled}
+                  />
+                )}
+                {!isOwnListing && (
+                  <AskQuestionModal
+                    listingId={listing.id}
+                    listingTitle={listing.title}
+                    sellerName={listing.seller.name}
+                    isSignedIn={Boolean(session?.user?.id)}
+                    disabled={isSoldOut}
+                  />
+                )}
+              </div>
             </div>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <ShieldIcon className="size-3.5 text-emerald-600" />

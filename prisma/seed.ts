@@ -1,6 +1,6 @@
 /**
- * MintMark flood seed — 4 badge-ready sellers, 10 live auctions (with bids),
- * and 20 fixed-price listings mapped to the expanded parent/child taxonomy.
+ * MintMark flood seed — 4 named dealers, live auctions (with bids),
+ * and Buy Now listings across ZAR / Union / First Decimal / Krugerrands / International.
  *
  * Requires DATABASE_URL pointing at a MongoDB replica set.
  * Run: npm run db:seed
@@ -20,61 +20,65 @@ const DEMO_PASSWORD = "DemoPass123!";
 
 const MOCK_USERS = [
   {
-    key: "DEALER" as const,
-    email: "bassani@demo.local",
-    name: "Bassani Numismatics",
-    tier: "DEALER" as const,
+    key: "GAUTENG" as const,
+    email: "gauteng@demo.local",
+    name: "Gauteng Numismatic Exchange",
+    tier: "GOLD" as const,
+    isVerified: true,
     isSaandDealer: true,
     isCoinClubMember: true,
-    completedSalesCount: 186,
-    phoneNumber: "+27 12 555 0186",
+    completedSalesCount: 214,
+    phoneNumber: "+27 12 555 0201",
     location: "Pretoria, GP",
-    bio: "SAAND dealer specialising in ZAR gold, Union proofs, and scarce Republic R1–R5 varieties.",
+    bio: "Verified SAAND dealer specialising in ZAR gold, Union proofs, and scarce Republic varieties.",
     avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=1600&q=80",
     accolades: ["SAAND_VERIFIED", "COIN_CLUB", "TOP_SELLER_100", "EARLY_ADOPTER"],
   },
   {
-    key: "GOLD" as const,
-    email: "pretoriagold@demo.local",
-    name: "PretoriaGold",
-    tier: "GOLD" as const,
+    key: "CAPE" as const,
+    email: "cape@demo.local",
+    name: "Cape Proof Collectibles",
+    tier: "SILVER" as const,
+    isVerified: true,
     isSaandDealer: false,
     isCoinClubMember: true,
-    completedSalesCount: 54,
-    phoneNumber: "+27 82 555 0142",
-    location: "Johannesburg, GP",
-    bio: "Power trader focused on Krugerrands, Natura series, and high-grade Union silver.",
+    completedSalesCount: 67,
+    phoneNumber: "+27 21 555 0142",
+    location: "Cape Town, WC",
+    bio: "Cape Town boutique for proof sets, Krugerrands, and high-grade Union silver.",
     avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1600&q=80",
     accolades: ["COIN_CLUB", "EARLY_ADOPTER"],
   },
   {
-    key: "SILVER" as const,
-    email: "unionhunter@demo.local",
-    name: "UnionHunter",
-    tier: "SILVER" as const,
+    key: "VELDPOND" as const,
+    email: "veldpond@demo.local",
+    name: "Veldpond Specialist",
+    tier: "GOLD" as const,
+    isVerified: false,
     isSaandDealer: false,
     isCoinClubMember: true,
-    completedSalesCount: 12,
-    phoneNumber: "+27 71 555 0199",
-    location: "Cape Town, WC",
-    bio: "Collecting Union florins, shillings, and early Republic circulating crowns.",
+    completedSalesCount: 41,
+    phoneNumber: "+27 82 555 0199",
+    location: "Johannesburg, GP",
+    bio: "Focused on ZAR gold rarities, Veldponde, and early Kruger crowns.",
     avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1599557997972-00ab56bc7404?auto=format&fit=crop&w=1600&q=80",
     accolades: ["COIN_CLUB"],
   },
   {
-    key: "STANDARD" as const,
-    email: "casual@demo.local",
-    name: "CasualCollector",
+    key: "UNION" as const,
+    email: "unioncoin@demo.local",
+    name: "Union Coin Co",
     tier: "STANDARD" as const,
+    isVerified: false,
     isSaandDealer: false,
     isCoinClubMember: false,
-    completedSalesCount: 0,
-    phoneNumber: "+27 83 555 0101",
+    completedSalesCount: 9,
+    phoneNumber: "+27 31 555 0101",
     location: "Durban, KZN",
-    bio: "New to organised collecting — building a starter cabinet of modern SA commemoratives.",
+    bio: "Union-era circulating silver, early decimal, and affordable starter cabinet pieces.",
     avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1605335805561-12c8a245585f?auto=format&fit=crop&w=1600&q=80",
     accolades: ["EARLY_ADOPTER"],
@@ -83,12 +87,16 @@ const MOCK_USERS = [
 
 type SellerKey = (typeof MOCK_USERS)[number]["key"];
 
+/** Square-friendly high-res coin / metal photography (object-contain safe). */
 const PHOTOS = [
-  "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1599557997972-00ab56bc7404?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1605335805561-12c8a245585f?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1628156172608-8e6f1a8e19e7?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1624365160963-8c4f0c0a0c5a?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1599557997972-00ab56bc7404?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1628156172608-8e6f1a8e19e7?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1605335805561-12c8a245585f?auto=format&fit=crop&w=1200&h=1200&q=85",
+  "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&w=1200&h=1200&q=85",
 ] as const;
 
 function photo(index: number): string {
@@ -172,9 +180,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     startingPriceCents: 28_000_00,
     bidIncrementCents: 500_00,
     reservePriceCents: 32_000_00,
-    endsInHours: 42,
+    endsInHours: 48,
     startedHoursAgo: 8,
-    seller: "DEALER",
+    seller: "GAUTENG",
     bids: [28_500_00, 30_000_00, 31_500_00, 33_250_00],
     photoIndex: 1,
   },
@@ -186,9 +194,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.GOLD,
     startingPriceCents: 22_500_00,
     bidIncrementCents: 500_00,
-    endsInHours: 30,
+    endsInHours: 60,
     startedHoursAgo: 12,
-    seller: "GOLD",
+    seller: "CAPE",
     bids: [23_000_00, 24_250_00, 25_500_00],
     photoIndex: 0,
   },
@@ -200,9 +208,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.SILVER,
     startingPriceCents: 3_800_00,
     bidIncrementCents: 100_00,
-    endsInHours: 18,
+    endsInHours: 72,
     startedHoursAgo: 6,
-    seller: "GOLD",
+    seller: "CAPE",
     bids: [3_950_00, 4_200_00, 4_450_00, 4_700_00],
     photoIndex: 0,
   },
@@ -214,9 +222,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.SILVER,
     startingPriceCents: 4_200_00,
     bidIncrementCents: 150_00,
-    endsInHours: 55,
+    endsInHours: 84,
     startedHoursAgo: 4,
-    seller: "SILVER",
+    seller: "VELDPOND",
     bids: [4_400_00, 4_750_00, 5_100_00],
     photoIndex: 1,
   },
@@ -230,9 +238,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     startingPriceCents: 125_000_00,
     bidIncrementCents: 5_000_00,
     reservePriceCents: 135_000_00,
-    endsInHours: 72,
+    endsInHours: 96,
     startedHoursAgo: 3,
-    seller: "DEALER",
+    seller: "GAUTENG",
     bids: [128_000_00, 132_500_00, 138_000_00],
     photoIndex: 1,
   },
@@ -244,9 +252,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.SILVER,
     startingPriceCents: 5_600_00,
     bidIncrementCents: 150_00,
-    endsInHours: 36,
+    endsInHours: 108,
     startedHoursAgo: 10,
-    seller: "SILVER",
+    seller: "VELDPOND",
     bids: [5_800_00, 6_200_00, 6_550_00],
     photoIndex: 3,
   },
@@ -258,9 +266,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.SILVER,
     startingPriceCents: 1_850_00,
     bidIncrementCents: 75_00,
-    endsInHours: 24,
+    endsInHours: 120,
     startedHoursAgo: 14,
-    seller: "STANDARD",
+    seller: "UNION",
     bids: [1_950_00, 2_100_00, 2_250_00],
     photoIndex: 2,
   },
@@ -272,9 +280,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.GOLD,
     startingPriceCents: 68_000_00,
     bidIncrementCents: 1_000_00,
-    endsInHours: 48,
+    endsInHours: 132,
     startedHoursAgo: 5,
-    seller: "GOLD",
+    seller: "CAPE",
     bids: [69_500_00, 71_000_00, 72_750_00],
     photoIndex: 0,
   },
@@ -286,9 +294,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.SILVER,
     startingPriceCents: 6_400_00,
     bidIncrementCents: 200_00,
-    endsInHours: 60,
+    endsInHours: 144,
     startedHoursAgo: 9,
-    seller: "GOLD",
+    seller: "CAPE",
     bids: [6_600_00, 7_000_00, 7_400_00],
     photoIndex: 2,
   },
@@ -300,9 +308,9 @@ const LIVE_AUCTIONS: AuctionSeed[] = [
     metal: PreciousMetal.BRONZE,
     startingPriceCents: 2_400_00,
     bidIncrementCents: 100_00,
-    endsInHours: 20,
+    endsInHours: 156,
     startedHoursAgo: 11,
-    seller: "SILVER",
+    seller: "VELDPOND",
     bids: [2_550_00, 2_800_00, 3_050_00, 3_300_00],
     photoIndex: 3,
   },
@@ -323,7 +331,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "1 Shilling",
     priceCents: 1_850_00,
     condition: "VF30",
-    seller: "SILVER",
+    seller: "VELDPOND",
     photoIndex: 1,
     graded: { certificateId: "SANGS-SEED-ZAR-SHILLING-1894", provider: VerificationProvider.SANGS },
     mintage: 336_000,
@@ -338,9 +346,9 @@ const FIXED_LISTINGS: FixedSeed[] = [
     metal: PreciousMetal.COPPER,
     year: 1897,
     denomination: "1 Penny",
-    priceCents: 285_00,
+    priceCents: 450_00,
     condition: "VF",
-    seller: "STANDARD",
+    seller: "UNION",
     photoIndex: 3,
     acceptsOffers: true,
   },
@@ -356,7 +364,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "Half Pond",
     priceCents: 48_500_00,
     condition: "AU53",
-    seller: "DEALER",
+    seller: "GAUTENG",
     photoIndex: 0,
     weightGrams: 3.994,
     purityPercent: 91.67,
@@ -373,9 +381,9 @@ const FIXED_LISTINGS: FixedSeed[] = [
     metal: PreciousMetal.SILVER,
     year: 1895,
     denomination: "6d Sixpence",
-    priceCents: 145_00,
+    priceCents: 450_00,
     condition: "Fine",
-    seller: "STANDARD",
+    seller: "UNION",
     photoIndex: 4,
   },
   {
@@ -390,7 +398,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "3d Threepence",
     priceCents: 920_00,
     condition: "AU58",
-    seller: "GOLD",
+    seller: "CAPE",
     photoIndex: 1,
     graded: { certificateId: "NGC-SEED-ZAR-3D-1898", provider: VerificationProvider.NGC },
   },
@@ -407,7 +415,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "Proof Set",
     priceCents: 6_750_00,
     condition: "Proof / OGP",
-    seller: "GOLD",
+    seller: "CAPE",
     photoIndex: 2,
     acceptsOffers: true,
     mintage: 3_500,
@@ -422,9 +430,9 @@ const FIXED_LISTINGS: FixedSeed[] = [
     metal: PreciousMetal.BRONZE,
     year: 1938,
     denomination: "1 Farthing",
-    priceCents: 380_00,
+    priceCents: 480_00,
     condition: "BU BN",
-    seller: "SILVER",
+    seller: "VELDPOND",
     photoIndex: 3,
   },
   {
@@ -439,7 +447,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "5 Shilling Crown",
     priceCents: 3_450_00,
     condition: "MS63",
-    seller: "SILVER",
+    seller: "VELDPOND",
     photoIndex: 1,
     graded: { certificateId: "PCGS-SEED-UNION-CROWN-1948", provider: VerificationProvider.PCGS },
   },
@@ -455,7 +463,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "1 Shilling",
     priceCents: 465_00,
     condition: "VF35",
-    seller: "STANDARD",
+    seller: "UNION",
     photoIndex: 0,
     graded: { certificateId: "SANGS-SEED-UNION-SHILLING-1924", provider: VerificationProvider.SANGS },
   },
@@ -471,40 +479,41 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "2 Shilling Florin",
     priceCents: 720_00,
     condition: "XF",
-    seller: "SILVER",
+    seller: "VELDPOND",
     photoIndex: 3,
     acceptsOffers: true,
   },
-  // —— 4× Republic ——
+  // —— First Decimal (1961–1964) ——
   {
-    taxonomy: "Republic / 1c",
-    slug: "1965-republic-1c-english-raw",
-    title: "1965 Republic 1c English Legend — Raw UNC",
-    description: "First-year Republic 1 cent with English legends. Full mint red remaining.",
+    taxonomy: "First Decimal / R1",
+    slug: "1961-first-decimal-r1-raw-unc",
+    title: "1961 First Decimal R1 — Raw UNC",
+    description: "First-year decimal Rand with sharp devices and full mint lustre. Historic type coin.",
     category: ListingCategory.COINS,
     listingType: ListingType.RAW,
-    metal: PreciousMetal.BRONZE,
-    year: 1965,
-    denomination: "1c",
-    priceCents: 45_00,
+    metal: PreciousMetal.SILVER,
+    year: 1961,
+    denomination: "R1",
+    priceCents: 1_250_00,
     condition: "UNC",
-    seller: "STANDARD",
+    seller: "UNION",
     photoIndex: 3,
   },
   {
-    taxonomy: "Republic / 1c",
-    slug: "1965-republic-1c-afrikaans-raw",
-    title: "1965 Republic 1c Afrikaans Legend — Raw UNC",
-    description: "Matching Afrikaans-legend 1 cent. Popular bilingual type pair companion.",
+    taxonomy: "First Decimal / 50c",
+    slug: "1963-first-decimal-50c-ngc-ms64",
+    title: "1963 First Decimal 50c — NGC MS64",
+    description: "Choice mint-state early decimal 50 cent with satiny fields.",
     category: ListingCategory.COINS,
-    listingType: ListingType.RAW,
-    metal: PreciousMetal.BRONZE,
-    year: 1965,
-    denomination: "1c",
-    priceCents: 55_00,
-    condition: "UNC",
-    seller: "STANDARD",
-    photoIndex: 4,
+    listingType: ListingType.GRADED,
+    metal: PreciousMetal.SILVER,
+    year: 1963,
+    denomination: "50c",
+    priceCents: 890_00,
+    condition: "MS64",
+    seller: "CAPE",
+    photoIndex: 2,
+    graded: { certificateId: "NGC-SEED-FIRST-DECIMAL-50C-1963", provider: VerificationProvider.NGC },
   },
   {
     taxonomy: "Sets / Natura Sets",
@@ -518,7 +527,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "Natura Set",
     priceCents: 8_900_00,
     condition: "Proof / OGP",
-    seller: "GOLD",
+    seller: "CAPE",
     photoIndex: 2,
     acceptsOffers: true,
     isSponsored: true,
@@ -535,13 +544,13 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "R2",
     priceCents: 14_200_00,
     condition: "MS65",
-    seller: "DEALER",
+    seller: "GAUTENG",
     photoIndex: 0,
     weightGrams: 7.988,
     purityPercent: 91.67,
     graded: { certificateId: "NGC-SEED-REPUBLIC-R2-1968", provider: VerificationProvider.NGC },
   },
-  // —— 3× Bullion ——
+  // —— Bullion / Krugerrands ——
   {
     taxonomy: "Bullion / Fractional Bullion",
     slug: "2023-fractional-gold-krugerrand-tenth",
@@ -554,7 +563,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "1/10 oz Gold Krugerrand",
     priceCents: 7_850_00,
     condition: "BU",
-    seller: "DEALER",
+    seller: "GAUTENG",
     photoIndex: 0,
     weightGrams: 3.39,
     purityPercent: 91.67,
@@ -571,7 +580,7 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "1oz Silver Bar",
     priceCents: 980_00,
     condition: "Sealed",
-    seller: "GOLD",
+    seller: "CAPE",
     photoIndex: 0,
     weightGrams: 31.1,
     purityPercent: 99.9,
@@ -580,23 +589,58 @@ const FIXED_LISTINGS: FixedSeed[] = [
     taxonomy: "Bullion / Gold Krugerrands",
     slug: "2021-1oz-gold-krugerrand-bu",
     title: "2021 1oz Gold Krugerrand — BU",
-    description: "Standard one-ounce gold Krugerrand. High-ticket Buy Now for UI price formatting.",
+    description: "Standard one-ounce gold Krugerrand. Flagship Buy Now bullion lot.",
     category: ListingCategory.KRUGERRAND,
     listingType: ListingType.BULLION,
     metal: PreciousMetal.GOLD,
     year: 2021,
     denomination: "1oz Gold Krugerrand",
-    priceCents: 185_000_00,
+    priceCents: 85_000_00,
     condition: "BU",
-    seller: "DEALER",
+    seller: "GAUTENG",
     photoIndex: 1,
     weightGrams: 33.93,
     purityPercent: 91.67,
     isSponsored: true,
   },
-  // —— 3× Banknotes ——
+  // —— International ——
   {
-    taxonomy: "Banknotes / Vintage European",
+    taxonomy: "International / United States",
+    slug: "1921-morgan-dollar-pcgs-ms63",
+    title: "1921 Morgan Silver Dollar — PCGS MS63",
+    description: "Classic US Morgan dollar with cartwheel lustre. Popular international type.",
+    category: ListingCategory.COINS,
+    listingType: ListingType.GRADED,
+    metal: PreciousMetal.SILVER,
+    year: 1921,
+    denomination: "1 Dollar",
+    priceCents: 2_450_00,
+    condition: "MS63",
+    seller: "CAPE",
+    photoIndex: 5,
+    country: "United States",
+    graded: { certificateId: "PCGS-SEED-MORGAN-1921", provider: VerificationProvider.PCGS },
+  },
+  {
+    taxonomy: "International / Great Britain",
+    slug: "1915-gb-sovereign-raw-ef",
+    title: "1915 Great Britain Sovereign — Raw EF",
+    description: "George V gold sovereign with honest wear and residual lustre.",
+    category: ListingCategory.COINS,
+    listingType: ListingType.RAW,
+    metal: PreciousMetal.GOLD,
+    year: 1915,
+    denomination: "Sovereign",
+    priceCents: 9_800_00,
+    condition: "EF",
+    seller: "VELDPOND",
+    photoIndex: 0,
+    country: "Great Britain",
+    weightGrams: 7.98,
+    purityPercent: 91.67,
+  },
+  {
+    taxonomy: "Banknotes / Germany and Notgeld",
     slug: "1923-german-notgeld-pair",
     title: "1923 German Notgeld Banknote Pair — Vintage European",
     description: "Colourful Weimar-era Notgeld pair. Attractive topical world paper.",
@@ -605,9 +649,9 @@ const FIXED_LISTINGS: FixedSeed[] = [
     metal: PreciousMetal.NOT_APPLICABLE,
     year: 1923,
     denomination: "Notgeld Pair",
-    priceCents: 185_00,
+    priceCents: 450_00,
     condition: "VF",
-    seller: "STANDARD",
+    seller: "UNION",
     photoIndex: 4,
     country: "Germany",
   },
@@ -623,28 +667,31 @@ const FIXED_LISTINGS: FixedSeed[] = [
     denomination: "ZAR £1 Note",
     priceCents: 12_500_00,
     condition: "Fine",
-    seller: "SILVER",
+    seller: "VELDPOND",
     photoIndex: 4,
     acceptsOffers: true,
   },
   {
-    taxonomy: "Banknotes / Republic Notes",
-    slug: "1985-r10-jan-van-riebeeck-note",
-    title: "1980s R10 Jan van Riebeeck Note — UNC",
-    description: "Crisp Republic-era R10 with Jan van Riebeeck portrait. No folds.",
-    category: ListingCategory.BANKNOTES,
+    taxonomy: "International / Cuba",
+    slug: "1953-cuba-peso-raw-xf",
+    title: "1953 Cuba 1 Peso — Raw XF",
+    description: "Mid-century Cuban silver peso with sharp peripheral detail.",
+    category: ListingCategory.COINS,
     listingType: ListingType.RAW,
-    metal: PreciousMetal.NOT_APPLICABLE,
-    year: 1985,
-    denomination: "R10 Note",
-    priceCents: 95_00,
-    condition: "UNC",
-    seller: "STANDARD",
-    photoIndex: 4,
+    metal: PreciousMetal.SILVER,
+    year: 1953,
+    denomination: "1 Peso",
+    priceCents: 680_00,
+    condition: "XF",
+    seller: "UNION",
+    photoIndex: 6,
+    country: "Cuba",
   },
 ];
 
 async function clearMarketplaceInventory() {
+  await db.message.deleteMany({});
+  await db.conversation.deleteMany({});
   await db.bid.deleteMany({});
   await db.offer.deleteMany({});
   await db.wishlistItem.deleteMany({});
@@ -656,7 +703,7 @@ async function clearMarketplaceInventory() {
   await db.order.deleteMany({});
   await db.auction.deleteMany({});
   await db.listing.deleteMany({});
-  console.log("Cleared previous listings, auctions, bids, and related inventory.");
+  console.log("Cleared previous listings, auctions, bids, messaging, and related inventory.");
 }
 
 async function ensureUser(spec: (typeof MOCK_USERS)[number]) {
@@ -671,6 +718,7 @@ async function ensureUser(spec: (typeof MOCK_USERS)[number]) {
     image: spec.avatarUrl,
     accolades: [...spec.accolades],
     isSaandDealer: spec.isSaandDealer,
+    isVerified: spec.isVerified,
     isCoinClubMember: spec.isCoinClubMember,
     completedSalesCount: spec.completedSalesCount,
     subscriptionTier: spec.tier,
@@ -699,25 +747,37 @@ async function ensureUser(spec: (typeof MOCK_USERS)[number]) {
 async function createListing(opts: FixedSeed & { sellerId: string }) {
   const images = [photo(opts.photoIndex)];
   const eraSubcategory =
-    opts.year >= 1852 && opts.year <= 1902
-      ? "zar"
-      : opts.year >= 1923 && opts.year <= 1960
-        ? "union"
-        : opts.year >= 1961 && opts.year <= 1964
-          ? "first-decimal"
-          : opts.year >= 1965 && opts.year <= 1988
-            ? "second-decimal"
-            : opts.year >= 1989 && opts.year <= 2022
-              ? "third-decimal"
-              : opts.year >= 2023
-                ? "fourth-decimal"
-                : opts.taxonomy.toLowerCase().startsWith("bullion")
-                  ? "bullion"
-                  : opts.taxonomy.toLowerCase().startsWith("sets")
-                    ? "sets"
-                    : opts.taxonomy.toLowerCase().startsWith("banknotes")
-                      ? "banknotes"
-                      : null;
+    opts.taxonomy.toLowerCase().includes("international") || (opts.country && opts.country !== "South Africa")
+      ? opts.country === "United States" || opts.country === "USA"
+        ? "intl-united-states"
+        : opts.country === "Great Britain" || opts.country === "United Kingdom"
+          ? "intl-great-britain"
+          : opts.country === "Germany"
+            ? "intl-germany-notgeld"
+            : opts.country === "Belarus"
+              ? "intl-belarus"
+              : opts.country === "Cuba"
+                ? "intl-cuba"
+                : "intl-rest-of-world"
+      : opts.year >= 1852 && opts.year <= 1902
+        ? "zar"
+        : opts.year >= 1923 && opts.year <= 1960
+          ? "union"
+          : opts.year >= 1961 && opts.year <= 1964
+            ? "first-decimal"
+            : opts.year >= 1965 && opts.year <= 1988
+              ? "second-decimal"
+              : opts.year >= 1989 && opts.year <= 2022
+                ? "third-decimal"
+                : opts.year >= 2023
+                  ? "fourth-decimal"
+                  : opts.taxonomy.toLowerCase().startsWith("bullion")
+                    ? "bullion"
+                    : opts.taxonomy.toLowerCase().startsWith("sets")
+                      ? "sets"
+                      : opts.taxonomy.toLowerCase().startsWith("banknotes")
+                        ? "banknotes"
+                        : null;
 
   const listing = await db.listing.create({
     data: {
@@ -776,14 +836,14 @@ async function createListing(opts: FixedSeed & { sellerId: string }) {
 }
 
 async function main() {
-  if (LIVE_AUCTIONS.length !== 10) throw new Error(`Expected 10 auctions, got ${LIVE_AUCTIONS.length}`);
-  if (FIXED_LISTINGS.length !== 20) throw new Error(`Expected 20 fixed listings, got ${FIXED_LISTINGS.length}`);
+  if (LIVE_AUCTIONS.length < 8) throw new Error(`Expected at least 8 auctions, got ${LIVE_AUCTIONS.length}`);
+  if (FIXED_LISTINGS.length < 8) throw new Error(`Expected at least 8 fixed listings, got ${FIXED_LISTINGS.length}`);
 
   const usersByKey: Record<SellerKey, { id: string; email: string; name: string | null }> = {
-    DEALER: { id: "", email: "", name: null },
-    GOLD: { id: "", email: "", name: null },
-    SILVER: { id: "", email: "", name: null },
-    STANDARD: { id: "", email: "", name: null },
+    GAUTENG: { id: "", email: "", name: null },
+    CAPE: { id: "", email: "", name: null },
+    VELDPOND: { id: "", email: "", name: null },
+    UNION: { id: "", email: "", name: null },
   };
 
   for (const spec of MOCK_USERS) {
@@ -795,7 +855,7 @@ async function main() {
   await clearMarketplaceInventory();
 
   const now = Date.now();
-  const bidders = [usersByKey.STANDARD, usersByKey.SILVER, usersByKey.GOLD, usersByKey.DEALER];
+  const bidders = [usersByKey.UNION, usersByKey.VELDPOND, usersByKey.CAPE, usersByKey.GAUTENG];
 
   console.log(`Seeding ${LIVE_AUCTIONS.length} live auctions…`);
   for (const item of LIVE_AUCTIONS) {
@@ -858,7 +918,7 @@ async function main() {
         slotType: "HOMEPAGE_HERO",
         slotPosition: 1,
         listingId: featuredListingId,
-        advertiserId: usersByKey.DEALER.id,
+        advertiserId: usersByKey.GAUTENG.id,
         imageUrl: photo(1),
         targetUrl: "/auctions",
         priceCents: 25_000,
@@ -871,7 +931,7 @@ async function main() {
 
   await db.wantedItem.create({
     data: {
-      userId: usersByKey.SILVER.id,
+      userId: usersByKey.VELDPOND.id,
       eraCategory: "Union",
       targetYear: 1931,
       minimumGrade: "MS60",
@@ -891,6 +951,7 @@ async function main() {
           name: u.name,
           email: u.email,
           tier: u.tier,
+          isVerified: u.isVerified,
           isSaandDealer: u.isSaandDealer,
         })),
         password: DEMO_PASSWORD,

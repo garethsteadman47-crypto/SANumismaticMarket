@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2Icon, MessageCircleQuestionIcon } from "lucide-react";
+import { Loader2Icon, MessageSquareIcon } from "lucide-react";
 
 import { askListingQuestionAction } from "@/actions/messaging";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export function AskQuestionModal({
         href={`/login?callbackUrl=/listings/${listingId}`}
         className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-full" })}
       >
-        <MessageCircleQuestionIcon />
+        <MessageSquareIcon />
         Ask a Question
       </Link>
     );
@@ -75,7 +75,7 @@ export function AskQuestionModal({
           <Button type="button" variant="outline" className="rounded-full" size="lg" disabled={disabled} />
         }
       >
-        <MessageCircleQuestionIcon />
+        <MessageSquareIcon />
         Ask a Question
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
