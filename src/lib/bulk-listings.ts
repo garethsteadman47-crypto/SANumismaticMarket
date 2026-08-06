@@ -4,34 +4,34 @@ import { randsToCents } from "@/lib/utils/currency";
 import type { CreateListingInput } from "@/lib/validation/listing";
 
 /**
- * Dealer bulk CSV inventory import — parse, validate, and map rows into createListing inputs.
+ * Dealer bulk CSV — metadata only (no image URLs required).
+ * Photos are allocated in BulkUploadWizard via the photo pool.
  *
- * Expected header (case-insensitive, order-flexible):
- * title, description, category, listingType, metal, priceRands, year, denomination,
- * condition, weightGrams, coverImageUrl, obverseImageUrl, reverseImageUrl, slabImageUrl,
- * certificateId, verificationProvider / gradingCompany (NGC|PCGS|SANGS|RAW)
+ * Headers: title, description, category, price, grade, gradingService, certNumber
+ * (aliases accepted for legacy columns)
  */
 
-export const BULK_CSV_HEADERS = [
+export const BULK_METADATA_HEADERS = [
   "title",
   "description",
   "category",
-  "listingType",
-  "metal",
   "priceRands",
-  "year",
-  "denomination",
   "condition",
-  "weightGrams",
-  "coverImageUrl",
-  "obverseImageUrl",
-  "reverseImageUrl",
-  "slabImageUrl",
-  "certificateId",
   "gradingCompany",
+  "certificateId",
 ] as const;
 
-export type BulkCsvHeader = (typeof BULK_CSV_HEADERS)[number];
+export type BulkCsvHeader =
+  | (typeof BULK_METADATA_HEADERS)[number]
+  | "listingType"
+  | "metal"
+  | "year"
+  | "denomination"
+  | "weightGrams"
+  | "coverImageUrl"
+  | "obverseImageUrl"
+  | "reverseImageUrl"
+  | "slabImageUrl";
 
 export type BulkCsvRowError = { row: number; message: string };
 
@@ -41,9 +41,20 @@ export type BulkCsvParseResult = {
   skipped: number;
 };
 
-/** Allowed grading companies in the interactive bulk wizard. */
 export const BULK_GRADING_COMPANIES = ["NGC", "PCGS", "SANGS", "RAW"] as const;
 export type BulkGradingCompany = (typeof BULK_GRADING_COMPANIES)[number];
+
+export type MediaSlotId = "cover" | "obverse" | "reverse" | "slab";
+
+export type BulkPhotoPoolItem = {
+  id: string;
+  name: string;
+  previewUrl: string;
+  /** Client-only File reference — never serialized to the server. */
+  file?: File;
+};
+
+export type BulkRowMedia = Record<MediaSlotId, BulkPhotoPoolItem | null>;
 
 export type BulkDraftRow = {
   id: string;
@@ -64,9 +75,14 @@ export type BulkDraftRow = {
   slabImageUrl: string;
   certificateId: string;
   gradingCompany: string;
+  media: BulkRowMedia;
   fieldErrors: Partial<Record<BulkCsvHeader, string>>;
   warnings: string[];
 };
+
+export function emptyRowMedia(): BulkRowMedia {
+  return { cover: null, obverse: null, reverse: null, slab: null };
+}
 
 const CATEGORY_ALIASES: Record<string, ListingCategory> = {
   coins: ListingCategory.COINS,
@@ -111,7 +127,6 @@ const PROVIDER_ALIASES: Record<string, VerificationProvider> = {
   herns: VerificationProvider.HERNS,
 };
 
-/** Minimal RFC4180-ish CSV line splitter (supports quoted commas). */
 export function splitCsvLine(line: string): string[] {
   const cells: string[] = [];
   let current = "";
@@ -162,18 +177,18 @@ const HEADER_ALIASES: Record<string, BulkCsvHeader> = {
   weight: "weightGrams",
   coverimageurl: "coverImageUrl",
   cover: "coverImageUrl",
-  coverurl: "coverImageUrl",
   obverseimageurl: "obverseImageUrl",
   obverse: "obverseImageUrl",
   reverseimageurl: "reverseImageUrl",
   reverse: "reverseImageUrl",
   slabimageurl: "slabImageUrl",
   slab: "slabImageUrl",
-  certificateimageurl: "slabImageUrl",
   certificateid: "certificateId",
+  certnumber: "certificateId",
   slabserial: "certificateId",
   verificationprovider: "gradingCompany",
   gradingcompany: "gradingCompany",
+  gradingservice: "gradingCompany",
   grader: "gradingCompany",
   provider: "gradingCompany",
 };
@@ -204,6 +219,16 @@ function normalizeGradingCompany(raw: string | undefined): BulkGradingCompany | 
   return "";
 }
 
+export function rowHasRequiredPhotos(row: BulkDraftRow): boolean {
+  return Boolean(row.media.obverse && row.media.reverse);
+}
+
+export function rowPhotoStatus(row: BulkDraftRow): "complete" | "incomplete" | "empty" {
+  if (rowHasRequiredPhotos(row)) return "complete";
+  if (row.media.cover || row.media.obverse || row.media.reverse || row.media.slab) return "incomplete";
+  return "empty";
+}
+
 export function validateBulkDraftRow(row: BulkDraftRow): BulkDraftRow {
   const fieldErrors: Partial<Record<BulkCsvHeader, string>> = {};
   const warnings: string[] = [];
@@ -231,17 +256,11 @@ export function validateBulkDraftRow(row: BulkDraftRow): BulkDraftRow {
   }
 
   if (grading && grading !== "RAW" && !row.certificateId.trim()) {
-    fieldErrors.certificateId = "Slab serial required for graded coins.";
+    fieldErrors.certificateId = "Cert number required for graded coins.";
   }
 
-  const hasImage = Boolean(
-    optionalHttpUrl(row.coverImageUrl) ||
-      optionalHttpUrl(row.obverseImageUrl) ||
-      optionalHttpUrl(row.reverseImageUrl) ||
-      optionalHttpUrl(row.slabImageUrl),
-  );
-  if (!hasImage) {
-    warnings.push("Missing photos — upload or paste an image URL.");
+  if (!rowHasRequiredPhotos(row)) {
+    warnings.push("Assign Obverse + Reverse photos.");
   }
 
   return { ...row, fieldErrors, warnings };
@@ -249,6 +268,10 @@ export function validateBulkDraftRow(row: BulkDraftRow): BulkDraftRow {
 
 export function isBulkDraftRowValid(row: BulkDraftRow): boolean {
   return Object.keys(row.fieldErrors).length === 0;
+}
+
+export function isBulkDraftRowPublishable(row: BulkDraftRow): boolean {
+  return isBulkDraftRowValid(row) && rowHasRequiredPhotos(row);
 }
 
 export function parseBulkCsvToDraftRows(csvText: string): { rows: BulkDraftRow[]; fatalError?: string } {
@@ -272,7 +295,7 @@ export function parseBulkCsvToDraftRows(csvText: string): { rows: BulkDraftRow[]
   if (![...columnMap.values()].includes("title") || ![...columnMap.values()].includes("priceRands")) {
     return {
       rows: [],
-      fatalError: "CSV must include at least `title` and `priceRands` (or `price`) columns.",
+      fatalError: "CSV must include at least `title` and `price` (or `priceRands`) columns.",
     };
   }
 
@@ -291,7 +314,7 @@ export function parseBulkCsvToDraftRows(csvText: string): { rows: BulkDraftRow[]
       sourceRow: lineIndex + 1,
       title: record.title ?? "",
       description: record.description ?? "",
-      category: record.category ?? "",
+      category: record.category ?? "COINS",
       listingType: record.listingType ?? "",
       metal: record.metal ?? "",
       priceRands: record.priceRands ?? "",
@@ -299,12 +322,13 @@ export function parseBulkCsvToDraftRows(csvText: string): { rows: BulkDraftRow[]
       denomination: record.denomination ?? "",
       condition: record.condition ?? "",
       weightGrams: record.weightGrams ?? "",
-      coverImageUrl: record.coverImageUrl ?? "",
-      obverseImageUrl: record.obverseImageUrl ?? "",
-      reverseImageUrl: record.reverseImageUrl ?? "",
-      slabImageUrl: record.slabImageUrl ?? "",
+      coverImageUrl: "",
+      obverseImageUrl: "",
+      reverseImageUrl: "",
+      slabImageUrl: "",
       certificateId: record.certificateId ?? "",
       gradingCompany: record.gradingCompany ?? "",
+      media: emptyRowMedia(),
       fieldErrors: {},
       warnings: [],
     });
@@ -314,7 +338,10 @@ export function parseBulkCsvToDraftRows(csvText: string): { rows: BulkDraftRow[]
   return { rows };
 }
 
-export function draftRowToCreateListingInput(row: BulkDraftRow): CreateListingInput | { error: string } {
+export function draftRowToCreateListingInput(
+  row: BulkDraftRow,
+  resolvedUrls?: Partial<Record<MediaSlotId, string>>,
+): CreateListingInput | { error: string } {
   const validated = validateBulkDraftRow(row);
   if (!isBulkDraftRowValid(validated)) {
     const first = Object.values(validated.fieldErrors)[0];
@@ -340,26 +367,26 @@ export function draftRowToCreateListingInput(row: BulkDraftRow): CreateListingIn
 
   const metal = parseEnum(row.metal, METAL_ALIASES, PreciousMetal.NOT_APPLICABLE);
 
-  const coverImageUrl = optionalHttpUrl(row.coverImageUrl);
-  const obverseImageUrl = optionalHttpUrl(row.obverseImageUrl);
-  const reverseImageUrl = optionalHttpUrl(row.reverseImageUrl);
-  const certificateImageUrl = optionalHttpUrl(row.slabImageUrl);
+  const cover =
+    resolvedUrls?.cover ||
+    optionalHttpUrl(row.coverImageUrl) ||
+    (row.media.cover ? `https://picsum.photos/seed/${encodeURIComponent(`${title}-cover`)}/800/800` : undefined);
+  const obverse =
+    resolvedUrls?.obverse ||
+    optionalHttpUrl(row.obverseImageUrl) ||
+    (row.media.obverse ? `https://picsum.photos/seed/${encodeURIComponent(`${title}-obverse`)}/800/800` : undefined);
+  const reverse =
+    resolvedUrls?.reverse ||
+    optionalHttpUrl(row.reverseImageUrl) ||
+    (row.media.reverse ? `https://picsum.photos/seed/${encodeURIComponent(`${title}-reverse`)}/800/800` : undefined);
+  const slab =
+    resolvedUrls?.slab ||
+    optionalHttpUrl(row.slabImageUrl) ||
+    (row.media.slab ? `https://picsum.photos/seed/${encodeURIComponent(`${title}-slab`)}/800/800` : undefined);
 
-  // Blob previews from the wizard are not durable — replace with placeholder seeds.
-  const publishable = (url: string | undefined, seed: string) => {
-    if (!url) return undefined;
-    if (url.startsWith("blob:")) return `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/800`;
-    return url;
-  };
-
-  const cover = publishable(coverImageUrl, `${title}-cover`);
-  const obverse = publishable(obverseImageUrl, `${title}-obverse`);
-  const reverse = publishable(reverseImageUrl, `${title}-reverse`);
-  const slab = publishable(certificateImageUrl, `${title}-slab`);
   const images = [cover, obverse, reverse, slab].filter((url): url is string => Boolean(url));
-
   if (images.length === 0) {
-    images.push(`https://picsum.photos/seed/${encodeURIComponent(title || "bulk")}/800/800`);
+    return { error: "Assign at least Obverse and Reverse photos before publishing." };
   }
 
   const description =
@@ -367,7 +394,6 @@ export function draftRowToCreateListingInput(row: BulkDraftRow): CreateListingIn
 
   const year = row.year.trim() ? Number.parseInt(row.year, 10) : undefined;
   const weightGrams = row.weightGrams.trim() ? Number.parseFloat(row.weightGrams) : undefined;
-
   const verificationProvider =
     grading && grading !== "RAW" ? PROVIDER_ALIASES[grading.toLowerCase()] : undefined;
 
@@ -394,7 +420,6 @@ export function draftRowToCreateListingInput(row: BulkDraftRow): CreateListingIn
   };
 }
 
-/** Legacy path used by the sales bulk action — maps CSV straight to createListing inputs. */
 export function parseBulkListingsCsv(csvText: string): BulkCsvParseResult {
   const drafted = parseBulkCsvToDraftRows(csvText);
   if (drafted.fatalError) {
@@ -410,7 +435,17 @@ export function parseBulkListingsCsv(csvText: string): BulkCsvParseResult {
       skipped += 1;
       continue;
     }
-    const mapped = draftRowToCreateListingInput(draft);
+    // Legacy path: allow publish without photo pool by injecting placeholders.
+    const withPlaceholders: BulkDraftRow = {
+      ...draft,
+      media: {
+        cover: draft.media.cover,
+        obverse: draft.media.obverse ?? ({ id: "p", name: "obverse", previewUrl: "" } as BulkPhotoPoolItem),
+        reverse: draft.media.reverse ?? ({ id: "p", name: "reverse", previewUrl: "" } as BulkPhotoPoolItem),
+        slab: draft.media.slab,
+      },
+    };
+    const mapped = draftRowToCreateListingInput(withPlaceholders);
     if ("error" in mapped) {
       errors.push({ row: draft.sourceRow, message: mapped.error });
       continue;
@@ -421,25 +456,17 @@ export function parseBulkListingsCsv(csvText: string): BulkCsvParseResult {
   return { rows, errors, skipped };
 }
 
+/** Metadata-only CSV template — photos are allocated in the wizard. */
 export function buildBulkCsvTemplate(): string {
-  const header = BULK_CSV_HEADERS.join(",");
+  const header = "title,description,category,price,grade,gradingService,certNumber";
   const example = [
     `"1967 Silver Rand MS65"`,
     `"Beautiful toned RSA Silver Rand."`,
     `COINS`,
-    `GRADED`,
-    `SILVER`,
     `4500`,
-    `1967`,
-    `1 Rand`,
     `MS-65`,
-    `15.0`,
-    `https://picsum.photos/seed/bulk-cover/800/800`,
-    `https://picsum.photos/seed/bulk-obv/800/800`,
-    `https://picsum.photos/seed/bulk-rev/800/800`,
-    ``,
-    `NGC1234567-001`,
     `NGC`,
+    `NGC1234567-001`,
   ].join(",");
   return `${header}\n${example}\n`;
 }

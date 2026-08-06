@@ -97,7 +97,7 @@ export function NewListingEntry({
           <div className="flex flex-col gap-1">
             <h2 className="font-heading text-lg font-semibold">Bulk CSV Importer</h2>
             <p className="text-sm text-muted-foreground">
-              Upload tens or hundreds of coins simultaneously using a spreadsheet template.
+              Upload a metadata CSV, then allocate photos visually from a shared pool — no image URLs required.
             </p>
           </div>
           <span className="mt-auto text-sm font-medium text-amber-700 dark:text-amber-400">
