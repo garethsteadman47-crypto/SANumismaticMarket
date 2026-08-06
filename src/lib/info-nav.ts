@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpenIcon,
+  Building2Icon,
   FileTextIcon,
   MailIcon,
   NewspaperIcon,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 
 export const MORE_INFO_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/info/about", label: "About Us", icon: Building2Icon },
   { href: "/info/newsletters", label: "Newsletters", icon: NewspaperIcon },
   { href: "/info/education", label: "Education & Guides", icon: BookOpenIcon },
   { href: "/info/grading", label: "Grading & Certification", icon: ShieldIcon },
