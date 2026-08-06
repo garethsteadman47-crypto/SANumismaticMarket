@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage() {
-  // Ensure bassani@demo.local (and the other tier demos) exist on whatever
-  // DATABASE_URL this deploy uses — including Vercel → Atlas before seed.
+  // Ensure demo dealers exist on whatever DATABASE_URL this deploy uses —
+  // including Vercel → Atlas before a full catalogue seed.
   try {
     await ensureAllDemoUsers();
   } catch (err) {
@@ -40,7 +40,7 @@ export default async function LoginPage() {
         <CardHeader>
           <CardTitle className="text-base">Email and password</CardTitle>
           <CardDescription>
-            Demo: <span className="font-medium text-foreground">bassani@demo.local</span> /{" "}
+            Demo: <span className="font-medium text-foreground">dealer@gautengcoins.co.za</span> /{" "}
             <span className="font-medium text-foreground">DemoPass123!</span>
           </CardDescription>
         </CardHeader>

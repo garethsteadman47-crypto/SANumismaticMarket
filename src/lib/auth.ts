@@ -49,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !password) return null;
 
         // Bootstrap known demo accounts on first sign-in (Vercel/Atlas often
-        // has never been seeded — without this, bassani@demo.local 404s).
+        // has never been seeded — without this, dealer@gautengcoins.co.za 404s).
         let user = await db.user.findUnique({ where: { email } });
         if (!user?.passwordHash) {
           user = (await ensureDemoUserIfMatchingCredentials(email, password)) ?? null;

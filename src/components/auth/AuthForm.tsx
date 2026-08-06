@@ -17,7 +17,7 @@ import { signUpAction } from "@/actions/auth";
 import { PhoneAuthForm } from "@/components/auth/PhoneAuthForm";
 
 /** Demo account shown on the login card — pre-filled so preview hosts can't mistype it. */
-const DEMO_EMAIL = "bassani@demo.local";
+const DEMO_EMAIL = "dealer@gautengcoins.co.za";
 const DEMO_PASSWORD = "DemoPass123!";
 
 async function credentialsSignIn(email: string, password: string): Promise<{ ok: boolean; error?: string }> {

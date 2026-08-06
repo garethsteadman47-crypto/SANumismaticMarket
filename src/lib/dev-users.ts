@@ -5,8 +5,8 @@ import { db } from "@/lib/db";
 import type { AccoladeId } from "@/lib/accolades";
 
 /**
- * Shared demo accounts — emails/names must match `prisma/seed.ts` MOCK_USERS
- * so the login card hint (`bassani@demo.local`) and one-click switcher agree.
+ * Shared demo accounts — emails/names must match `src/lib/demo-seed.ts` MOCK_USERS
+ * so the login card hint and one-click switcher agree with the seeded dealers.
  */
 export const DEV_DEMO_PASSWORD = "DemoPass123!";
 
@@ -16,6 +16,7 @@ export const DEMO_USERS: Record<
     email: string;
     name: string;
     isSaandDealer: boolean;
+    isVerified: boolean;
     isCoinClubMember: boolean;
     completedSalesCount: number;
     phoneNumber: string;
@@ -27,53 +28,57 @@ export const DEMO_USERS: Record<
   }
 > = {
   STANDARD: {
-    email: "casual@demo.local",
-    name: "CasualCollector",
+    email: "seller@randburgfinds.co.za",
+    name: "Randburg Rare Finds",
     isSaandDealer: false,
+    isVerified: false,
     isCoinClubMember: false,
-    completedSalesCount: 0,
-    phoneNumber: "+27 83 555 0101",
-    location: "Durban, KZN",
-    bio: "New to organised collecting — building a starter cabinet of modern SA commemoratives.",
+    completedSalesCount: 9,
+    phoneNumber: "+27 11 555 0101",
+    location: "Randburg, GP",
+    bio: "Local finder of decimal sets, commemoratives, and affordable starter cabinet pieces.",
     avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1605335805561-12c8a245585f?auto=format&fit=crop&w=1600&q=80",
     accolades: ["EARLY_ADOPTER"],
   },
   SILVER: {
-    email: "unionhunter@demo.local",
-    name: "UnionHunter",
+    email: "info@capeproofs.co.za",
+    name: "Cape Proof Collectibles",
     isSaandDealer: false,
+    isVerified: true,
     isCoinClubMember: true,
-    completedSalesCount: 12,
-    phoneNumber: "+27 71 555 0199",
+    completedSalesCount: 67,
+    phoneNumber: "+27 21 555 0142",
     location: "Cape Town, WC",
-    bio: "Collecting Union florins, shillings, and early Republic circulating crowns.",
+    bio: "Cape Town boutique for Union proofs, banknotes, and high-grade circulating silver.",
     avatarUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1599557997972-00ab56bc7404?auto=format&fit=crop&w=1600&q=80",
-    accolades: ["COIN_CLUB"],
-  },
-  GOLD: {
-    email: "pretoriagold@demo.local",
-    name: "PretoriaGold",
-    isSaandDealer: false,
-    isCoinClubMember: true,
-    completedSalesCount: 54,
-    phoneNumber: "+27 82 555 0142",
-    location: "Johannesburg, GP",
-    bio: "Power trader focused on Krugerrands, Natura series, and high-grade Union silver.",
-    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
-    bannerUrl: "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1600&q=80",
     accolades: ["COIN_CLUB", "EARLY_ADOPTER"],
   },
-  DEALER: {
-    email: "bassani@demo.local",
-    name: "Bassani Numismatics",
+  GOLD: {
+    email: "zar@zarcoins.co.za",
+    name: "Veldpond & ZAR Specialist",
     isSaandDealer: true,
+    isVerified: true,
     isCoinClubMember: true,
-    completedSalesCount: 186,
-    phoneNumber: "+27 12 555 0186",
+    completedSalesCount: 128,
+    phoneNumber: "+27 82 555 0199",
+    location: "Johannesburg, GP",
+    bio: "Focused on ZAR gold rarities, Veldponde, and early Kruger crowns with full provenance.",
+    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
+    bannerUrl: "https://images.unsplash.com/photo-1605177991950-8de6fbd238ac?auto=format&fit=crop&w=1600&q=80",
+    accolades: ["SAAND_VERIFIED", "COIN_CLUB"],
+  },
+  DEALER: {
+    email: "dealer@gautengcoins.co.za",
+    name: "Gauteng Numismatic Exchange",
+    isSaandDealer: true,
+    isVerified: true,
+    isCoinClubMember: true,
+    completedSalesCount: 214,
+    phoneNumber: "+27 12 555 0201",
     location: "Pretoria, GP",
-    bio: "SAAND dealer specialising in ZAR gold, Union proofs, and scarce Republic R1–R5 varieties.",
+    bio: "Verified SAAND dealer specialising in Krugerrands, international trade dollars, and Republic bullion.",
     avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
     bannerUrl: "https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=1600&q=80",
     accolades: ["SAAND_VERIFIED", "COIN_CLUB", "TOP_SELLER_100", "EARLY_ADOPTER"],
@@ -105,6 +110,7 @@ export async function ensureDevUser(tier: SubscriptionTier) {
       subscriptionTier: tier,
       passwordHash,
       isSaandDealer: demo.isSaandDealer,
+      isVerified: demo.isVerified,
       isCoinClubMember: demo.isCoinClubMember,
       completedSalesCount: demo.completedSalesCount,
       phoneNumber: demo.phoneNumber,
@@ -122,6 +128,7 @@ export async function ensureDevUser(tier: SubscriptionTier) {
       role: "USER",
       subscriptionTier: tier,
       isSaandDealer: demo.isSaandDealer,
+      isVerified: demo.isVerified,
       isCoinClubMember: demo.isCoinClubMember,
       completedSalesCount: demo.completedSalesCount,
       phoneNumber: demo.phoneNumber,
