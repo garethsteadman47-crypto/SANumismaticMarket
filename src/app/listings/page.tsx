@@ -14,6 +14,7 @@ import {
 import { toBrowseItemFromAuction, toBrowseItemFromListing } from "@/lib/browse";
 import { browseItemToListingCard } from "@/lib/marketplace-catalog";
 import { MarketplaceBrowse } from "@/components/browse/MarketplaceBrowse";
+import type { ListingCardData } from "@/components/ListingCard";
 
 export const dynamic = "force-dynamic";
 
@@ -52,38 +53,51 @@ export default async function BuyCoinsPage({
   const listingWhere = buildListingWhere({ ...filters, formats: ["BUY_NOW"] });
   const auctionWhere = buildAuctionWhere({ ...filters, formats: ["AUCTION"] });
 
-  const [listingTotal, listings, auctionTotal, auctions] = await Promise.all([
-    listingWhere ? db.listing.count({ where: listingWhere }) : Promise.resolve(0),
-    listingWhere
-      ? db.listing.findMany({
-          where: listingWhere,
-          orderBy: buildListingOrderBy(sort),
-          skip,
-          take: BROWSE_PAGE_SIZE,
-          select: LISTING_BROWSE_SELECT,
-        })
-      : Promise.resolve([]),
-    auctionWhere ? db.auction.count({ where: auctionWhere }) : Promise.resolve(0),
-    auctionWhere
-      ? db.auction.findMany({
-          where: auctionWhere,
-          orderBy: buildAuctionOrderBy(sort),
-          skip,
-          take: BROWSE_PAGE_SIZE,
-          include: {
-            seller: { select: { subscriptionTier: true, isSaandDealer: true } },
-            _count: { select: { bids: true } },
-          },
-        })
-      : Promise.resolve([]),
-  ]);
+  let catalog: ListingCardData[] = [];
+  let listingTotal = 0;
+  let auctionTotal = 0;
+  let catalogError: string | null = null;
 
-  const catalog = [
-    ...listings.map((listing) => browseItemToListingCard(toBrowseItemFromListing(listing))),
-    ...auctions.map((auction) =>
-      browseItemToListingCard(toBrowseItemFromAuction(auction, getAuctionPhase(auction))),
-    ),
-  ];
+  try {
+    const [nextListingTotal, listings, nextAuctionTotal, auctions] = await Promise.all([
+      listingWhere ? db.listing.count({ where: listingWhere }) : Promise.resolve(0),
+      listingWhere
+        ? db.listing.findMany({
+            where: listingWhere,
+            orderBy: buildListingOrderBy(sort),
+            skip,
+            take: BROWSE_PAGE_SIZE,
+            select: LISTING_BROWSE_SELECT,
+          })
+        : Promise.resolve([]),
+      auctionWhere ? db.auction.count({ where: auctionWhere }) : Promise.resolve(0),
+      auctionWhere
+        ? db.auction.findMany({
+            where: auctionWhere,
+            orderBy: buildAuctionOrderBy(sort),
+            skip,
+            take: BROWSE_PAGE_SIZE,
+            include: {
+              seller: { select: { subscriptionTier: true, isSaandDealer: true } },
+              _count: { select: { bids: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    listingTotal = nextListingTotal;
+    auctionTotal = nextAuctionTotal;
+    catalog = [
+      ...listings.map((listing) => browseItemToListingCard(toBrowseItemFromListing(listing))),
+      ...auctions.map((auction) =>
+        browseItemToListingCard(toBrowseItemFromAuction(auction, getAuctionPhase(auction))),
+      ),
+    ];
+  } catch (error) {
+    console.error("[listings] catalog query failed", error);
+    catalogError =
+      "The marketplace catalog could not reach the database. Confirm DATABASE_URL is set for this Vercel project.";
+  }
 
   const listingTotalPages = Math.max(1, Math.ceil(listingTotal / BROWSE_PAGE_SIZE));
   const auctionTotalPages = Math.max(1, Math.ceil(auctionTotal / BROWSE_PAGE_SIZE));
@@ -98,25 +112,32 @@ export default async function BuyCoinsPage({
         </p>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-            <div className="hidden h-96 animate-pulse rounded-lg border bg-muted/40 lg:block" />
-            <div className="h-96 animate-pulse rounded-lg border bg-muted/40" />
-          </div>
-        }
-      >
-        <MarketplaceBrowse
-          catalog={catalog}
-          pagination={{
-            page,
-            listingTotal,
-            auctionTotal,
-            listingTotalPages,
-            auctionTotalPages,
-          }}
-        />
-      </Suspense>
+      {catalogError ? (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-6 text-sm">
+          <p className="font-medium text-destructive">Catalog unavailable</p>
+          <p className="mt-1 text-muted-foreground">{catalogError}</p>
+        </div>
+      ) : (
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+              <div className="hidden h-96 animate-pulse rounded-lg border bg-muted/40 lg:block" />
+              <div className="h-96 animate-pulse rounded-lg border bg-muted/40" />
+            </div>
+          }
+        >
+          <MarketplaceBrowse
+            catalog={catalog}
+            pagination={{
+              page,
+              listingTotal,
+              auctionTotal,
+              listingTotalPages,
+              auctionTotalPages,
+            }}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }
