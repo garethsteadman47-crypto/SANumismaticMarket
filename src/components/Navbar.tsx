@@ -1,3 +1,4 @@
+import type { Session } from "next-auth";
 import Link from "next/link";
 import {
   CoinsIcon,
@@ -70,8 +71,19 @@ function NavLinks() {
 }
 
 export async function Navbar() {
-  const session = await auth();
-  const pendingOfferCount = session?.user ? await countPendingOffersForSeller(session.user.id) : 0;
+  // Auth.js throws an opaque "server configuration" error when AUTH_SECRET is
+  // missing on a Vercel project. Keep the chrome rendering so DB/page errors
+  // remain visible instead of taking the whole marketplace down.
+  let session: Session | null = null;
+  let pendingOfferCount = 0;
+  try {
+    session = await auth();
+    if (session?.user) {
+      pendingOfferCount = await countPendingOffersForSeller(session.user.id);
+    }
+  } catch (error) {
+    console.error("[Navbar] auth/session unavailable", error);
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
