@@ -22,13 +22,32 @@ describe("listing-media slots", () => {
     expect(media.reverse.previewUrl).toBeNull();
   });
 
-  it("prefers remote HTTPS over blob placeholders when publishing", () => {
-    const url = resolvePublishableSlotUrl(
-      { file: null, previewUrl: "blob:x", remoteUrl: "https://cdn.example/cover.jpg" },
-      (seed) => `https://placeholder/${seed}`,
-      "seed",
-    );
+  it("prefers remote HTTPS over blob previews when publishing", async () => {
+    const url = await resolvePublishableSlotUrl({
+      file: null,
+      previewUrl: "blob:x",
+      remoteUrl: "https://cdn.example/cover.jpg",
+    });
     expect(url).toBe("https://cdn.example/cover.jpg");
+  });
+
+  it("keeps data:image URLs instead of inventing placeholders", async () => {
+    const dataUrl = "data:image/jpeg;base64,/9j/4AAQ";
+    const url = await resolvePublishableSlotUrl({
+      file: null,
+      previewUrl: dataUrl,
+      remoteUrl: dataUrl,
+    });
+    expect(url).toBe(dataUrl);
+  });
+
+  it("refuses bare blob: previews with no File (not durable)", async () => {
+    const url = await resolvePublishableSlotUrl({
+      file: null,
+      previewUrl: "blob:http://localhost/abc",
+      remoteUrl: null,
+    });
+    expect(url).toBeUndefined();
   });
 });
 
@@ -59,5 +78,15 @@ describe("bulk-listings CSV", () => {
     const result = parseBulkListingsCsv(csv);
     expect(result.rows).toHaveLength(0);
     expect(result.errors[0]?.message).toMatch(/Slab serial|certificate/i);
+  });
+
+  it("rejects rows that only have blob: previews (not durable)", () => {
+    const csv = [
+      "title,description,category,listingType,metal,priceRands,coverImageUrl",
+      `"Silver Rand","A nice coin for collectors.",COINS,RAW,SILVER,1200,blob:http://localhost/x`,
+    ].join("\n");
+    const result = parseBulkListingsCsv(csv);
+    expect(result.rows).toHaveLength(0);
+    expect(result.errors[0]?.message).toMatch(/image|photo/i);
   });
 });

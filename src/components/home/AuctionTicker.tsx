@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { GavelIcon, ImageOffIcon, RadioIcon } from "lucide-react";
 
 import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
+import { ListingImage } from "@/components/ListingImage";
 import { Badge } from "@/components/ui/badge";
 import { formatZarCents } from "@/lib/utils/currency";
 
@@ -58,7 +58,7 @@ export function AuctionTicker({ auctions }: { auctions: AuctionTickerItem[] }) {
               >
                 <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-slate-800">
                   {cover ? (
-                    <Image src={cover} alt="" fill sizes="64px" className="object-cover" />
+                    <ListingImage src={cover} alt="" fill sizes="64px" className="object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-slate-500">
                       <ImageOffIcon className="size-5" />

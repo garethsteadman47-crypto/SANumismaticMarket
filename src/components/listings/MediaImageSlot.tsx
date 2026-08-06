@@ -168,7 +168,7 @@ export function MediaImageSlot({
           />
           {value.file && (
             <p className="text-[0.7rem] text-amber-700 dark:text-amber-400">
-              Local file ready for {label}. Paste a public URL above to publish that image instead of a placeholder.
+              Local photo ready — it will be saved with the listing when you publish.
             </p>
           )}
           {broken && value.remoteUrl && isHttpUrl(value.remoteUrl) && (

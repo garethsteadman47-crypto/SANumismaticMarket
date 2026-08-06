@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { ListingImage } from "@/components/ListingImage";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GavelIcon, HandCoinsIcon, ImageOffIcon, ShoppingBagIcon } from "lucide-react";
@@ -108,7 +108,7 @@ export default async function AccountPurchasesPage() {
                     <div className="flex items-center gap-3">
                       <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-muted">
                         {cover ? (
-                          <Image src={cover} alt="" fill className="object-cover" />
+                          <ListingImage src={cover} alt="" fill className="object-cover" />
                         ) : (
                           <div className="flex size-full items-center justify-center text-muted-foreground">
                             <ImageOffIcon className="size-4" />

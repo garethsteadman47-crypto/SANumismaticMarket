@@ -17,6 +17,19 @@ function optionalNumber<Schema extends z.ZodType<number, unknown>>(schema: Schem
   );
 }
 
+/** Remote HTTPS image or inlined device photo (`data:image/...;base64,...`). */
+const listingImageSrcSchema = z
+  .string()
+  .trim()
+  .min(1, "Image is required.")
+  .refine(
+    (value) =>
+      /^https?:\/\//i.test(value) || /^data:image\/[a-zA-Z0-9+.-]+;base64,/i.test(value),
+    "Each image must be a valid URL or an uploaded photo.",
+  );
+
+const optionalListingImageSrcSchema = z.union([listingImageSrcSchema, z.literal("")]).optional();
+
 /**
  * Server-side source of truth for "create listing" input. The listing wizard
  * uses this same schema for inline validation; the server action re-validates.
@@ -46,13 +59,13 @@ export const createListingSchema = z
     auctionEndsInDays: optionalNumber(z.coerce.number().int().min(1).max(30)),
     reservePriceCents: optionalNumber(z.coerce.number().int().positive()),
     images: z
-      .array(z.string().url("Each image must be a valid URL."))
+      .array(listingImageSrcSchema)
       .min(1, "Add at least one image.")
       .max(10, "You can add up to 10 images."),
-    coverImageUrl: z.union([z.string().url(), z.literal("")]).optional(),
-    obverseImageUrl: z.union([z.string().url(), z.literal("")]).optional(),
-    reverseImageUrl: z.union([z.string().url(), z.literal("")]).optional(),
-    certificateImageUrl: z.union([z.string().url(), z.literal("")]).optional(),
+    coverImageUrl: optionalListingImageSrcSchema,
+    obverseImageUrl: optionalListingImageSrcSchema,
+    reverseImageUrl: optionalListingImageSrcSchema,
+    certificateImageUrl: optionalListingImageSrcSchema,
 
     certificateId: z.union([z.string().trim().min(4).max(40), z.literal("")]).optional(),
     verificationProvider: z.union([z.nativeEnum(VerificationProvider), z.literal("")]).optional(),

@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ImageOffIcon, ShoppingCartIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ListingImage } from "@/components/ListingImage";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatZarCents } from "@/lib/utils/currency";
 
@@ -45,7 +45,7 @@ export default function CartPage() {
             <CardContent className="flex items-center gap-4">
               <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
                 {item.image ? (
-                  <Image src={item.image} alt={item.title} fill className="object-cover" />
+                  <ListingImage src={item.image} alt={item.title} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
                     <ImageOffIcon className="size-5" />

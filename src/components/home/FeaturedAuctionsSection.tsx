@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRightIcon, GavelIcon, ImageOffIcon, RadioIcon } from "lucide-react";
 
 import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
+import { ListingImage } from "@/components/ListingImage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatZarCents } from "@/lib/utils/currency";
@@ -39,7 +39,7 @@ export function FeaturedAuctionsSection({ auctions }: { auctions: AuctionTickerI
               <Card key={auction.id} className="overflow-hidden transition-shadow hover:shadow-md">
                 <Link href={`/auctions/${auction.id}`} className="relative block aspect-[4/3] bg-muted">
                   {cover ? (
-                    <Image src={cover} alt={auction.title} fill sizes="(min-width:1024px) 33vw, 50vw" className="object-cover" />
+                    <ListingImage src={cover} alt={auction.title} fill sizes="(min-width:1024px) 33vw, 50vw" className="object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-muted-foreground">
                       <ImageOffIcon className="size-8" />
