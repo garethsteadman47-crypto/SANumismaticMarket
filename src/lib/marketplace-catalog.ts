@@ -17,6 +17,8 @@ export function browseItemToListingCard(item: BrowseItem): ListingCardData {
     auctionPhase: item.auctionPhase,
     bidCount: item.bidCount,
     reserveNotMet: item.reserveNotMet,
+    isSponsored: item.isSponsored || item.isFeatured,
+    isFeatured: item.isFeatured,
     sortKey: item.sortKey,
     seller: {
       subscriptionTier: item.sellerTier,
@@ -25,16 +27,21 @@ export function browseItemToListingCard(item: BrowseItem): ListingCardData {
   };
 }
 
-/** Client-side sort for the unified marketplace grid. */
+/** Client-side sort for the unified marketplace grid — featured stays first. */
 export function sortListingCards(listings: ListingCardData[], sort: BrowseSort): ListingCardData[] {
   const items = [...listings];
+  const featuredFirst = (a: ListingCardData, b: ListingCardData) =>
+    Number(Boolean(b.isFeatured || b.isSponsored)) - Number(Boolean(a.isFeatured || a.isSponsored));
+
   switch (sort) {
     case "price_asc":
-      return items.sort((a, b) => a.priceCents - b.priceCents || (b.sortKey ?? 0) - (a.sortKey ?? 0));
+      return items.sort((a, b) => featuredFirst(a, b) || a.priceCents - b.priceCents || (b.sortKey ?? 0) - (a.sortKey ?? 0));
     case "price_desc":
-      return items.sort((a, b) => b.priceCents - a.priceCents || (b.sortKey ?? 0) - (a.sortKey ?? 0));
+      return items.sort((a, b) => featuredFirst(a, b) || b.priceCents - a.priceCents || (b.sortKey ?? 0) - (a.sortKey ?? 0));
     case "ending_soon":
       return items.sort((a, b) => {
+        const featured = featuredFirst(a, b);
+        if (featured !== 0) return featured;
         const aEnd = a.endsAtIso ? new Date(a.endsAtIso).getTime() : Number.POSITIVE_INFINITY;
         const bEnd = b.endsAtIso ? new Date(b.endsAtIso).getTime() : Number.POSITIVE_INFINITY;
         if (aEnd !== bEnd) return aEnd - bEnd;
@@ -42,7 +49,7 @@ export function sortListingCards(listings: ListingCardData[], sort: BrowseSort):
       });
     case "newest":
     default:
-      return items.sort((a, b) => (b.sortKey ?? 0) - (a.sortKey ?? 0));
+      return items.sort((a, b) => featuredFirst(a, b) || (b.sortKey ?? 0) - (a.sortKey ?? 0));
   }
 }
 

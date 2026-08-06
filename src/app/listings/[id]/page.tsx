@@ -25,6 +25,9 @@ import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
 import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
 import { OfferStatusAlert } from "@/components/offers/OfferStatusAlert";
 import { AddToCartButton } from "@/components/cart/AddToCartButton";
+import { ListingGrid } from "@/components/ListingGrid";
+import { getSimilarListings } from "@/lib/similar-listings";
+import { getTaxonomyNodeLabel } from "@/lib/numismatic-taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +85,16 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const [openOffer, acceptedOffer] = session?.user
     ? await Promise.all([getOpenOfferForBuyer(listing.id, session.user.id), getAcceptedOfferForBuyer(listing.id, session.user.id)])
     : [null, null];
+
+  const similarItems = await getSimilarListings({
+    listingId: listing.id,
+    subcategory: listing.subcategory,
+    category: listing.category,
+    limit: 4,
+  });
+  const eraLabel = listing.subcategory
+    ? getTaxonomyNodeLabel(listing.subcategory)?.split(" / ")[0] ?? "this era"
+    : "this category";
 
   let spotWidget: { quote: ReturnType<typeof getSpotPriceQuote>; meltValueCents?: number; premiumPercent?: number } | null = null;
   if (isSpotTrackedMetal(listing.metal)) {
@@ -365,6 +378,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </CardContent>
         </Card>
       </section>
+
+      {similarItems.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Similar Items from this Era</h2>
+            <p className="text-sm text-muted-foreground">
+              More active lots from {eraLabel} — keep browsing while you&apos;re here.
+            </p>
+          </div>
+          <ListingGrid listings={similarItems} />
+        </section>
+      )}
     </main>
   );
 }

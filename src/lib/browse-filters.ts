@@ -86,7 +86,11 @@ export interface BrowseFilterState {
   formats: BuyingFormat[];
   /** Grid sort — defaults applied per tab in the browse UI. */
   sort?: BrowseSort;
+  /** 1-based page index for server-side pagination. */
+  page?: number;
 }
+
+export const BROWSE_PAGE_SIZE = 24;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
@@ -119,7 +123,11 @@ const CATEGORY_TO_TAXONOMY: Record<string, string> = {
   zar: "zar",
   "zar-union": "zar",
   union: "union",
-  republic: "republic",
+  republic: "first-decimal",
+  "first-decimal": "first-decimal",
+  "second-decimal": "second-decimal",
+  "third-decimal": "third-decimal",
+  "fourth-decimal": "fourth-decimal",
   bullion: "bullion",
   banknotes: "banknotes",
   sets: "sets",
@@ -136,6 +144,8 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
   const q = firstString(searchParams.q)?.trim();
   const sortRaw = firstString(searchParams.sort);
   const sort = sortRaw && (BROWSE_SORTS as readonly string[]).includes(sortRaw) ? (sortRaw as BrowseSort) : undefined;
+  const pageRaw = parseIntParam(firstString(searchParams.page));
+  const page = pageRaw != null && pageRaw > 0 ? pageRaw : 1;
   return {
     taxonomy: resolveTaxonomyParam(searchParams),
     q: q || undefined,
@@ -148,6 +158,7 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
     maxPriceRands: parseIntParam(firstString(searchParams.maxPrice)),
     formats: parseCsv(firstString(searchParams.format), BUYING_FORMATS),
     sort,
+    page,
   };
 }
 
@@ -161,7 +172,10 @@ export function resolveBrowseSort(filters: BrowseFilterState): BrowseSort {
 /** Builds the query string for a given filter state — used for pill hrefs and the sidebar's own navigation. */
 export function serializeBrowseFilters(filters: BrowseFilterState): string {
   const params = new URLSearchParams();
-  if (filters.taxonomy) params.set("taxonomy", filters.taxonomy);
+  if (filters.taxonomy) {
+    params.set("taxonomy", filters.taxonomy);
+    params.set("category", filters.taxonomy);
+  }
   if (filters.q) params.set("q", filters.q);
   if (filters.certifications.length) params.set("cert", filters.certifications.join(","));
   if (filters.gradeBrackets.length) params.set("grade", filters.gradeBrackets.join(","));
@@ -172,7 +186,38 @@ export function serializeBrowseFilters(filters: BrowseFilterState): string {
   if (filters.maxPriceRands != null) params.set("maxPrice", String(filters.maxPriceRands));
   if (filters.formats.length) params.set("format", filters.formats.join(","));
   if (filters.sort) params.set("sort", filters.sort);
+  if (filters.page != null && filters.page > 1) params.set("page", String(filters.page));
   return params.toString();
+}
+
+/** Prisma orderBy: featured first within the active filter, then the user's sort. */
+export function buildListingOrderBy(sort: BrowseSort): Prisma.ListingOrderByWithRelationInput[] {
+  const featuredFirst: Prisma.ListingOrderByWithRelationInput = { isFeatured: "desc" };
+  switch (sort) {
+    case "price_asc":
+      return [featuredFirst, { priceCents: "asc" }, { createdAt: "desc" }];
+    case "price_desc":
+      return [featuredFirst, { priceCents: "desc" }, { createdAt: "desc" }];
+    case "ending_soon":
+      return [featuredFirst, { createdAt: "asc" }];
+    case "newest":
+    default:
+      return [featuredFirst, { createdAt: "desc" }];
+  }
+}
+
+export function buildAuctionOrderBy(sort: BrowseSort): Prisma.AuctionOrderByWithRelationInput[] {
+  switch (sort) {
+    case "price_asc":
+      return [{ startingPriceCents: "asc" }, { endsAt: "asc" }];
+    case "price_desc":
+      return [{ startingPriceCents: "desc" }, { endsAt: "asc" }];
+    case "newest":
+      return [{ createdAt: "desc" }];
+    case "ending_soon":
+    default:
+      return [{ endsAt: "asc" }];
+  }
 }
 
 export function isAnyFilterActive(filters: BrowseFilterState): boolean {

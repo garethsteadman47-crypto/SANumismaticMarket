@@ -6,6 +6,7 @@ import { generateSlug } from "@/lib/slug";
 import { createListingSchema, type CreateListingInput } from "@/lib/validation/listing";
 import { getVerificationFeeCents } from "@/lib/utils/fees";
 import { createAuctionFromListingInput } from "@/lib/listing-auction";
+import { inferEraSubcategory } from "@/lib/numismatic-taxonomy";
 
 /**
  * Core "create listing" business logic, deliberately kept out of the
@@ -109,6 +110,7 @@ export async function createListing(sellerId: string, input: CreateListingInput)
           acceptsOffers: data.acceptsOffers ?? true,
           minOfferPriceCents: data.acceptsOffers ? (data.minOfferPriceCents ?? null) : null,
           autoAcceptPriceCents: data.acceptsOffers ? (data.autoAcceptPriceCents ?? null) : null,
+          subcategory: inferEraSubcategory(data.year),
           images: uniqueImages.length > 0 ? uniqueImages : data.images,
           coverImageUrl: data.coverImageUrl || null,
           obverseImageUrl: data.obverseImageUrl || null,

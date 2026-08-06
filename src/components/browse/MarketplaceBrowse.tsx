@@ -55,7 +55,20 @@ function defaultSortForTab(tab: ActiveTab): BrowseSort {
  * Unified marketplace shell: sticky category Sidebar + action bar (search / tabs / sort)
  * + shared ListingGrid. Tab switches update URL params without tearing down the sidebar.
  */
-export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
+export function MarketplaceBrowse({
+  catalog,
+  pagination,
+}: {
+  catalog: ListingCardData[];
+  pagination: {
+    page: number;
+    listingTotal: number;
+    auctionTotal: number;
+    listingTotalPages: number;
+    auctionTotalPages: number;
+    hrefForPage: (page: number) => string;
+  };
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const filters = useMemo(
@@ -72,7 +85,9 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
   }, [filters.q]);
 
   function navigate(next: BrowseFilterState, method: "push" | "replace" = "push") {
-    const qs = serializeBrowseFilters(next);
+    // Reset to page 1 whenever filters/sort/tab change (unless page explicitly set).
+    const withPage = { ...next, page: next.page && next.page > 1 ? next.page : undefined };
+    const qs = serializeBrowseFilters(withPage);
     const href = qs ? `${BASE_PATH}?${qs}` : BASE_PATH;
     if (method === "replace") {
       router.replace(href, { scroll: false });
@@ -89,6 +104,7 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
       q: trimmed || undefined,
       formats: tabFormats(activeTab),
       sort: filters.sort ?? defaultSortForTab(activeTab),
+      page: 1,
     });
   }
 
@@ -101,6 +117,7 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
       maxYear: nextTab === "auction" ? undefined : filters.maxYear,
       formats: tabFormats(nextTab),
       sort: defaultSortForTab(nextTab),
+      page: 1,
     });
   }
 
@@ -110,6 +127,7 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
       ...filters,
       formats: tabFormats(activeTab),
       sort: nextSort as BrowseSort,
+      page: 1,
     });
   }
 
@@ -129,10 +147,13 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
       ? ["ending_soon", "newest", "price_asc", "price_desc"]
       : ["newest", "price_asc", "price_desc"];
 
+  const totalPages = activeTab === "auction" ? pagination.auctionTotalPages : pagination.listingTotalPages;
+  const totalCount = activeTab === "auction" ? pagination.auctionTotal : pagination.listingTotal;
+
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
-        {/* Left column — category taxonomy; stays mounted across Buy Now / Auction tab changes */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        {/* Left column — historical era taxonomy */}
         <aside className="hidden lg:block">
           <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg border p-4">
             <Sidebar basePath={BASE_PATH} />
@@ -228,6 +249,10 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
 
           <ActiveFilterPills pills={pills} basePath={BASE_PATH} />
 
+          <p className="text-xs text-muted-foreground">
+            Showing {visibleListings.length} of {totalCount} · page {pagination.page} of {totalPages}
+          </p>
+
           <ListingGrid
             listings={visibleListings}
             emptyMessage={
@@ -235,6 +260,11 @@ export function MarketplaceBrowse({ catalog }: { catalog: ListingCardData[] }) {
                 ? "No live auctions match these filters."
                 : "No buy-now listings match these filters."
             }
+            pagination={{
+              page: pagination.page,
+              totalPages,
+              hrefForPage: pagination.hrefForPage,
+            }}
           />
         </div>
       </div>

@@ -12,13 +12,27 @@ import { TaxonomyIcon } from "@/components/browse/TaxonomyIcon";
  * Collapsible category navigation for the unified `/listings` marketplace.
  * Updates `taxonomy` + `category` URL params while preserving tab (`format`),
  * search (`q`), and sort — so switching Union → Farthings on Live Auctions
- * never drops the auction mode.
+ * never drops the auction mode. Resets `page` to 1 on change.
  */
-export function CategoryTree({ basePath }: { basePath: string }) {
+export function CategoryTree({
+  basePath,
+  preferredRootIds,
+}: {
+  basePath: string;
+  /** When set, these roots render first (historical eras), then remaining sections. */
+  preferredRootIds?: string[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentFilters = parseBrowseFilters(Object.fromEntries(searchParams.entries()));
   const selectedId = currentFilters.taxonomy;
+
+  const roots = preferredRootIds?.length
+    ? [
+        ...TAXONOMY_TREE.filter((node) => preferredRootIds.includes(node.id)),
+        ...TAXONOMY_TREE.filter((node) => !preferredRootIds.includes(node.id)),
+      ]
+    : TAXONOMY_TREE;
 
   function selectNode(nodeId: string) {
     const isDeselecting = selectedId === nodeId;
@@ -26,8 +40,8 @@ export function CategoryTree({ basePath }: { basePath: string }) {
     const query = serializeBrowseFilters({
       ...currentFilters,
       taxonomy: nextTaxonomy,
+      page: 1,
     });
-    // Dual-write `category=` for deep-link / marketing parity with taxonomy.
     const params = new URLSearchParams(query);
     if (nextTaxonomy) {
       params.set("category", nextTaxonomy);
@@ -36,15 +50,15 @@ export function CategoryTree({ basePath }: { basePath: string }) {
       params.delete("category");
       params.delete("taxonomy");
     }
+    params.delete("page");
     const qs = params.toString();
     router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
   }
 
   return (
     <div className="flex flex-col gap-1">
-      <h3 className="px-1 text-sm font-semibold">Categories</h3>
       <Accordion multiple>
-        {TAXONOMY_TREE.map((parent) => (
+        {roots.map((parent) => (
           <AccordionItem key={parent.id} value={parent.id}>
             <AccordionTrigger
               onClick={() => selectNode(parent.id)}

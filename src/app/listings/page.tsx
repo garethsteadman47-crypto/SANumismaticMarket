@@ -2,7 +2,16 @@ import { Suspense } from "react";
 
 import { db } from "@/lib/db";
 import { getAuctionPhase } from "@/lib/auctions";
-import { buildAuctionWhere, buildListingWhere, parseBrowseFilters } from "@/lib/browse-filters";
+import {
+  BROWSE_PAGE_SIZE,
+  buildAuctionOrderBy,
+  buildAuctionWhere,
+  buildListingOrderBy,
+  buildListingWhere,
+  parseBrowseFilters,
+  resolveBrowseSort,
+  serializeBrowseFilters,
+} from "@/lib/browse-filters";
 import { toBrowseItemFromAuction, toBrowseItemFromListing } from "@/lib/browse";
 import { browseItemToListingCard } from "@/lib/marketplace-catalog";
 import { MarketplaceBrowse } from "@/components/browse/MarketplaceBrowse";
@@ -13,9 +22,12 @@ const LISTING_BROWSE_SELECT = {
   id: true,
   title: true,
   category: true,
+  subcategory: true,
   priceCents: true,
   images: true,
   acceptsOffers: true,
+  isSponsored: true,
+  isFeatured: true,
   createdAt: true,
   seller: { select: { subscriptionTier: true, isSaandDealer: true } },
   verification: { select: { shieldAwarded: true } },
@@ -24,7 +36,8 @@ const LISTING_BROWSE_SELECT = {
 /**
  * Unified marketplace dashboard — Buy Now and Live Auctions share one layout:
  * sticky category Sidebar + search/tabs/sort action bar + ListingGrid.
- * Tab mode is URL-driven (`format=`) so the sidebar never unmounts on switch.
+ * Featured listings sort to the top *within* the active category filter only.
+ * URL pagination: `?page=` at 24 items per page.
  */
 export default async function BuyCoinsPage({
   searchParams,
@@ -33,27 +46,31 @@ export default async function BuyCoinsPage({
 }) {
   const sp = await searchParams;
   const filters = parseBrowseFilters(sp);
+  const sort = resolveBrowseSort(filters);
+  const page = filters.page && filters.page > 0 ? filters.page : 1;
+  const skip = (page - 1) * BROWSE_PAGE_SIZE;
 
-  // Always load both catalogues for the current taxonomy / search / facets.
-  // The client MarketplaceBrowse filters by active tab so switching Buy Now ↔
-  // Live Auctions does not require a separate page route.
   const listingWhere = buildListingWhere({ ...filters, formats: ["BUY_NOW"] });
   const auctionWhere = buildAuctionWhere({ ...filters, formats: ["AUCTION"] });
 
-  const [listings, auctions] = await Promise.all([
+  const [listingTotal, listings, auctionTotal, auctions] = await Promise.all([
+    listingWhere ? db.listing.count({ where: listingWhere }) : Promise.resolve(0),
     listingWhere
       ? db.listing.findMany({
           where: listingWhere,
-          orderBy: { createdAt: "desc" },
-          take: 80,
+          orderBy: buildListingOrderBy(sort),
+          skip,
+          take: BROWSE_PAGE_SIZE,
           select: LISTING_BROWSE_SELECT,
         })
       : Promise.resolve([]),
+    auctionWhere ? db.auction.count({ where: auctionWhere }) : Promise.resolve(0),
     auctionWhere
       ? db.auction.findMany({
           where: auctionWhere,
-          orderBy: { endsAt: "asc" },
-          take: 80,
+          orderBy: buildAuctionOrderBy(sort),
+          skip,
+          take: BROWSE_PAGE_SIZE,
           include: {
             seller: { select: { subscriptionTier: true, isSaandDealer: true } },
             _count: { select: { bids: true } },
@@ -69,13 +86,21 @@ export default async function BuyCoinsPage({
     ),
   ];
 
+  const listingTotalPages = Math.max(1, Math.ceil(listingTotal / BROWSE_PAGE_SIZE));
+  const auctionTotalPages = Math.max(1, Math.ceil(auctionTotal / BROWSE_PAGE_SIZE));
+
+  function hrefForPage(nextPage: number) {
+    const qs = serializeBrowseFilters({ ...filters, sort, page: nextPage });
+    return qs ? `/listings?${qs}` : "/listings";
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-semibold">Buy Coins</h1>
         <p className="text-sm text-muted-foreground">
-          Browse every verified, buyer-protected listing and live auction across coins, banknotes, bullion, and
-          Krugerrands — same categories, search, and sort for Buy Now and Live Auctions.
+          Browse verified, buyer-protected lots across South Africa&apos;s historical eras — featured
+          upgrades stay inside the era you&apos;re viewing.
         </p>
       </div>
 
@@ -87,7 +112,17 @@ export default async function BuyCoinsPage({
           </div>
         }
       >
-        <MarketplaceBrowse catalog={catalog} />
+        <MarketplaceBrowse
+          catalog={catalog}
+          pagination={{
+            page,
+            listingTotal,
+            auctionTotal,
+            listingTotalPages,
+            auctionTotalPages,
+            hrefForPage,
+          }}
+        />
       </Suspense>
     </main>
   );

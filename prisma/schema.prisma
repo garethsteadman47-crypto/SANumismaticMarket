@@ -445,6 +445,14 @@ model Listing {
 
   // Paid / boost placements get a charcoal "Sponsored" treatment on cards.
   isSponsored Boolean @default(false)
+  // Seller-upgraded featured placement — sorted to the top *within* the active
+  // category filter (never leaks across unrelated eras).
+  isFeatured Boolean @default(false)
+
+  // Historical era / denomination leaf id from the numismatic taxonomy
+  // (e.g. "zar", "first-decimal", "union-crowns"). Used for similar-item
+  // matching and category-constrained browse.
+  subcategory String?
 
   // Present only for GRADED listings. Nulls out once app logic clears it.
   certificateId String?
@@ -463,6 +471,8 @@ model Listing {
   updatedAt DateTime @updatedAt
 
   @@index([status, category])
+  @@index([status, subcategory, isFeatured])
+  @@index([status, isFeatured])
   @@index([sellerId])
   @@index([certificateId])
 }

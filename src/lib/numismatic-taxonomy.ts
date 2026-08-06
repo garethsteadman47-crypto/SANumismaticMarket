@@ -1,9 +1,9 @@
 import { ListingCategory, ListingType, PreciousMetal, Prisma } from "@prisma/client";
 
 /**
- * Collector-facing browse taxonomy for `/listings`. Broad parents with
- * nested denomination sub-categories — predicates map onto Listing fields
- * without reshaping the Prisma enum.
+ * Collector-facing browse taxonomy for `/listings`.
+ * Primary coin eras follow exact South African historical periods; bullion,
+ * sets, and banknotes remain as secondary marketplace sections.
  */
 
 export type TaxonomyIconName =
@@ -27,6 +27,8 @@ export interface TaxonomyPredicate {
   maxYear?: number;
   keywordsAny?: string[];
   nonSouthAfrican?: boolean;
+  /** Exact subcategory ids (era or leaf) to match on Listing.subcategory. */
+  subcategories?: string[];
 }
 
 export interface TaxonomyNode {
@@ -44,15 +46,34 @@ function child(
   extras: Partial<TaxonomyPredicate> & { icon?: TaxonomyIconName } = {},
 ): TaxonomyNode {
   const { icon = "Coins", ...predicate } = extras;
-  return { id, label, icon, predicate: { keywordsAny, ...predicate } };
+  return { id, label, icon, predicate: { keywordsAny, subcategories: [id], ...predicate } };
 }
 
+const DECIMAL_DENOMS = [
+  child("decimal-r2", "R2", ["r2", "2 rand"]),
+  child("decimal-r1", "R1", ["r1", "1 rand"]),
+  child("decimal-r5", "R5", ["r5", "5 rand"]),
+  child("decimal-50c", "50c", ["50c", "50 cent"]),
+  child("decimal-20c", "20c", ["20c", "20 cent"]),
+  child("decimal-10c", "10c", ["10c", "10 cent"]),
+  child("decimal-5c", "5c", ["5c", "5 cent"]),
+  child("decimal-2c", "2c", ["2c", "2 cent"]),
+  child("decimal-1c", "1c", ["1c", "1 cent"]),
+  child("decimal-half-c", "1/2c", ["1/2c", "half cent", "0.5c"]),
+];
+
+/** Strict South African historical eras + secondary marketplace sections. */
 export const TAXONOMY_TREE: TaxonomyNode[] = [
   {
     id: "zar",
-    label: "ZAR",
+    label: "ZAR (1852–1902)",
     icon: "Coins",
-    predicate: { categories: [ListingCategory.COINS], minYear: 1874, maxYear: 1902 },
+    predicate: {
+      categories: [ListingCategory.COINS],
+      minYear: 1852,
+      maxYear: 1902,
+      subcategories: ["zar"],
+    },
     children: [
       child("zar-veldpond", "Veldpond", ["veldpond"], { metals: [PreciousMetal.GOLD], icon: "Gem" }),
       child("zar-ponde", "Ponde", ["pond", "ponde"], { metals: [PreciousMetal.GOLD], icon: "Gem" }),
@@ -95,9 +116,14 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
   },
   {
     id: "union",
-    label: "Union",
+    label: "Union of South Africa (1923–1960)",
     icon: "Landmark",
-    predicate: { categories: [ListingCategory.COINS], minYear: 1910, maxYear: 1960 },
+    predicate: {
+      categories: [ListingCategory.COINS],
+      minYear: 1923,
+      maxYear: 1960,
+      subcategories: ["union"],
+    },
     children: [
       child("union-crowns", "Crowns", ["crown", "5 shilling"], {
         metals: [PreciousMetal.SILVER],
@@ -131,25 +157,67 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     ],
   },
   {
-    id: "republic",
-    label: "Republic",
+    id: "first-decimal",
+    label: "First Decimal (1961–1964)",
     icon: "Landmark",
     predicate: {
       categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND],
       minYear: 1961,
+      maxYear: 1964,
+      subcategories: ["first-decimal"],
     },
-    children: [
-      child("republic-r2", "R2", ["r2", "2 rand"]),
-      child("republic-r1", "R1", ["r1", "1 rand"]),
-      child("republic-r5", "R5", ["r5", "5 rand"]),
-      child("republic-50c", "50c", ["50c", "50 cent"]),
-      child("republic-20c", "20c", ["20c", "20 cent"]),
-      child("republic-10c", "10c", ["10c", "10 cent"]),
-      child("republic-5c", "5c", ["5c", "5 cent"]),
-      child("republic-2c", "2c", ["2c", "2 cent"]),
-      child("republic-1c", "1c", ["1c", "1 cent"]),
-      child("republic-half-c", "1/2c", ["1/2c", "half cent", "0.5c"]),
-    ],
+    children: DECIMAL_DENOMS.map((node) => ({
+      ...node,
+      id: `first-decimal-${node.id.replace("decimal-", "")}`,
+      predicate: { ...node.predicate, subcategories: [`first-decimal-${node.id.replace("decimal-", "")}`] },
+    })),
+  },
+  {
+    id: "second-decimal",
+    label: "Second Decimal (1965–1988)",
+    icon: "Coins",
+    predicate: {
+      categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND],
+      minYear: 1965,
+      maxYear: 1988,
+      subcategories: ["second-decimal"],
+    },
+    children: DECIMAL_DENOMS.map((node) => ({
+      ...node,
+      id: `second-decimal-${node.id.replace("decimal-", "")}`,
+      predicate: { ...node.predicate, subcategories: [`second-decimal-${node.id.replace("decimal-", "")}`] },
+    })),
+  },
+  {
+    id: "third-decimal",
+    label: "Third Decimal (1989–2023)",
+    icon: "Coins",
+    predicate: {
+      categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND],
+      minYear: 1989,
+      maxYear: 2023,
+      subcategories: ["third-decimal"],
+    },
+    children: DECIMAL_DENOMS.map((node) => ({
+      ...node,
+      id: `third-decimal-${node.id.replace("decimal-", "")}`,
+      predicate: { ...node.predicate, subcategories: [`third-decimal-${node.id.replace("decimal-", "")}`] },
+    })),
+  },
+  {
+    id: "fourth-decimal",
+    label: "Fourth Decimal (2023–Current)",
+    icon: "Coins",
+    predicate: {
+      categories: [ListingCategory.COINS, ListingCategory.KRUGERRAND],
+      minYear: 2023,
+      subcategories: ["fourth-decimal"],
+    },
+    children: DECIMAL_DENOMS.map((node) => ({
+      ...node,
+      id: `fourth-decimal-${node.id.replace("decimal-", "")}`,
+      predicate: { ...node.predicate, subcategories: [`fourth-decimal-${node.id.replace("decimal-", "")}`] },
+    })),
   },
   {
     id: "bullion",
@@ -158,14 +226,12 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     predicate: {
       categories: [ListingCategory.BULLION, ListingCategory.KRUGERRAND],
       listingTypes: [ListingType.BULLION, ListingType.RAW, ListingType.GRADED],
+      subcategories: ["bullion"],
     },
     children: [
-      child(
-        "bullion-silver-krugerrands",
-        "Silver Krugerrands",
-        ["silver krugerrand", "krugerrand"],
-        { metals: [PreciousMetal.SILVER] },
-      ),
+      child("bullion-silver-krugerrands", "Silver Krugerrands", ["silver krugerrand", "krugerrand"], {
+        metals: [PreciousMetal.SILVER],
+      }),
       child("bullion-gold-krugerrands", "Gold Krugerrands", ["gold krugerrand", "krugerrand"], {
         metals: [PreciousMetal.GOLD],
         icon: "Gem",
@@ -183,7 +249,10 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     id: "sets",
     label: "Sets",
     icon: "Layers",
-    predicate: { keywordsAny: ["set", "proof set", "mint set", "wildlife", "natura", "protea"] },
+    predicate: {
+      keywordsAny: ["set", "proof set", "mint set", "wildlife", "natura", "protea"],
+      subcategories: ["sets"],
+    },
     children: [
       child("sets-proof", "Proof Sets", ["proof set"], { icon: "Award" }),
       child("sets-mint", "Mint Sets", ["mint set", "uncirculated set"], { icon: "Layers" }),
@@ -198,7 +267,7 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     id: "banknotes",
     label: "Banknotes",
     icon: "Banknote",
-    predicate: { categories: [ListingCategory.BANKNOTES] },
+    predicate: { categories: [ListingCategory.BANKNOTES], subcategories: ["banknotes"] },
     children: [
       child("banknotes-zar", "ZAR Notes", ["zar note", "zuid-afrikaansche", "kruger note"], {
         icon: "ScrollText",
@@ -225,6 +294,18 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
   },
 ];
 
+/** The six strict historical coin eras (sidebar primary section). */
+export const HISTORICAL_ERA_IDS = [
+  "zar",
+  "union",
+  "first-decimal",
+  "second-decimal",
+  "third-decimal",
+  "fourth-decimal",
+] as const;
+
+export type HistoricalEraId = (typeof HISTORICAL_ERA_IDS)[number];
+
 interface FlatEntry {
   node: TaxonomyNode;
   parent?: TaxonomyNode;
@@ -248,6 +329,38 @@ export function getTaxonomyNodeLabel(id: string): string | undefined {
   return entry.parent ? `${entry.parent.label} / ${entry.node.label}` : entry.node.label;
 }
 
+/** Parent era id for a taxonomy node (itself if already a root). */
+export function getTaxonomyParentId(id: string): string | undefined {
+  const entry = getTaxonomyNode(id);
+  if (!entry) return undefined;
+  return entry.parent?.id ?? entry.node.id;
+}
+
+/** All subcategory ids under a taxonomy node (self + children for roots). */
+export function getSubcategoryIdsForTaxonomy(id: string): string[] {
+  const entry = getTaxonomyNode(id);
+  if (!entry) return [id];
+  if (!entry.parent) {
+    return [id, ...(entry.node.children?.map((childNode) => childNode.id) ?? [])];
+  }
+  return [id];
+}
+
+/**
+ * Infer the era subcategory id from a coin year (strict historical periods).
+ * 2023 is assigned to Fourth Decimal when overlapping Third's end year.
+ */
+export function inferEraSubcategory(year: number | null | undefined): HistoricalEraId | null {
+  if (year == null || !Number.isFinite(year)) return null;
+  if (year >= 1852 && year <= 1902) return "zar";
+  if (year >= 1923 && year <= 1960) return "union";
+  if (year >= 1961 && year <= 1964) return "first-decimal";
+  if (year >= 1965 && year <= 1988) return "second-decimal";
+  if (year >= 1989 && year <= 2022) return "third-decimal";
+  if (year >= 2023) return "fourth-decimal";
+  return null;
+}
+
 function mergePredicates(a: TaxonomyPredicate, b: TaxonomyPredicate): TaxonomyPredicate {
   return {
     categories: b.categories ?? a.categories,
@@ -257,45 +370,67 @@ function mergePredicates(a: TaxonomyPredicate, b: TaxonomyPredicate): TaxonomyPr
     maxYear: b.maxYear ?? a.maxYear,
     keywordsAny: b.keywordsAny ?? a.keywordsAny,
     nonSouthAfrican: b.nonSouthAfrican ?? a.nonSouthAfrican,
+    subcategories: b.subcategories ?? a.subcategories,
   };
 }
 
 export function resolveTaxonomyPredicate(id: string): TaxonomyPredicate | undefined {
   const entry = getTaxonomyNode(id);
   if (!entry) return undefined;
-  if (!entry.parent) return entry.node.predicate;
-  return mergePredicates(entry.parent.predicate, entry.node.predicate);
+  if (!entry.parent) {
+    return {
+      ...entry.node.predicate,
+      subcategories: getSubcategoryIdsForTaxonomy(id),
+    };
+  }
+  return mergePredicates(
+    { ...entry.parent.predicate, subcategories: getSubcategoryIdsForTaxonomy(entry.parent.id) },
+    entry.node.predicate,
+  );
 }
 
 export function buildTaxonomyListingWhere(predicate: TaxonomyPredicate): Prisma.ListingWhereInput {
-  const where: Prisma.ListingWhereInput = {};
+  const clauses: Prisma.ListingWhereInput[] = [];
 
+  const fieldWhere: Prisma.ListingWhereInput = {};
   if (predicate.categories?.length) {
-    where.category = { in: predicate.categories };
+    fieldWhere.category = { in: predicate.categories };
   }
   if (predicate.metals?.length) {
-    where.metal = { in: predicate.metals };
+    fieldWhere.metal = { in: predicate.metals };
   }
   if (predicate.listingTypes?.length) {
-    where.listingType = { in: predicate.listingTypes };
+    fieldWhere.listingType = { in: predicate.listingTypes };
   }
   if (predicate.minYear != null || predicate.maxYear != null) {
-    where.year = {
+    fieldWhere.year = {
       ...(predicate.minYear != null ? { gte: predicate.minYear } : {}),
       ...(predicate.maxYear != null ? { lte: predicate.maxYear } : {}),
     };
   }
   if (predicate.nonSouthAfrican) {
-    where.country = { not: "South Africa" };
+    fieldWhere.country = { not: "South Africa" };
   }
   if (predicate.keywordsAny?.length) {
-    where.OR = predicate.keywordsAny.flatMap((keyword) => [
+    fieldWhere.OR = predicate.keywordsAny.flatMap((keyword) => [
       { denomination: { contains: keyword, mode: "insensitive" as const } },
       { title: { contains: keyword, mode: "insensitive" as const } },
     ]);
   }
 
-  return where;
+  if (Object.keys(fieldWhere).length > 0) {
+    clauses.push(fieldWhere);
+  }
+
+  // Prefer exact subcategory matches when present — still OR'd with year/field
+  // predicates so legacy rows without subcategory keep appearing.
+  if (predicate.subcategories?.length) {
+    clauses.push({ subcategory: { in: predicate.subcategories } });
+  }
+
+  if (clauses.length === 0) return {};
+  if (clauses.length === 1) return clauses[0];
+  return { OR: clauses };
 }
 
 export function buildTaxonomyAuctionWhere(predicate: TaxonomyPredicate): Prisma.AuctionWhereInput {

@@ -31,6 +31,9 @@ export interface BrowseItem {
   bidCount?: number;
   /** True when the lot has a hidden reserve that the current bid has not cleared. */
   reserveNotMet?: boolean;
+  isFeatured?: boolean;
+  isSponsored?: boolean;
+  subcategory?: string | null;
   /** Millisecond timestamp used to sort listings and auctions together. */
   sortKey: number;
 }
@@ -42,6 +45,9 @@ export interface ListingForBrowse {
   priceCents: number;
   images: string[];
   acceptsOffers: boolean;
+  isFeatured?: boolean;
+  isSponsored?: boolean;
+  subcategory?: string | null;
   createdAt: Date;
   seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
   verification: { shieldAwarded: boolean } | null;
@@ -64,6 +70,9 @@ export function toBrowseItemFromListing(listing: ListingForBrowse): BrowseItem {
     sellerTier: listing.seller.subscriptionTier,
     isSaandDealer: listing.seller.isSaandDealer,
     formats,
+    isFeatured: listing.isFeatured ?? false,
+    isSponsored: listing.isSponsored || listing.isFeatured || false,
+    subcategory: listing.subcategory,
     sortKey: listing.createdAt.getTime(),
   };
 }

@@ -25,7 +25,7 @@ export const PLATFORM_LEGAL_NAME = "MintMark (Pty) Ltd";
  */
 export const BROWSE_TAXONOMY_LABELS = {
   zar: {
-    label: "ZAR",
+    label: "ZAR (1852–1902)",
     children: [
       "Veldpond",
       "Ponde",
@@ -42,7 +42,7 @@ export const BROWSE_TAXONOMY_LABELS = {
     ],
   },
   union: {
-    label: "Union",
+    label: "Union of South Africa (1923–1960)",
     children: [
       "Crowns",
       "Half Crowns",
@@ -55,8 +55,20 @@ export const BROWSE_TAXONOMY_LABELS = {
       "Farthings",
     ],
   },
-  republic: {
-    label: "Republic",
+  "first-decimal": {
+    label: "First Decimal (1961–1964)",
+    children: ["R2", "R1", "R5", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
+  },
+  "second-decimal": {
+    label: "Second Decimal (1965–1988)",
+    children: ["R2", "R1", "R5", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
+  },
+  "third-decimal": {
+    label: "Third Decimal (1989–2023)",
+    children: ["R2", "R1", "R5", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
+  },
+  "fourth-decimal": {
+    label: "Fourth Decimal (2023–Current)",
     children: ["R2", "R1", "R5", "50c", "20c", "10c", "5c", "2c", "1c", "1/2c"],
   },
   bullion: {

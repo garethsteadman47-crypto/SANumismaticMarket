@@ -22,6 +22,7 @@ describe("parseBrowseFilters", () => {
     const filters = parseBrowseFilters({});
     expect(filters).toEqual({
       taxonomy: undefined,
+      q: undefined,
       certifications: [],
       gradeBrackets: [],
       metals: [],
@@ -31,6 +32,7 @@ describe("parseBrowseFilters", () => {
       maxPriceRands: undefined,
       formats: [],
       sort: undefined,
+      page: 1,
     });
   });
 
@@ -142,12 +144,20 @@ describe("buildListingWhere", () => {
 
   it("merges in the taxonomy predicate when a node is selected, inheriting parent constraints", () => {
     const where = buildListingWhere(parseBrowseFilters({ taxonomy: "bullion-silver-krugerrands" }));
-    expect(where?.AND).toContainEqual({
-      category: { in: ["BULLION", "KRUGERRAND"] },
-      listingType: { in: ["BULLION", "RAW", "GRADED"] },
-      metal: { in: ["SILVER"] },
-      OR: expect.any(Array),
-    });
+    const taxonomyClause = asArray(where?.AND).find(
+      (clause) => clause && typeof clause === "object" && "OR" in clause,
+    ) as { OR?: unknown[] } | undefined;
+    expect(taxonomyClause?.OR).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: { in: ["BULLION", "KRUGERRAND"] },
+          metal: { in: ["SILVER"] },
+        }),
+        expect.objectContaining({
+          subcategory: { in: ["bullion-silver-krugerrands"] },
+        }),
+      ]),
+    );
   });
 });
 
@@ -206,6 +216,6 @@ describe("getActiveFilterPills", () => {
 
   it("shows the taxonomy pill with the 'Parent / Child' label", () => {
     const pills = getActiveFilterPills(parseBrowseFilters({ taxonomy: "zar-ponde" }));
-    expect(pills[0].label).toContain("ZAR / Ponde");
+    expect(pills[0].label).toContain("ZAR (1852–1902) / Ponde");
   });
 });

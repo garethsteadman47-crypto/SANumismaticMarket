@@ -30,6 +30,7 @@ export interface ListingCardData {
   /** Hidden reserve exists and current bid has not cleared it. */
   reserveNotMet?: boolean;
   isSponsored?: boolean;
+  isFeatured?: boolean;
   /** Millisecond timestamp for newest-first sorting in the marketplace grid. */
   sortKey?: number;
   seller: { subscriptionTier: SubscriptionTier; isSaandDealer?: boolean };
@@ -52,8 +53,8 @@ export function ListingCard({
       <Card
         className={cn(
           "h-full overflow-hidden transition-shadow group-hover:shadow-md",
-          isCertified && !listing.isSponsored && !isAuction && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent",
-          listing.isSponsored && "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent shadow-[inset_0_0_0_1px_rgba(245,158,11,0.12)]",
+          isCertified && !listing.isSponsored && !listing.isFeatured && !isAuction && "border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent",
+          (listing.isSponsored || listing.isFeatured) && "border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent shadow-[inset_0_0_0_1px_rgba(245,158,11,0.12)]",
           isAuction &&
             "border-slate-700 bg-gradient-to-b from-slate-900/[0.03] to-transparent transition-colors hover:border-amber-500 dark:from-slate-100/[0.03]",
         )}
@@ -77,9 +78,9 @@ export function ListingCard({
               <ShieldBadge />
             </div>
           )}
-          {listing.isSponsored && (
+          {(listing.isSponsored || listing.isFeatured) && (
             <Badge className="absolute top-2 right-12 bg-amber-500/90 text-[0.65rem] font-semibold tracking-wide text-slate-950 uppercase hover:bg-amber-500">
-              Sponsored
+              {listing.isFeatured ? "Featured" : "Sponsored"}
             </Badge>
           )}
           {isAuction && (

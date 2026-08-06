@@ -698,6 +698,27 @@ async function ensureUser(spec: (typeof MOCK_USERS)[number]) {
 
 async function createListing(opts: FixedSeed & { sellerId: string }) {
   const images = [photo(opts.photoIndex)];
+  const eraSubcategory =
+    opts.year >= 1852 && opts.year <= 1902
+      ? "zar"
+      : opts.year >= 1923 && opts.year <= 1960
+        ? "union"
+        : opts.year >= 1961 && opts.year <= 1964
+          ? "first-decimal"
+          : opts.year >= 1965 && opts.year <= 1988
+            ? "second-decimal"
+            : opts.year >= 1989 && opts.year <= 2022
+              ? "third-decimal"
+              : opts.year >= 2023
+                ? "fourth-decimal"
+                : opts.taxonomy.toLowerCase().startsWith("bullion")
+                  ? "bullion"
+                  : opts.taxonomy.toLowerCase().startsWith("sets")
+                    ? "sets"
+                    : opts.taxonomy.toLowerCase().startsWith("banknotes")
+                      ? "banknotes"
+                      : null;
+
   const listing = await db.listing.create({
     data: {
       sellerId: opts.sellerId,
@@ -717,6 +738,8 @@ async function createListing(opts: FixedSeed & { sellerId: string }) {
       mintage: opts.mintage,
       acceptsOffers: opts.acceptsOffers ?? true,
       isSponsored: opts.isSponsored ?? false,
+      isFeatured: opts.isSponsored ?? false,
+      subcategory: eraSubcategory,
       images,
       coverImageUrl: images[0],
       certificateId: opts.graded?.certificateId,

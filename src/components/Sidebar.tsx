@@ -3,16 +3,25 @@
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CategoryTree } from "@/components/browse/CategoryTree";
+import { HISTORICAL_ERA_IDS } from "@/lib/numismatic-taxonomy";
 
 /**
  * Shared category taxonomy sidebar for the unified marketplace.
- * Selecting a node updates URL params (taxonomy + category) while preserving
+ * Primary navigation is the six strict South African historical eras.
+ * Selecting a node updates `?category=` + `?taxonomy=` while preserving
  * the active Buy Now / Live Auctions tab, search query, and sort order.
+ * Page resets to 1 on category change.
  */
 export function Sidebar({ basePath }: { basePath: string }) {
   return (
     <div className="flex flex-col gap-5">
-      <CategoryTree basePath={basePath} />
+      <div className="flex flex-col gap-1 px-1">
+        <h3 className="text-sm font-semibold">Historical eras</h3>
+        <p className="text-xs text-muted-foreground">
+          ZAR → Union → Decimal periods. Featured lots only rise within the era you select.
+        </p>
+      </div>
+      <CategoryTree basePath={basePath} preferredRootIds={[...HISTORICAL_ERA_IDS]} />
     </div>
   );
 }
@@ -33,6 +42,7 @@ export function useMarketplaceCategoryNavigate(basePath: string) {
       params.delete("taxonomy");
       params.delete("category");
     }
+    params.delete("page");
     const qs = params.toString();
     router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
   };

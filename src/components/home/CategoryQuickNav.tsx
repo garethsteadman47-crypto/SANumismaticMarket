@@ -11,7 +11,10 @@ const CATEGORIES: {
 }[] = [
   { href: "/listings?category=zar", id: "zar", icon: CoinsIcon },
   { href: "/listings?category=union", id: "union", icon: LandmarkIcon },
-  { href: "/listings?category=republic", id: "republic", icon: LandmarkIcon },
+  { href: "/listings?category=first-decimal", id: "first-decimal", icon: LandmarkIcon },
+  { href: "/listings?category=second-decimal", id: "second-decimal", icon: CoinsIcon },
+  { href: "/listings?category=third-decimal", id: "third-decimal", icon: CoinsIcon },
+  { href: "/listings?category=fourth-decimal", id: "fourth-decimal", icon: CoinsIcon },
   { href: "/listings?category=bullion", id: "bullion", icon: GemIcon },
   { href: "/listings?category=sets", id: "sets", icon: LayersIcon },
   { href: "/listings?category=banknotes", id: "banknotes", icon: BanknoteIcon },
@@ -22,12 +25,12 @@ export function CategoryQuickNav() {
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4">
       <div className="flex flex-col gap-1">
-        <h2 className="font-heading text-2xl font-semibold text-slate-950 dark:text-white">Browse by category</h2>
+        <h2 className="font-heading text-2xl font-semibold text-slate-950 dark:text-white">Browse by era</h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Jump into the collections collectors search most.
+          Jump into South Africa&apos;s historical coin periods and specialty catalogues.
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
         {CATEGORIES.map((category) => {
           const Icon = category.icon;
           const meta = BROWSE_TAXONOMY_LABELS[category.id];
@@ -41,7 +44,7 @@ export function CategoryQuickNav() {
                 <Icon className="size-4" aria-hidden />
               </div>
               <div>
-                <h3 className="font-heading text-lg font-semibold text-slate-950 dark:text-white">{meta.label}</h3>
+                <h3 className="font-heading text-base font-semibold text-slate-950 dark:text-white">{meta.label}</h3>
                 <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                   {meta.children.slice(0, 4).join(", ")}
                   {meta.children.length > 4 ? "…" : ""}
