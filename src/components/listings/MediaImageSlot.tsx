@@ -1,10 +1,17 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ImagePlusIcon, LinkIcon, UploadIcon, XIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  createEmptyMediaSlot,
+  mediaSlotDisplayUrl,
+  revokeMediaPreview,
+  type ListingMediaSlotId,
+  type MediaSlotState,
+} from "@/lib/listing-media";
 import { cn } from "@/lib/utils";
 
 function isHttpUrl(value: string): boolean {
@@ -12,59 +19,60 @@ function isHttpUrl(value: string): boolean {
 }
 
 /**
- * Media slot for the listing wizard — supports drag-and-drop files (local preview)
- * and pasteable image URLs with an instant thumbnail.
+ * Fully controlled media slot — parent owns file / previewUrl / remoteUrl keyed by slot id.
+ * Never indexes into a shared File[] array, so Cover/Obverse/Reverse/Slab cannot swap previews.
  */
 export function MediaImageSlot({
-  id,
+  slotId,
   label,
   value,
   onChange,
 }: {
-  id: string;
+  slotId: ListingMediaSlotId;
   label: string;
-  value: string;
-  onChange: (url: string) => void;
+  value: MediaSlotState;
+  onChange: (next: MediaSlotState) => void;
 }) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
 
-  const previewSrc = localPreview || (isHttpUrl(value) ? value : value.startsWith("blob:") ? value : "");
+  const previewSrc = mediaSlotDisplayUrl(value);
 
-  const applyFile = useCallback(
-    (file: File | undefined) => {
-      if (!file || !file.type.startsWith("image/")) return;
-      const objectUrl = URL.createObjectURL(file);
-      setLocalPreview((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return objectUrl;
-      });
-      setBroken(false);
-      // Keep a usable URL in state for preview; publish step remaps blob: to a CDN placeholder.
-      onChange(objectUrl);
-    },
-    [onChange],
-  );
+  function applyFile(file: File | undefined) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const objectUrl = URL.createObjectURL(file);
+    revokeMediaPreview(value.previewUrl);
+    setBroken(false);
+    onChange({
+      file,
+      previewUrl: objectUrl,
+      remoteUrl: null,
+    });
+  }
 
   function handleUrlChange(raw: string) {
-    setLocalPreview(null);
+    const trimmed = raw.trim();
+    revokeMediaPreview(value.previewUrl);
     setBroken(false);
-    onChange(raw);
+    onChange({
+      file: null,
+      previewUrl: isHttpUrl(trimmed) ? trimmed : null,
+      remoteUrl: trimmed || null,
+    });
   }
 
   function clear() {
-    if (localPreview?.startsWith("blob:")) URL.revokeObjectURL(localPreview);
-    setLocalPreview(null);
+    revokeMediaPreview(value.previewUrl);
     setBroken(false);
-    onChange("");
+    onChange(createEmptyMediaSlot());
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   return (
     <div
+      data-media-slot={slotId}
       className={cn(
         "flex flex-col gap-3 rounded-lg border border-dashed p-4 transition-colors",
         dragging
@@ -90,7 +98,7 @@ export function MediaImageSlot({
       }}
     >
       <div className="flex items-start justify-between gap-3">
-        <Label htmlFor={id} className="flex items-center gap-2">
+        <Label htmlFor={`media-url-${slotId}`} className="flex items-center gap-2">
           <ImagePlusIcon className="size-4 text-muted-foreground" />
           {label}
         </Label>
@@ -137,26 +145,33 @@ export function MediaImageSlot({
             type="file"
             accept="image/*"
             className="sr-only"
-            onChange={(event) => applyFile(event.target.files?.[0])}
+            onChange={(event) => {
+              applyFile(event.target.files?.[0]);
+              // Allow re-selecting the same file for this slot.
+              event.target.value = "";
+            }}
           />
 
-          <Label htmlFor={id} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Label
+            htmlFor={`media-url-${slotId}`}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+          >
             <LinkIcon className="size-3.5" aria-hidden />
             Or paste an image URL (e.g., from Imgur, your website, or a grading database).
           </Label>
           <Input
-            id={id}
+            id={`media-url-${slotId}`}
             type="url"
-            value={value.startsWith("blob:") ? "" : value}
+            value={value.remoteUrl ?? ""}
             onChange={(event) => handleUrlChange(event.target.value)}
             placeholder="https://…"
           />
-          {value.startsWith("blob:") && (
+          {value.file && (
             <p className="text-[0.7rem] text-amber-700 dark:text-amber-400">
-              Local file preview ready. Paste a public URL above to use that image when publishing.
+              Local file ready for {label}. Paste a public URL above to publish that image instead of a placeholder.
             </p>
           )}
-          {broken && isHttpUrl(value) && (
+          {broken && value.remoteUrl && isHttpUrl(value.remoteUrl) && (
             <p className="text-[0.7rem] text-destructive">Could not load that image URL — check the link.</p>
           )}
         </div>
