@@ -2,7 +2,14 @@ import { Suspense } from "react";
 
 import { db } from "@/lib/db";
 import { getAuctionPhase } from "@/lib/auctions";
-import { buildAuctionWhere, buildListingWhere, getActiveFilterPills, parseBrowseFilters, serializeBrowseFilters } from "@/lib/browse-filters";
+import {
+  buildAuctionWhere,
+  buildListingWhere,
+  getActiveFilterPills,
+  parseBrowseFilters,
+  resolveBrowseSort,
+  serializeBrowseFilters,
+} from "@/lib/browse-filters";
 import { mergeBrowseItems, toBrowseItemFromAuction, toBrowseItemFromListing } from "@/lib/browse";
 import { FilterSidebar } from "@/components/browse/FilterSidebar";
 import { MobileFilterDrawer } from "@/components/browse/MobileFilterDrawer";
@@ -40,18 +47,35 @@ export default async function BuyCoinsPage({
   // matching the Buy Now / Auction tabs above the grid.
   const effectiveFilters =
     filters.formats.length === 0 ? { ...filters, formats: ["BUY_NOW" as const] } : filters;
+  const sort = resolveBrowseSort(effectiveFilters);
 
   const listingWhere = buildListingWhere(effectiveFilters);
   const auctionWhere = buildAuctionWhere(effectiveFilters);
 
+  const auctionOrderBy =
+    sort === "ending_soon"
+      ? ({ endsAt: "asc" } as const)
+      : sort === "price_asc"
+        ? ({ startingPriceCents: "asc" } as const)
+        : sort === "price_desc"
+          ? ({ startingPriceCents: "desc" } as const)
+          : ({ createdAt: "desc" } as const);
+
+  const listingOrderBy =
+    sort === "price_asc"
+      ? ({ priceCents: "asc" } as const)
+      : sort === "price_desc"
+        ? ({ priceCents: "desc" } as const)
+        : ({ createdAt: "desc" } as const);
+
   const [listings, auctions] = await Promise.all([
     listingWhere
-      ? db.listing.findMany({ where: listingWhere, orderBy: { createdAt: "desc" }, take: 60, select: LISTING_BROWSE_SELECT })
+      ? db.listing.findMany({ where: listingWhere, orderBy: listingOrderBy, take: 60, select: LISTING_BROWSE_SELECT })
       : Promise.resolve([]),
     auctionWhere
       ? db.auction.findMany({
           where: auctionWhere,
-          orderBy: { createdAt: "desc" },
+          orderBy: auctionOrderBy,
           take: 60,
           include: {
             seller: { select: { subscriptionTier: true, isSaandDealer: true } },
@@ -63,14 +87,14 @@ export default async function BuyCoinsPage({
 
   const listingItems = listings.map(toBrowseItemFromListing);
   const auctionItems = auctions.map((auction) => toBrowseItemFromAuction(auction, getAuctionPhase(auction)));
-  const items = mergeBrowseItems(listingItems, auctionItems);
+  const items = mergeBrowseItems(listingItems, auctionItems, sort);
 
   // Mode is controlled by the Buy Now / Auction tabs — omit those from filter pills.
   const pills = getActiveFilterPills({
     ...effectiveFilters,
     formats: effectiveFilters.formats.filter((format) => format === "OFFERS"),
   });
-  const currentQueryString = serializeBrowseFilters(effectiveFilters);
+  const currentQueryString = serializeBrowseFilters({ ...effectiveFilters, sort });
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">

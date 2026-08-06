@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { CategoryTree } from "@/components/browse/CategoryTree";
+import { Sidebar } from "@/components/Sidebar";
 import {
   BUYING_FORMATS,
   BUYING_FORMAT_LABELS,
@@ -77,6 +77,7 @@ export function FilterSidebar({ basePath }: { basePath: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const filters = parseBrowseFilters(Object.fromEntries(searchParams.entries()));
+  const auctionMode = filters.formats.length === 1 && filters.formats[0] === "AUCTION";
 
   const [minYearInput, setMinYearInput] = useState(filters.minYear != null ? String(filters.minYear) : "");
   const [maxYearInput, setMaxYearInput] = useState(filters.maxYear != null ? String(filters.maxYear) : "");
@@ -150,29 +151,33 @@ export function FilterSidebar({ basePath }: { basePath: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <CategoryTree basePath={basePath} />
+      <Sidebar basePath={basePath} />
 
       <Separator />
 
-      <CheckboxGroup
-        legend="Certification / Grading Service"
-        options={CERTIFICATION_OPTIONS}
-        labels={CERTIFICATION_LABELS}
-        selected={filters.certifications}
-        onToggle={handleCertToggle}
-      />
+      {!auctionMode && (
+        <>
+          <CheckboxGroup
+            legend="Certification / Grading Service"
+            options={CERTIFICATION_OPTIONS}
+            labels={CERTIFICATION_LABELS}
+            selected={filters.certifications}
+            onToggle={handleCertToggle}
+          />
 
-      <Separator />
+          <Separator />
 
-      <CheckboxGroup
-        legend="Grade Bracket"
-        options={GRADE_BRACKETS}
-        labels={GRADE_BRACKET_LABELS}
-        selected={filters.gradeBrackets}
-        onToggle={handleGradeToggle}
-      />
+          <CheckboxGroup
+            legend="Grade Bracket"
+            options={GRADE_BRACKETS}
+            labels={GRADE_BRACKET_LABELS}
+            selected={filters.gradeBrackets}
+            onToggle={handleGradeToggle}
+          />
 
-      <Separator />
+          <Separator />
+        </>
+      )}
 
       <CheckboxGroup
         legend="Metal Type"
@@ -184,30 +189,34 @@ export function FilterSidebar({ basePath }: { basePath: string }) {
 
       <Separator />
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-semibold">Year Range</legend>
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            placeholder="Min Year"
-            value={minYearInput}
-            min={1600}
-            max={CURRENT_YEAR}
-            onChange={(event) => handleYearChange("min", event.target.value)}
-          />
-          <span className="text-muted-foreground">to</span>
-          <Input
-            type="number"
-            placeholder="Max Year"
-            value={maxYearInput}
-            min={1600}
-            max={CURRENT_YEAR}
-            onChange={(event) => handleYearChange("max", event.target.value)}
-          />
-        </div>
-      </fieldset>
+      {!auctionMode && (
+        <>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-semibold">Year Range</legend>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="Min Year"
+                value={minYearInput}
+                min={1600}
+                max={CURRENT_YEAR}
+                onChange={(event) => handleYearChange("min", event.target.value)}
+              />
+              <span className="text-muted-foreground">to</span>
+              <Input
+                type="number"
+                placeholder="Max Year"
+                value={maxYearInput}
+                min={1600}
+                max={CURRENT_YEAR}
+                onChange={(event) => handleYearChange("max", event.target.value)}
+              />
+            </div>
+          </fieldset>
 
-      <Separator />
+          <Separator />
+        </>
+      )}
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-semibold">Price Range (ZAR)</legend>
@@ -240,15 +249,19 @@ export function FilterSidebar({ basePath }: { basePath: string }) {
 
       <Separator />
 
-      <CheckboxGroup
-        legend="Buying Format"
-        options={BUYING_FORMATS}
-        labels={BUYING_FORMAT_LABELS}
-        selected={filters.formats}
-        onToggle={handleFormatToggle}
-      />
+      {!auctionMode && (
+        <>
+          <CheckboxGroup
+            legend="Buying Format"
+            options={BUYING_FORMATS}
+            labels={BUYING_FORMAT_LABELS}
+            selected={filters.formats}
+            onToggle={handleFormatToggle}
+          />
 
-      <Separator />
+          <Separator />
+        </>
+      )}
 
       {isAnyFilterActive(filters) && (
         <Button type="button" variant="outline" size="sm" onClick={clearAll}>

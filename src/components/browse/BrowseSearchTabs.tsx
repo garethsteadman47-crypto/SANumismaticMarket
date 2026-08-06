@@ -2,14 +2,24 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CoinsIcon, GavelIcon, SearchIcon } from "lucide-react";
+import { ArrowUpDownIcon, CoinsIcon, GavelIcon, SearchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BROWSE_SORT_LABELS,
   parseBrowseFilters,
+  resolveBrowseSort,
   serializeBrowseFilters,
   type BrowseFilterState,
+  type BrowseSort,
   type BuyingFormat,
 } from "@/lib/browse-filters";
 import { cn } from "@/lib/utils";
@@ -25,9 +35,13 @@ function modeFormats(mode: BrowseMode): BuyingFormat[] {
   return mode === "AUCTION" ? ["AUCTION"] : ["BUY_NOW"];
 }
 
+function defaultSortForMode(mode: BrowseMode): BrowseSort {
+  return mode === "AUCTION" ? "ending_soon" : "newest";
+}
+
 /**
- * Prominent catalogue search + Buy Now / Auction mode tabs for the listings browse page.
- * Search runs within the active tab; switching tabs preserves the query and other filters.
+ * Prominent catalogue search, sort dropdown, and Buy Now / Auction mode tabs.
+ * Search and taxonomy filters run within the active tab; Auction defaults to Ending Soonest.
  */
 export function BrowseSearchTabs({ basePath }: { basePath: string }) {
   const router = useRouter();
@@ -37,6 +51,7 @@ export function BrowseSearchTabs({ basePath }: { basePath: string }) {
     [searchParams],
   );
   const mode = resolveMode(filters.formats);
+  const sort = resolveBrowseSort({ ...filters, formats: modeFormats(mode) });
   const [query, setQuery] = useState(filters.q ?? "");
 
   useEffect(() => {
@@ -55,19 +70,41 @@ export function BrowseSearchTabs({ basePath }: { basePath: string }) {
       ...filters,
       q: trimmed || undefined,
       formats: modeFormats(mode),
+      sort: filters.sort ?? defaultSortForMode(mode),
     });
   }
 
   function handleModeChange(nextMode: BrowseMode) {
+    const nextSort = defaultSortForMode(nextMode);
     navigate({
       ...filters,
+      // Clear listing-only facets when entering Auction so category filters stay effective.
+      certifications: nextMode === "AUCTION" ? [] : filters.certifications,
+      gradeBrackets: nextMode === "AUCTION" ? [] : filters.gradeBrackets,
+      minYear: nextMode === "AUCTION" ? undefined : filters.minYear,
+      maxYear: nextMode === "AUCTION" ? undefined : filters.maxYear,
       formats: modeFormats(nextMode),
+      sort: nextSort,
     });
   }
 
+  function handleSortChange(nextSort: string | null) {
+    if (!nextSort) return;
+    navigate({
+      ...filters,
+      formats: modeFormats(mode),
+      sort: nextSort as BrowseSort,
+    });
+  }
+
+  const sortOptions: BrowseSort[] =
+    mode === "AUCTION"
+      ? ["ending_soon", "newest", "price_asc", "price_desc"]
+      : ["newest", "price_asc", "price_desc"];
+
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+      <form onSubmit={handleSearch} className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
         <label className="sr-only" htmlFor="browse-search">
           Search {mode === "AUCTION" ? "auctions" : "buy now listings"}
         </label>
@@ -89,13 +126,31 @@ export function BrowseSearchTabs({ basePath }: { basePath: string }) {
             className="h-11 border-slate-300 pl-10 text-base shadow-sm dark:border-slate-700"
           />
         </div>
-        <Button
-          type="submit"
-          className="h-11 shrink-0 bg-amber-500 px-6 text-white hover:bg-amber-600"
-        >
-          <SearchIcon className="size-4" aria-hidden />
-          Search
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <Select value={sort} onValueChange={handleSortChange}>
+            <SelectTrigger
+              aria-label="Sort listings"
+              className="h-11 min-w-[11.5rem] border-slate-300 bg-background dark:border-slate-700"
+            >
+              <ArrowUpDownIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {BROWSE_SORT_LABELS[option]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="submit"
+            className="h-11 shrink-0 bg-amber-500 px-6 text-white hover:bg-amber-600"
+          >
+            <SearchIcon className="size-4" aria-hidden />
+            Search
+          </Button>
+        </div>
       </form>
 
       <div

@@ -9,8 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageGallery } from "@/components/ImageGallery";
 import { TrustBadge } from "@/components/TrustBadge";
-import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
-import { PlaceBidModal } from "@/components/auctions/PlaceBidModal";
+import { BidInteraction } from "@/components/BidInteraction";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +30,9 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
   const isLive = phase === "LIVE";
   const currentBidCents = auction.currentBidCents ?? auction.startingPriceCents;
   const minimumNextBidCents = getMinimumNextBidCents(auction);
+  const endsAtIso = (phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString();
+  const phaseLabel =
+    phase === "SCHEDULED" ? "Starts in" : phase === "LIVE" ? "Ends in" : ("Ended" as const);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6">
@@ -59,32 +61,30 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
             </Badge>
           </div>
 
-          <h1 className="text-2xl font-semibold">{auction.title}</h1>
+          <h1 className="flex items-start gap-2 text-2xl font-semibold">
+            <GavelIcon className="mt-1 size-5 shrink-0 text-amber-600" aria-hidden />
+            {auction.title}
+          </h1>
 
           <div className="flex items-center gap-2">
             <TrustBadge tier={auction.seller.subscriptionTier} />
             <span className="text-sm text-muted-foreground">Sold by {auction.seller.name ?? "a private seller"}</span>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">
-              {auction.currentBidCents != null ? "Current bid" : "Starting bid"}
-            </span>
-            <p className="text-3xl font-bold">{formatZarCents(currentBidCents)}</p>
-            {auction.currentBidder && (
-              <span className="text-xs text-muted-foreground">Leading bidder: {auction.currentBidder.name ?? "Anonymous"}</span>
-            )}
-          </div>
-
-          <AuctionCountdown
-            targetIso={(phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString()}
-            label={phase === "SCHEDULED" ? "Starts in" : "Ends in"}
+          <BidInteraction
+            auctionId={auction.id}
+            currentBidCents={currentBidCents}
+            hasBids={auction.currentBidCents != null}
+            minimumNextBidCents={minimumNextBidCents}
+            bidIncrementCents={auction.bidIncrementCents}
+            endsAtIso={endsAtIso}
+            phaseLabel={phaseLabel}
+            disabled={!isLive}
+            leadingBidderName={auction.currentBidder?.name}
           />
 
-          <PlaceBidModal auctionId={auction.id} minimumNextBidCents={minimumNextBidCents} disabled={!isLive} />
-
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <ShieldIcon className="size-3.5 text-emerald-600" />
+            <ShieldIcon className="size-3.5 text-emerald-600" aria-hidden />
             Guaranteed Authentic | 100% Buyer Protection Guaranteed
           </p>
 
@@ -99,7 +99,7 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-1.5">
-          <GavelIcon className="size-4" />
+          <GavelIcon className="size-4" aria-hidden />
           <h2 className="text-xl font-semibold">Bid history</h2>
         </div>
 

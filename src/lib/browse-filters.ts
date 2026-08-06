@@ -63,6 +63,15 @@ export const BUYING_FORMAT_LABELS: Record<BuyingFormat, string> = {
   AUCTION: "Live Auctions",
 };
 
+export const BROWSE_SORTS = ["newest", "price_asc", "price_desc", "ending_soon"] as const;
+export type BrowseSort = (typeof BROWSE_SORTS)[number];
+export const BROWSE_SORT_LABELS: Record<BrowseSort, string> = {
+  newest: "Newest Arrivals",
+  price_asc: "Price: Low to High",
+  price_desc: "Price: High to Low",
+  ending_soon: "Ending Soonest",
+};
+
 export interface BrowseFilterState {
   taxonomy?: string;
   /** Free-text catalogue search from the hero / browse search bar. */
@@ -75,6 +84,8 @@ export interface BrowseFilterState {
   minPriceRands?: number;
   maxPriceRands?: number;
   formats: BuyingFormat[];
+  /** Grid sort — defaults applied per tab in the browse UI. */
+  sort?: BrowseSort;
 }
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -123,6 +134,8 @@ function resolveTaxonomyParam(searchParams: RawSearchParams): string | undefined
 
 export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterState {
   const q = firstString(searchParams.q)?.trim();
+  const sortRaw = firstString(searchParams.sort);
+  const sort = sortRaw && (BROWSE_SORTS as readonly string[]).includes(sortRaw) ? (sortRaw as BrowseSort) : undefined;
   return {
     taxonomy: resolveTaxonomyParam(searchParams),
     q: q || undefined,
@@ -134,7 +147,15 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
     minPriceRands: parseIntParam(firstString(searchParams.minPrice)),
     maxPriceRands: parseIntParam(firstString(searchParams.maxPrice)),
     formats: parseCsv(firstString(searchParams.format), BUYING_FORMATS),
+    sort,
   };
+}
+
+/** Default sort for the active browse mode when `sort` is unset in the URL. */
+export function resolveBrowseSort(filters: BrowseFilterState): BrowseSort {
+  if (filters.sort) return filters.sort;
+  const auctionOnly = filters.formats.length === 1 && filters.formats[0] === "AUCTION";
+  return auctionOnly ? "ending_soon" : "newest";
 }
 
 /** Builds the query string for a given filter state — used for pill hrefs and the sidebar's own navigation. */
@@ -150,6 +171,7 @@ export function serializeBrowseFilters(filters: BrowseFilterState): string {
   if (filters.minPriceRands != null) params.set("minPrice", String(filters.minPriceRands));
   if (filters.maxPriceRands != null) params.set("maxPrice", String(filters.maxPriceRands));
   if (filters.formats.length) params.set("format", filters.formats.join(","));
+  if (filters.sort) params.set("sort", filters.sort);
   return params.toString();
 }
 
@@ -251,14 +273,12 @@ export function buildListingWhere(filters: BrowseFilterState): Prisma.ListingWhe
 /**
  * Builds the `Auction.where` clause for the current filter state, or
  * `null` if auctions shouldn't be included at all (Buying Format excludes
- * "Live Auctions", or a filter dimension auctions can't satisfy — grading/
- * grade-bracket/year — is active, since `Auction` doesn't carry that data).
+ * "Live Auctions"). Certification / grade / year facets apply only to
+ * fixed-price listings — they are ignored here so taxonomy filters still
+ * return matching auctions on the Auction tab.
  */
 export function buildAuctionWhere(filters: BrowseFilterState): Prisma.AuctionWhereInput | null {
   if (!shouldIncludeAuctions(filters)) return null;
-  if (filters.certifications.length || filters.gradeBrackets.length || filters.minYear != null || filters.maxYear != null) {
-    return null;
-  }
 
   const and: Prisma.AuctionWhereInput[] = [{ status: { in: ["SCHEDULED", "LIVE"] } }];
 

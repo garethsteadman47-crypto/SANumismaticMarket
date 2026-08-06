@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { TimerIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 function formatRemaining(ms: number): string {
   if (ms <= 0) return "Ended";
   const totalSeconds = Math.floor(ms / 1000);
@@ -16,8 +18,28 @@ function formatRemaining(ms: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
-/** Live-ticking countdown to a target timestamp — used for auction end times (and, if in the future, start times). */
-export function AuctionCountdown({ targetIso, label }: { targetIso: string; label?: string }) {
+export type CountdownUrgency = "normal" | "amber" | "critical" | "ended";
+
+export function getCountdownUrgency(remainingMs: number): CountdownUrgency {
+  if (remainingMs <= 0) return "ended";
+  if (remainingMs < 60 * 60 * 1000) return "critical";
+  if (remainingMs < 24 * 60 * 60 * 1000) return "amber";
+  return "normal";
+}
+
+/** Live-ticking countdown with urgency colours for auction end (or start) times. */
+export function AuctionCountdown({
+  targetIso,
+  label,
+  className,
+  prominent = false,
+}: {
+  targetIso: string;
+  label?: string;
+  className?: string;
+  /** Larger type for cards / status banners. */
+  prominent?: boolean;
+}) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -26,12 +48,25 @@ export function AuctionCountdown({ targetIso, label }: { targetIso: string; labe
   }, []);
 
   const remainingMs = new Date(targetIso).getTime() - now;
-  const isUrgent = remainingMs > 0 && remainingMs < 60 * 60 * 1000;
+  const urgency = getCountdownUrgency(remainingMs);
+  const text = formatRemaining(remainingMs);
 
   return (
-    <span className={`flex items-center gap-1 text-sm font-medium ${isUrgent ? "text-destructive" : ""}`}>
-      <TimerIcon className="size-3.5" />
-      {label ?? ""} {formatRemaining(remainingMs)}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 font-medium",
+        prominent ? "text-sm sm:text-base" : "text-sm",
+        urgency === "amber" && "text-amber-500 [text-shadow:0_0_12px_rgba(245,158,11,0.45)]",
+        urgency === "critical" && "animate-pulse text-red-500",
+        urgency === "ended" && "text-muted-foreground",
+        urgency === "normal" && "text-foreground",
+        className,
+      )}
+    >
+      <TimerIcon className={cn("shrink-0", prominent ? "size-4" : "size-3.5")} aria-hidden />
+      <span>
+        {label ? `${label} ${text}` : text}
+      </span>
     </span>
   );
 }

@@ -30,6 +30,7 @@ describe("parseBrowseFilters", () => {
       minPriceRands: undefined,
       maxPriceRands: undefined,
       formats: [],
+      sort: undefined,
     });
   });
 
@@ -160,10 +161,16 @@ describe("buildAuctionWhere", () => {
     expect(buildAuctionWhere(parseBrowseFilters({ format: "BUY_NOW" }))).toBeNull();
   });
 
-  it("excludes auctions when a certification/grade/year filter is active (auctions can't satisfy those)", () => {
-    expect(buildAuctionWhere(parseBrowseFilters({ cert: "NGC" }))).toBeNull();
-    expect(buildAuctionWhere(parseBrowseFilters({ grade: "MS" }))).toBeNull();
-    expect(buildAuctionWhere(parseBrowseFilters({ minYear: "1900" }))).toBeNull();
+  it("ignores certification/grade/year facets so taxonomy still returns auctions on the Auction tab", () => {
+    expect(buildAuctionWhere(parseBrowseFilters({ cert: "NGC" }))).not.toBeNull();
+    expect(buildAuctionWhere(parseBrowseFilters({ grade: "MS" }))).not.toBeNull();
+    expect(buildAuctionWhere(parseBrowseFilters({ minYear: "1900" }))).not.toBeNull();
+    expect(buildAuctionWhere(parseBrowseFilters({ format: "AUCTION", taxonomy: "union" }))).not.toBeNull();
+  });
+
+  it("parses sort= ending_soon", () => {
+    expect(parseBrowseFilters({ sort: "ending_soon" }).sort).toBe("ending_soon");
+    expect(parseBrowseFilters({ sort: "bogus" }).sort).toBeUndefined();
   });
 
   it("still narrows by metal and price when those are set", () => {

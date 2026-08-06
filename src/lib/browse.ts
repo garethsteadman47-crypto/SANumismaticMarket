@@ -1,6 +1,7 @@
 import type { ListingCategory, SubscriptionTier } from "@prisma/client";
 
 import type { AuctionPhase } from "@/lib/auctions";
+import type { BrowseSort } from "@/lib/browse-filters";
 import { formatZarCents } from "@/lib/utils/currency";
 
 /**
@@ -103,7 +104,27 @@ export function toBrowseItemFromAuction(auction: AuctionForBrowse, phase: Auctio
   };
 }
 
-/** Combines and sorts listing + auction browse items newest-first. */
-export function mergeBrowseItems(listingItems: BrowseItem[], auctionItems: BrowseItem[]): BrowseItem[] {
-  return [...listingItems, ...auctionItems].sort((a, b) => b.sortKey - a.sortKey);
+/** Combines listing + auction browse items, then sorts by the active browse sort. */
+export function mergeBrowseItems(
+  listingItems: BrowseItem[],
+  auctionItems: BrowseItem[],
+  sort: BrowseSort = "newest",
+): BrowseItem[] {
+  const items = [...listingItems, ...auctionItems];
+  switch (sort) {
+    case "price_asc":
+      return items.sort((a, b) => a.priceCents - b.priceCents || b.sortKey - a.sortKey);
+    case "price_desc":
+      return items.sort((a, b) => b.priceCents - a.priceCents || b.sortKey - a.sortKey);
+    case "ending_soon":
+      return items.sort((a, b) => {
+        const aEnd = a.endsAtIso ? new Date(a.endsAtIso).getTime() : Number.POSITIVE_INFINITY;
+        const bEnd = b.endsAtIso ? new Date(b.endsAtIso).getTime() : Number.POSITIVE_INFINITY;
+        if (aEnd !== bEnd) return aEnd - bEnd;
+        return b.sortKey - a.sortKey;
+      });
+    case "newest":
+    default:
+      return items.sort((a, b) => b.sortKey - a.sortKey);
+  }
 }

@@ -3,7 +3,8 @@
 import { CategoryTree } from "@/components/browse/CategoryTree";
 
 /**
- * Browse sidebar: taxonomy tree only — market tools live on /spot-prices.
+ * Shared category taxonomy sidebar for Buy Now and Auction browse modes.
+ * Selecting Union → Farthings (etc.) preserves the active tab via URL filters.
  */
 export function Sidebar({ basePath }: { basePath: string }) {
   return (

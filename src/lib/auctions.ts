@@ -42,6 +42,27 @@ export function getMinimumNextBidCents(auction: {
   return auction.currentBidCents + auction.bidIncrementCents;
 }
 
+/**
+ * Standard South African auction step sizes (in cents), scaled by current bid.
+ * Used for quick-bid buttons alongside the lot's configured `bidIncrementCents`.
+ */
+export function getSaAuctionIncrementCents(referenceBidCents: number): number {
+  const rands = referenceBidCents / 100;
+  if (rands < 100) return 1_000;
+  if (rands < 500) return 2_000;
+  if (rands < 1_000) return 5_000;
+  if (rands < 5_000) return 10_000;
+  if (rands < 10_000) return 25_000;
+  if (rands < 50_000) return 50_000;
+  return 100_000;
+}
+
+/** Three one-tap bid amounts: minimum next bid, then +1 and +2 steps. */
+export function getQuickBidCents(minimumNextBidCents: number, bidIncrementCents: number): [number, number, number] {
+  const step = Math.max(bidIncrementCents, getSaAuctionIncrementCents(minimumNextBidCents));
+  return [minimumNextBidCents, minimumNextBidCents + step, minimumNextBidCents + step * 2];
+}
+
 export async function getAuctions() {
   const auctions = await db.auction.findMany({
     where: { status: { in: [AuctionStatus.SCHEDULED, AuctionStatus.LIVE] } },

@@ -42,7 +42,7 @@ export default async function AuctionsPage() {
           const isLive = phase === "LIVE";
 
           return (
-            <Card key={auction.id} className="overflow-hidden">
+            <Card key={auction.id} className="overflow-hidden border-slate-700 transition-colors hover:border-amber-500">
               <Link href={`/auctions/${auction.id}`} className="relative block aspect-square w-full bg-muted">
                 {coverImage ? (
                   <Image src={coverImage} alt={auction.title} fill className="object-cover" />
@@ -83,14 +83,15 @@ export default async function AuctionsPage() {
                   )}
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">
-                    {auction.currentBidCents != null ? "Current bid" : "Starting bid"}
+                  <span className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+                    Current Bid
                   </span>
-                  <span className="text-lg font-semibold">{formatZarCents(currentBidCents)}</span>
+                  <span className="text-lg font-semibold tabular-nums">{formatZarCents(currentBidCents)}</span>
                 </div>
                 <AuctionCountdown
                   targetIso={(phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString()}
-                  label={phase === "SCHEDULED" ? "Starts in" : phase === "LIVE" ? "Ends in" : ""}
+                  label={phase === "SCHEDULED" ? "Starts in:" : phase === "LIVE" ? "Ending in:" : ""}
+                  prominent
                 />
                 <PlaceBidModal auctionId={auction.id} minimumNextBidCents={minimumNextBidCents} disabled={!isLive} />
               </CardContent>

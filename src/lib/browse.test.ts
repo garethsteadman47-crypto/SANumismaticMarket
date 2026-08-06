@@ -81,7 +81,17 @@ describe("mergeBrowseItems", () => {
     const listingItem = toBrowseItemFromListing(baseListing); // createdAt 2026-01-01
     const auctionItem = toBrowseItemFromAuction(baseAuction, "LIVE"); // createdAt 2026-01-15
 
-    const merged = mergeBrowseItems([listingItem], [auctionItem]);
+    const merged = mergeBrowseItems([listingItem], [auctionItem], "newest");
     expect(merged.map((item) => item.id)).toEqual(["auction-1", "listing-1"]);
+  });
+
+  it("sorts ending_soon by endsAtIso ascending", () => {
+    const soon = toBrowseItemFromAuction(baseAuction, "LIVE");
+    const later = toBrowseItemFromAuction(
+      { ...baseAuction, id: "auction-2", endsAt: new Date("2026-02-10T00:00:00.000Z") },
+      "LIVE",
+    );
+    const merged = mergeBrowseItems([], [later, soon], "ending_soon");
+    expect(merged.map((item) => item.id)).toEqual(["auction-1", "auction-2"]);
   });
 });
