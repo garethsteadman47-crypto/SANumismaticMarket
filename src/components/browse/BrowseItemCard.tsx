@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { GavelIcon, ImageOffIcon } from "lucide-react";
 
@@ -7,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ShieldBadge } from "@/components/ShieldBadge";
 import { SellerBadges } from "@/components/SellerBadges";
 import { WishlistToggle } from "@/components/WishlistToggle";
+import { ListingImage } from "@/components/ListingImage";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import type { BrowseItem } from "@/lib/browse";
 import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
@@ -28,7 +28,7 @@ export function BrowseItemCard({ item, wishlisted = false }: { item: BrowseItem;
       >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {item.image ? (
-            <Image
+            <ListingImage
               src={item.image}
               alt={item.title}
               fill

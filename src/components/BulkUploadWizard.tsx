@@ -94,15 +94,22 @@ export function BulkUploadWizard({ onBack }: { onBack?: () => void }) {
 
   function attachPhoto(rowId: string, file: File | undefined) {
     if (!file || !file.type.startsWith("image/")) return;
-    const objectUrl = URL.createObjectURL(file);
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId) return row;
-        return validateBulkDraftRow({ ...row, coverImageUrl: objectUrl });
-      }),
-    );
-    setPhotoDrawerRowId(null);
-    toast.success("Photo attached to row.");
+    startTransition(async () => {
+      try {
+        const { fileToPersistableDataUrl } = await import("@/lib/listing-media");
+        const dataUrl = await fileToPersistableDataUrl(file);
+        setRows((prev) =>
+          prev.map((row) => {
+            if (row.id !== rowId) return row;
+            return validateBulkDraftRow({ ...row, coverImageUrl: dataUrl });
+          }),
+        );
+        setPhotoDrawerRowId(null);
+        toast.success("Photo attached to row.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not process that photo.");
+      }
+    });
   }
 
   function handlePublish() {

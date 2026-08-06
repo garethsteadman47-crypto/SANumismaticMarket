@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { GavelIcon, ImageOffIcon } from "lucide-react";
 import type { ListingCategory, ListingType, SubscriptionTier } from "@prisma/client";
@@ -9,6 +8,7 @@ import { ShieldBadge } from "@/components/ShieldBadge";
 import { SellerBadges } from "@/components/SellerBadges";
 import { WishlistToggle } from "@/components/WishlistToggle";
 import { AuctionCountdown } from "@/components/auctions/AuctionCountdown";
+import { ListingImage } from "@/components/ListingImage";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { formatZarCents } from "@/lib/utils/currency";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,7 @@ export function ListingCard({
       >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {coverImage ? (
-            <Image
+            <ListingImage
               src={coverImage}
               alt={listing.title}
               fill

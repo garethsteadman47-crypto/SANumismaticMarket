@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ImageOffIcon } from "lucide-react";
 import { OfferStatus } from "@prisma/client";
@@ -9,6 +8,7 @@ import { formatZarCents } from "@/lib/utils/currency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ListingImage } from "@/components/ListingImage";
 import { OfferRespondControls } from "@/components/offers/OfferRespondControls";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +60,7 @@ export default async function SellerOffersDashboard() {
               <div className="flex items-center gap-4">
                 <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
                   {coverImage ? (
-                    <Image src={coverImage} alt={offer.listing.title} fill className="object-cover" />
+                    <ListingImage src={coverImage} alt={offer.listing.title} fill className="object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-muted-foreground">
                       <ImageOffIcon className="size-5" />

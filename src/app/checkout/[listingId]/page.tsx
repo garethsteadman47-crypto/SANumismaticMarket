@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ListingImage } from "@/components/ListingImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ImageOffIcon } from "lucide-react";
@@ -106,7 +106,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
           <div className="flex items-center gap-4">
             <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-muted">
               {coverImage ? (
-                <Image src={coverImage} alt={listing.title} fill className="object-cover" />
+                <ListingImage src={coverImage} alt={listing.title} fill className="object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
                   <ImageOffIcon className="size-6" />

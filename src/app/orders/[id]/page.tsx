@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ListingImage } from "@/components/ListingImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyIcon, ImageOffIcon, PackageIcon } from "lucide-react";
@@ -81,7 +81,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <CardContent className="flex items-center gap-4">
           <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
             {coverImage ? (
-              <Image src={coverImage} alt={order.listing.title} fill className="object-cover" />
+              <ListingImage src={coverImage} alt={order.listing.title} fill className="object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 <ImageOffIcon className="size-5" />

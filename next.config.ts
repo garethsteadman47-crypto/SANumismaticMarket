@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost", "*.cursorvm.com", "*.agent.cvm.dev"],
   experimental: {
     serverActions: {
+      // Device photos are inlined as base64 until UploadThing/S3 is wired.
+      // Four compressed listing slots can exceed the default 1 MB limit.
+      bodySizeLimit: "8mb",
       allowedOrigins: [
         "localhost:3000",
         "localhost:3901",

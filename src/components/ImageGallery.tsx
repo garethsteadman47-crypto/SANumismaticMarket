@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { ImageOffIcon } from "lucide-react";
 
+import { ListingImage } from "@/components/ListingImage";
 import { cn } from "@/lib/utils";
 
 export function ImageGallery({ images, title }: { images: string[]; title: string }) {
@@ -20,7 +20,7 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
   return (
     <div className="flex flex-col gap-3">
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-        <Image
+        <ListingImage
           src={images[activeIndex]}
           alt={title}
           fill
@@ -33,7 +33,7 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
         <div className="flex gap-2 overflow-x-auto">
           {images.map((src, index) => (
             <button
-              key={src}
+              key={`${index}-${src.slice(0, 48)}`}
               type="button"
               onClick={() => setActiveIndex(index)}
               className={cn(
@@ -42,7 +42,7 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
               )}
               aria-label={`View photo ${index + 1}`}
             >
-              <Image src={src} alt="" fill className="object-cover" />
+              <ListingImage src={src} alt="" fill className="object-cover" />
             </button>
           ))}
         </div>

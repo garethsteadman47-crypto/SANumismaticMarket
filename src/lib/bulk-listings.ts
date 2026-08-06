@@ -191,7 +191,13 @@ function parseEnum<T extends string>(
 function optionalHttpUrl(raw: string | undefined): string | undefined {
   const value = raw?.trim();
   if (!value) return undefined;
-  if (!/^https?:\/\//i.test(value) && !value.startsWith("blob:")) return undefined;
+  if (
+    !/^https?:\/\//i.test(value) &&
+    !value.startsWith("blob:") &&
+    !/^data:image\/[a-zA-Z0-9+.-]+;base64,/i.test(value)
+  ) {
+    return undefined;
+  }
   return value;
 }
 
@@ -345,21 +351,23 @@ export function draftRowToCreateListingInput(row: BulkDraftRow): CreateListingIn
   const reverseImageUrl = optionalHttpUrl(row.reverseImageUrl);
   const certificateImageUrl = optionalHttpUrl(row.slabImageUrl);
 
-  // Blob previews from the wizard are not durable — replace with placeholder seeds.
-  const publishable = (url: string | undefined, seed: string) => {
+  // Prefer durable sources only — never invent stock/placeholder images.
+  // blob: object URLs from the browser cannot be saved to MongoDB.
+  const publishable = (url: string | undefined) => {
     if (!url) return undefined;
-    if (url.startsWith("blob:")) return `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/800`;
-    return url;
+    if (url.startsWith("blob:")) return undefined;
+    if (/^https?:\/\//i.test(url) || /^data:image\/[a-zA-Z0-9+.-]+;base64,/i.test(url)) return url;
+    return undefined;
   };
 
-  const cover = publishable(coverImageUrl, `${title}-cover`);
-  const obverse = publishable(obverseImageUrl, `${title}-obverse`);
-  const reverse = publishable(reverseImageUrl, `${title}-reverse`);
-  const slab = publishable(certificateImageUrl, `${title}-slab`);
+  const cover = publishable(coverImageUrl);
+  const obverse = publishable(obverseImageUrl);
+  const reverse = publishable(reverseImageUrl);
+  const slab = publishable(certificateImageUrl);
   const images = [cover, obverse, reverse, slab].filter((url): url is string => Boolean(url));
 
   if (images.length === 0) {
-    images.push(`https://picsum.photos/seed/${encodeURIComponent(title || "bulk")}/800/800`);
+    return { error: "Add at least one durable image URL (or upload a photo) before publishing." };
   }
 
   const description =
@@ -434,9 +442,9 @@ export function buildBulkCsvTemplate(): string {
     `1 Rand`,
     `MS-65`,
     `15.0`,
-    `https://picsum.photos/seed/bulk-cover/800/800`,
-    `https://picsum.photos/seed/bulk-obv/800/800`,
-    `https://picsum.photos/seed/bulk-rev/800/800`,
+    `https://example.com/cover.jpg`,
+    `https://example.com/obverse.jpg`,
+    `https://example.com/reverse.jpg`,
     ``,
     `NGC1234567-001`,
     `NGC`,

@@ -38,6 +38,13 @@ export const LISTING_MEDIA_SLOT_META: { id: ListingMediaSlotId; label: string }[
   { id: "slab", label: "Certificate / slab serial" },
 ];
 
+/** Max edge length when compressing device photos for MongoDB persistence. */
+const MAX_IMAGE_EDGE_PX = 1600;
+/** JPEG quality for compressed device photos. */
+const JPEG_QUALITY = 0.82;
+/** Reject device photos larger than this before processing (raw file size). */
+export const MAX_UPLOAD_FILE_BYTES = 12 * 1024 * 1024;
+
 export function createEmptyMediaSlot(): MediaSlotState {
   return { file: null, previewUrl: null, remoteUrl: null };
 }
@@ -72,24 +79,111 @@ export function mediaSlotHasAnyContent(slot: MediaSlotState): boolean {
   return Boolean(slot.file || slot.previewUrl || slot.remoteUrl);
 }
 
+export function isHttpImageUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}
+
+export function isDataImageUrl(value: string): boolean {
+  return /^data:image\/[a-zA-Z0-9+.-]+;base64,/i.test(value.trim());
+}
+
+/** Persistable listing image: remote HTTPS or an inlined data:image base64 URL. */
+export function isPersistableImageSrc(value: string): boolean {
+  const trimmed = value.trim();
+  return isHttpImageUrl(trimmed) || isDataImageUrl(trimmed);
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string" && result.startsWith("data:")) {
+        resolve(result);
+        return;
+      }
+      reject(new Error("Could not read image file."));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read image file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not decode image for compression."));
+    image.src = src;
+  });
+}
+
 /**
- * Resolve the durable URL to publish for a slot.
- * Remote HTTPS URLs win; local blob/file previews fall back to a seeded placeholder CDN URL.
+ * Convert a device File into a durable `data:image/...;base64,...` string.
+ * Compresses large photos so MongoDB + Server Action payloads stay within limits.
+ * Object URLs (`blob:`) are never returned — they only exist in the local tab.
  */
-export function resolvePublishableSlotUrl(
-  slot: MediaSlotState,
-  placeholder: (seed: string) => string,
-  seed: string,
-): string | undefined {
-  const remote = slot.remoteUrl?.trim();
-  if (remote && /^https?:\/\//i.test(remote)) return remote;
-
-  const preview = slot.previewUrl?.trim();
-  if (preview && /^https?:\/\//i.test(preview)) return preview;
-
-  if (slot.file || (preview && preview.startsWith("blob:"))) {
-    return placeholder(seed);
+export async function fileToPersistableDataUrl(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files can be uploaded.");
+  }
+  if (file.size > MAX_UPLOAD_FILE_BYTES) {
+    throw new Error("Each photo must be under 12 MB.");
   }
 
+  const originalDataUrl = await readFileAsDataUrl(file);
+
+  // Prefer canvas compression when available (browser). Fall back to the raw data URL
+  // in non-DOM environments (tests) or if decoding fails.
+  if (typeof document === "undefined") {
+    return originalDataUrl;
+  }
+
+  try {
+    const image = await loadImageElement(originalDataUrl);
+    const longest = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
+    const scale = longest > MAX_IMAGE_EDGE_PX ? MAX_IMAGE_EDGE_PX / longest : 1;
+    const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+    const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return originalDataUrl;
+    ctx.drawImage(image, 0, 0, width, height);
+
+    // Preserve PNG transparency when the source is PNG; otherwise use JPEG for size.
+    const usePng = file.type === "image/png" || file.type === "image/webp";
+    const compressed = usePng
+      ? canvas.toDataURL("image/png")
+      : canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+
+    // If compression somehow grew the payload, keep the original.
+    return compressed.length < originalDataUrl.length ? compressed : originalDataUrl;
+  } catch {
+    return originalDataUrl;
+  }
+}
+
+/**
+ * Resolve the durable URL to persist for a slot.
+ * - Remote HTTPS URLs win
+ * - Local File uploads are converted to base64 data URLs
+ * - Existing data:image URLs are kept
+ * - blob: object URLs are never persisted (they die with the tab)
+ */
+export async function resolvePublishableSlotUrl(slot: MediaSlotState): Promise<string | undefined> {
+  const remote = slot.remoteUrl?.trim();
+  if (remote && isPersistableImageSrc(remote)) return remote;
+
+  const preview = slot.previewUrl?.trim();
+  if (preview && isPersistableImageSrc(preview) && !preview.startsWith("blob:")) return preview;
+
+  if (slot.file) {
+    return fileToPersistableDataUrl(slot.file);
+  }
+
+  // A blob preview without a File is not durable — refuse rather than invent a stock image.
   return undefined;
 }

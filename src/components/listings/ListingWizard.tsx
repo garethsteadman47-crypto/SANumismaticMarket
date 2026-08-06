@@ -114,10 +114,6 @@ const INITIAL: WizardState = {
   reservePriceRands: "",
 };
 
-function placeholderImage(seed: string) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/800`;
-}
-
 export function ListingWizard({
   sellerTier = SubscriptionTier.STANDARD,
 }: {
@@ -221,20 +217,30 @@ export function ListingWizard({
       return;
     }
 
-    const seedBase = state.title || "mintmark-listing";
-    const cover = resolvePublishableSlotUrl(media.cover, placeholderImage, `${seedBase}-cover`);
-    const obverse = resolvePublishableSlotUrl(media.obverse, placeholderImage, `${seedBase}-obverse`);
-    const reverse = resolvePublishableSlotUrl(media.reverse, placeholderImage, `${seedBase}-reverse`);
-    const certificate = resolvePublishableSlotUrl(media.slab, placeholderImage, `${seedBase}-slab`);
-
-    const images = [cover, obverse, reverse, certificate].filter((url): url is string => Boolean(url));
-
-    // Fallback placeholders so local demos without UploadThing still publish.
-    if (images.length === 0) {
-      images.push(placeholderImage(seedBase));
-    }
-
     startTransition(async () => {
+      let cover: string | undefined;
+      let obverse: string | undefined;
+      let reverse: string | undefined;
+      let certificate: string | undefined;
+
+      try {
+        [cover, obverse, reverse, certificate] = await Promise.all([
+          resolvePublishableSlotUrl(media.cover),
+          resolvePublishableSlotUrl(media.obverse),
+          resolvePublishableSlotUrl(media.reverse),
+          resolvePublishableSlotUrl(media.slab),
+        ]);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not process uploaded photos.");
+        return;
+      }
+
+      const images = [cover, obverse, reverse, certificate].filter((url): url is string => Boolean(url));
+      if (images.length === 0) {
+        toast.error("Add at least one photo before publishing.");
+        return;
+      }
+
       const result = await createListingAction({
         title: state.title,
         description: state.description,
@@ -702,8 +708,8 @@ export function ListingWizard({
           {step === 4 && (
             <>
               <p className="text-sm text-muted-foreground">
-                Drop images into each named slot or paste public URLs. Each slot keeps its own file and preview — Cover
-                never swaps with Obverse.
+                Drop photos from your device into each named slot, or paste a public image URL. Uploaded files are saved
+                with the listing — Cover never swaps with Obverse.
               </p>
               {LISTING_MEDIA_SLOT_META.map(({ id, label }) => (
                 <MediaImageSlot

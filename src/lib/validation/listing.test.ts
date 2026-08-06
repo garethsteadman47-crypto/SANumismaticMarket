@@ -80,4 +80,21 @@ describe("createListingSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts data:image base64 photos from device uploads", () => {
+    const result = createListingSchema.safeParse({
+      ...BASE_RAW_INPUT,
+      images: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD"],
+      coverImageUrl: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects blob: object URLs which cannot be persisted", () => {
+    const result = createListingSchema.safeParse({
+      ...BASE_RAW_INPUT,
+      images: ["blob:http://localhost/abc"],
+    });
+    expect(result.success).toBe(false);
+  });
 });
