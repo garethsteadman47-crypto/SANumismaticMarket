@@ -791,6 +791,10 @@ async function main() {
         startingPriceCents: item.startingPriceCents,
         bidIncrementCents: item.bidIncrementCents,
         reservePriceCents: item.reservePriceCents,
+        isReserveMet:
+          item.reservePriceCents == null
+            ? true
+            : currentBid != null && currentBid >= item.reservePriceCents,
         startsAt: new Date(now - item.startedHoursAgo * 60 * 60 * 1000),
         endsAt: new Date(now + item.endsInHours * 60 * 60 * 1000),
         status: "LIVE",
@@ -806,6 +810,7 @@ async function main() {
           auctionId: auction.id,
           bidderId: bidders[i % bidders.length]!.id,
           amountCents: item.bids[i]!,
+          maxBidCents: item.bids[i]!,
           createdAt: new Date(now - (item.bids.length - i) * 40 * 60 * 1000),
         },
       });

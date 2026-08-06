@@ -1,9 +1,16 @@
 import { notFound } from "next/navigation";
 import { GavelIcon, RadioIcon, ShieldIcon } from "lucide-react";
 
-import { getAuctionById, getAuctionPhase, getMinimumNextBidCents } from "@/lib/auctions";
+import {
+  getAuctionById,
+  getAuctionPhase,
+  getAuctionSaleOutcome,
+  getMinimumNextBidCents,
+  isReserveSatisfied,
+} from "@/lib/auctions";
 import { formatZarCents } from "@/lib/utils/currency";
 import { CATEGORY_LABELS } from "@/lib/categories";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +40,9 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
   const endsAtIso = (phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString();
   const phaseLabel =
     phase === "SCHEDULED" ? "Starts in" : phase === "LIVE" ? "Ends in" : ("Ended" as const);
+  const hasReserve = auction.reservePriceCents != null;
+  const reserveMet = isReserveSatisfied(auction);
+  const saleOutcome = getAuctionSaleOutcome(auction);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6">
@@ -59,6 +69,18 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
                 "Cancelled"
               )}
             </Badge>
+            {hasReserve && (
+              <Badge
+                variant="outline"
+                className={
+                  reserveMet
+                    ? "border-emerald-600/40 text-emerald-700 dark:text-emerald-400"
+                    : "border-amber-500/50 text-amber-800 dark:text-amber-300"
+                }
+              >
+                {reserveMet ? "Reserve met" : "Reserve not met"}
+              </Badge>
+            )}
           </div>
 
           <h1 className="flex items-start gap-2 text-2xl font-semibold">
@@ -71,6 +93,15 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
             <span className="text-sm text-muted-foreground">Sold by {auction.seller.name ?? "a private seller"}</span>
           </div>
 
+          {saleOutcome === "RESERVE_NOT_MET" && (
+            <Alert className="border-amber-500/40 bg-amber-500/10">
+              <AlertTitle>Reserve price not met</AlertTitle>
+              <AlertDescription>
+                This auction ended without clearing the seller&apos;s hidden reserve. No sale was completed.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <BidInteraction
             auctionId={auction.id}
             currentBidCents={currentBidCents}
@@ -81,6 +112,9 @@ export default async function AuctionDetailPage({ params }: { params: Promise<{ 
             phaseLabel={phaseLabel}
             disabled={!isLive}
             leadingBidderName={auction.currentBidder?.name}
+            hasReserve={hasReserve}
+            isReserveMet={reserveMet}
+            saleOutcome={saleOutcome}
           />
 
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

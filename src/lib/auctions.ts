@@ -8,6 +8,11 @@ import { db } from "@/lib/db";
  * (no websockets): placing a bid updates `currentBidCents` /
  * `currentBidderId` in a transaction, and the UI re-fetches via
  * `router.refresh()` after each bid, same pattern as the escrow order flow.
+ *
+ * Proxy / max bidding: bidders submit a confidential `maxBidCents`. The
+ * engine only raises the visible `currentBidCents` as far as needed to beat
+ * the previous high max (by `bidIncrementCents`), never exposing the winner's
+ * ceiling until another bid forces it.
  */
 
 export type AuctionPhase = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
@@ -63,6 +68,140 @@ export function getQuickBidCents(minimumNextBidCents: number, bidIncrementCents:
   return [minimumNextBidCents, minimumNextBidCents + step, minimumNextBidCents + step * 2];
 }
 
+export function isReserveSatisfied(auction: {
+  reservePriceCents: number | null;
+  currentBidCents: number | null;
+  isReserveMet?: boolean;
+}): boolean {
+  if (auction.reservePriceCents == null) return true;
+  if (auction.currentBidCents == null) return false;
+  return auction.currentBidCents >= auction.reservePriceCents;
+}
+
+export type AuctionSaleOutcome = "WINNER" | "RESERVE_NOT_MET" | "NO_BIDS" | "LIVE" | "CANCELLED";
+
+/** Outcome used on ended auction pages and seller desks. */
+export function getAuctionSaleOutcome(
+  auction: {
+    status: AuctionStatus;
+    startsAt: Date;
+    endsAt: Date;
+    reservePriceCents: number | null;
+    currentBidCents: number | null;
+    currentBidderId: string | null;
+    isReserveMet?: boolean;
+  },
+  now: Date = new Date(),
+): AuctionSaleOutcome {
+  const phase = getAuctionPhase(auction, now);
+  if (phase === "CANCELLED") return "CANCELLED";
+  if (phase === "LIVE" || phase === "SCHEDULED") return "LIVE";
+  if (auction.currentBidCents == null || !auction.currentBidderId) return "NO_BIDS";
+  if (!isReserveSatisfied(auction)) return "RESERVE_NOT_MET";
+  return "WINNER";
+}
+
+export type ProxyBidResolution = {
+  winnerId: string;
+  visibleBidCents: number;
+  /** Bid rows to insert (losing challenger first when applicable, then winner state). */
+  bidsToCreate: { bidderId: string; amountCents: number; maxBidCents: number }[];
+  challengerOutbid: boolean;
+};
+
+/**
+ * Pure proxy duel between an incumbent high bidder and a challenger max bid.
+ * Incumbent wins ties (existing high bidder keeps the lead).
+ */
+export function resolveProxyBid(input: {
+  challengerId: string;
+  challengerMaxCents: number;
+  incumbentId: string | null;
+  incumbentMaxCents: number | null;
+  currentBidCents: number | null;
+  startingPriceCents: number;
+  bidIncrementCents: number;
+}): ProxyBidResolution {
+  const {
+    challengerId,
+    challengerMaxCents,
+    incumbentId,
+    incumbentMaxCents,
+    currentBidCents,
+    startingPriceCents,
+    bidIncrementCents,
+  } = input;
+
+  // Opening bid — no competition yet.
+  if (incumbentId == null || incumbentMaxCents == null || currentBidCents == null) {
+    return {
+      winnerId: challengerId,
+      visibleBidCents: startingPriceCents,
+      bidsToCreate: [
+        {
+          bidderId: challengerId,
+          amountCents: startingPriceCents,
+          maxBidCents: challengerMaxCents,
+        },
+      ],
+      challengerOutbid: false,
+    };
+  }
+
+  // Same bidder raising their own max — keep visible price, refresh ceiling.
+  if (challengerId === incumbentId) {
+    const nextMax = Math.max(incumbentMaxCents, challengerMaxCents);
+    return {
+      winnerId: incumbentId,
+      visibleBidCents: currentBidCents,
+      bidsToCreate: [
+        {
+          bidderId: challengerId,
+          amountCents: currentBidCents,
+          maxBidCents: nextMax,
+        },
+      ],
+      challengerOutbid: false,
+    };
+  }
+
+  if (challengerMaxCents > incumbentMaxCents) {
+    const visible = Math.min(challengerMaxCents, incumbentMaxCents + bidIncrementCents);
+    return {
+      winnerId: challengerId,
+      visibleBidCents: visible,
+      bidsToCreate: [
+        {
+          bidderId: challengerId,
+          amountCents: visible,
+          maxBidCents: challengerMaxCents,
+        },
+      ],
+      challengerOutbid: false,
+    };
+  }
+
+  // Challenger loses (or ties) — incumbent stays ahead; visible climbs to challengerMax + increment.
+  const visible = Math.min(incumbentMaxCents, challengerMaxCents + bidIncrementCents);
+  return {
+    winnerId: incumbentId,
+    visibleBidCents: Math.max(visible, currentBidCents),
+    bidsToCreate: [
+      {
+        bidderId: challengerId,
+        amountCents: Math.min(challengerMaxCents, visible),
+        maxBidCents: challengerMaxCents,
+      },
+      {
+        bidderId: incumbentId,
+        amountCents: Math.max(visible, currentBidCents),
+        maxBidCents: incumbentMaxCents,
+      },
+    ],
+    challengerOutbid: true,
+  };
+}
+
 export async function getAuctions() {
   const auctions = await db.auction.findMany({
     where: { status: { in: [AuctionStatus.SCHEDULED, AuctionStatus.LIVE] } },
@@ -91,19 +230,34 @@ export async function getAuctionById(auctionId: string) {
   });
 }
 
-export type AuctionActionResult<T = { auctionId: string }> =
+export type AuctionActionResult<T = { auctionId: string; currentBidCents?: number; isReserveMet?: boolean; outbid?: boolean }> =
   | ({ success: true } & T)
   | { success: false; error: string };
 
 export interface PlaceBidInput {
   auctionId: string;
   bidderId: string;
-  amountCents: number;
+  /** Confidential proxy ceiling (ZAR cents). Also used as a one-shot bid amount. */
+  maxBidCents: number;
 }
 
-export async function placeBid({ auctionId, bidderId, amountCents }: PlaceBidInput): Promise<AuctionActionResult> {
-  if (!Number.isInteger(amountCents) || amountCents <= 0) {
-    return { success: false, error: "Enter a valid bid amount." };
+async function getIncumbentMaxBidCents(
+  auctionId: string,
+  incumbentId: string,
+  fallbackCurrentBidCents: number,
+): Promise<number> {
+  const latest = await db.bid.findFirst({
+    where: { auctionId, bidderId: incumbentId },
+    orderBy: { createdAt: "desc" },
+    select: { maxBidCents: true, amountCents: true },
+  });
+  if (!latest) return fallbackCurrentBidCents;
+  return Math.max(latest.maxBidCents ?? latest.amountCents, latest.amountCents, fallbackCurrentBidCents);
+}
+
+export async function placeBid({ auctionId, bidderId, maxBidCents }: PlaceBidInput): Promise<AuctionActionResult> {
+  if (!Number.isInteger(maxBidCents) || maxBidCents <= 0) {
+    return { success: false, error: "Enter a valid maximum bid amount." };
   }
 
   const auction = await db.auction.findUnique({ where: { id: auctionId } });
@@ -128,26 +282,64 @@ export async function placeBid({ auctionId, bidderId, amountCents }: PlaceBidInp
   }
 
   const minimumBidCents = getMinimumNextBidCents(auction);
-  if (amountCents < minimumBidCents) {
+  // Raising your own max while already leading is allowed even if max < min next
+  // as long as max stays >= current visible bid.
+  const isSelfRaise = auction.currentBidderId === bidderId;
+  if (!isSelfRaise && maxBidCents < minimumBidCents) {
     return {
       success: false,
-      error: `Your bid must be at least R${(minimumBidCents / 100).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.`,
+      error: `Your maximum bid must be at least R${(minimumBidCents / 100).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.`,
+    };
+  }
+  if (isSelfRaise && auction.currentBidCents != null && maxBidCents < auction.currentBidCents) {
+    return {
+      success: false,
+      error: "Your maximum bid can't be lower than the current bid.",
     };
   }
 
+  const incumbentMax =
+    auction.currentBidderId && auction.currentBidCents != null
+      ? await getIncumbentMaxBidCents(auctionId, auction.currentBidderId, auction.currentBidCents)
+      : null;
+
+  const resolution = resolveProxyBid({
+    challengerId: bidderId,
+    challengerMaxCents: maxBidCents,
+    incumbentId: auction.currentBidderId,
+    incumbentMaxCents: incumbentMax,
+    currentBidCents: auction.currentBidCents,
+    startingPriceCents: auction.startingPriceCents,
+    bidIncrementCents: auction.bidIncrementCents,
+  });
+
+  const isReserveMet =
+    auction.reservePriceCents == null || resolution.visibleBidCents >= auction.reservePriceCents;
+
   try {
     await db.$transaction(async (tx) => {
-      // Optimistic concurrency via `version`: only succeeds if no other bid
-      // has landed since we read `auction` above, so two concurrent bids
-      // can't both "win" against a bid that only one of them actually saw.
       const claim = await tx.auction.updateMany({
         where: { id: auctionId, version: auction.version },
-        data: { currentBidCents: amountCents, currentBidderId: bidderId, version: auction.version + 1 },
+        data: {
+          currentBidCents: resolution.visibleBidCents,
+          currentBidderId: resolution.winnerId,
+          isReserveMet,
+          version: auction.version + 1,
+        },
       });
       if (claim.count === 0) {
         throw new Error("BID_SUPERSEDED");
       }
-      await tx.bid.create({ data: { auctionId, bidderId, amountCents } });
+      for (const bid of resolution.bidsToCreate) {
+        await tx.bid.create({
+          data: {
+            auctionId,
+            bidderId: bid.bidderId,
+            amountCents: bid.amountCents,
+            maxBidCents: bid.maxBidCents,
+          },
+        });
+      }
     });
   } catch (err) {
     if (err instanceof Error && err.message === "BID_SUPERSEDED") {
@@ -157,5 +349,11 @@ export async function placeBid({ auctionId, bidderId, amountCents }: PlaceBidInp
     return { success: false, error: "Something went wrong while placing your bid. Please try again." };
   }
 
-  return { success: true, auctionId };
+  return {
+    success: true,
+    auctionId,
+    currentBidCents: resolution.visibleBidCents,
+    isReserveMet,
+    outbid: resolution.challengerOutbid,
+  };
 }

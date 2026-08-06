@@ -29,6 +29,8 @@ export interface BrowseItem {
   auctionPhase?: AuctionPhase;
   endsAtIso?: string;
   bidCount?: number;
+  /** True when the lot has a hidden reserve that the current bid has not cleared. */
+  reserveNotMet?: boolean;
   /** Millisecond timestamp used to sort listings and auctions together. */
   sortKey: number;
 }
@@ -73,6 +75,8 @@ export interface AuctionForBrowse {
   images: string[];
   startingPriceCents: number;
   currentBidCents: number | null;
+  reservePriceCents?: number | null;
+  isReserveMet?: boolean;
   status: "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
   startsAt: Date;
   endsAt: Date;
@@ -83,6 +87,10 @@ export interface AuctionForBrowse {
 
 export function toBrowseItemFromAuction(auction: AuctionForBrowse, phase: AuctionPhase): BrowseItem {
   const effectivePriceCents = auction.currentBidCents ?? auction.startingPriceCents;
+  const hasReserve = auction.reservePriceCents != null;
+  const reserveMet =
+    auction.isReserveMet === true ||
+    (hasReserve && auction.currentBidCents != null && auction.currentBidCents >= (auction.reservePriceCents as number));
 
   return {
     kind: "auction",
@@ -100,6 +108,7 @@ export function toBrowseItemFromAuction(auction: AuctionForBrowse, phase: Auctio
     auctionPhase: phase,
     endsAtIso: (phase === "SCHEDULED" ? auction.startsAt : auction.endsAt).toISOString(),
     bidCount: auction._count.bids,
+    reserveNotMet: hasReserve && !reserveMet,
     sortKey: auction.createdAt.getTime(),
   };
 }

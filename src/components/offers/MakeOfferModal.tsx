@@ -20,17 +20,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createOfferAction } from "@/actions/offer";
-import { computeMinimumOfferCents, MINIMUM_OFFER_RATIO } from "@/lib/offers";
+import { computeEffectiveMinimumOfferCents, MINIMUM_OFFER_RATIO } from "@/lib/offers";
 import { formatZarCents, randsToCents } from "@/lib/utils/currency";
 
-export function MakeOfferModal({ listingId, listingPriceCents, disabled }: { listingId: string; listingPriceCents: number; disabled?: boolean }) {
+export function MakeOfferModal({
+  listingId,
+  listingPriceCents,
+  minOfferPriceCents,
+  disabled,
+}: {
+  listingId: string;
+  listingPriceCents: number;
+  minOfferPriceCents?: number | null;
+  disabled?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [amountRands, setAmountRands] = useState("");
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const minimumOfferCents = useMemo(() => computeMinimumOfferCents(listingPriceCents), [listingPriceCents]);
+  const minimumOfferCents = useMemo(
+    () => computeEffectiveMinimumOfferCents(listingPriceCents, minOfferPriceCents),
+    [listingPriceCents, minOfferPriceCents],
+  );
   const enteredCents = amountRands ? randsToCents(Number(amountRands)) : 0;
   const isBelowMinimum = amountRands !== "" && (!Number.isFinite(enteredCents) || enteredCents < minimumOfferCents);
   const isAboveAsking = amountRands !== "" && enteredCents >= listingPriceCents;
@@ -44,7 +57,11 @@ export function MakeOfferModal({ listingId, listingPriceCents, disabled }: { lis
         toast.error(result.error);
         return;
       }
-      toast.success("Offer sent to the seller.");
+      if (result.status === "ACCEPTED") {
+        toast.success("Offer auto-accepted — you can check out at this price.");
+      } else {
+        toast.success("Offer sent to the seller.");
+      }
       setOpen(false);
       setAmountRands("");
       setMessage("");
@@ -68,7 +85,10 @@ export function MakeOfferModal({ listingId, listingPriceCents, disabled }: { lis
           <DialogTitle>Make an offer</DialogTitle>
           <DialogDescription>
             Asking price is {formatZarCents(listingPriceCents)}. Offers cannot be lower than{" "}
-            {MINIMUM_OFFER_RATIO * 100}% of asking price (minimum allowed: {formatZarCents(minimumOfferCents)}).
+            {formatZarCents(minimumOfferCents)}
+            {minOfferPriceCents != null
+              ? " (seller minimum / 70% floor)."
+              : ` (${MINIMUM_OFFER_RATIO * 100}% of asking).`}
           </DialogDescription>
         </DialogHeader>
 
@@ -88,8 +108,7 @@ export function MakeOfferModal({ listingId, listingPriceCents, disabled }: { lis
             />
             {isBelowMinimum && (
               <p className="text-xs text-destructive">
-                Offers cannot be lower than {MINIMUM_OFFER_RATIO * 100}% of asking price (Minimum allowed:{" "}
-                {formatZarCents(minimumOfferCents)}).
+                Offers cannot be lower than {formatZarCents(minimumOfferCents)}.
               </p>
             )}
             {isAboveAsking && (

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { computeMinimumOfferCents, getAcceptedOfferPriceCents, MINIMUM_OFFER_RATIO } from "./offers";
+import {
+  computeEffectiveMinimumOfferCents,
+  computeMinimumOfferCents,
+  getAcceptedOfferPriceCents,
+  MINIMUM_OFFER_RATIO,
+} from "./offers";
 
 describe("computeMinimumOfferCents", () => {
   it("is 70% of the listing price", () => {
@@ -9,12 +14,19 @@ describe("computeMinimumOfferCents", () => {
   });
 
   it("rounds up so the minimum is never below the true 70% floor", () => {
-    // 100_01 * 0.7 = 70_00.7 -> must round UP to 70_01, not down to 70_00.
     expect(computeMinimumOfferCents(100_01)).toBe(70_01);
   });
 
   it("handles a realistic Krugerrand price", () => {
     expect(computeMinimumOfferCents(6_850_000)).toBe(Math.ceil(6_850_000 * 0.7));
+  });
+});
+
+describe("computeEffectiveMinimumOfferCents", () => {
+  it("uses the higher of 70% and the seller minimum", () => {
+    expect(computeEffectiveMinimumOfferCents(100_00, 80_00)).toBe(80_00);
+    expect(computeEffectiveMinimumOfferCents(100_00, 60_00)).toBe(70_00);
+    expect(computeEffectiveMinimumOfferCents(100_00, null)).toBe(70_00);
   });
 });
 

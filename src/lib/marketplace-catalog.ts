@@ -16,6 +16,7 @@ export function browseItemToListingCard(item: BrowseItem): ListingCardData {
     endsAtIso: item.endsAtIso,
     auctionPhase: item.auctionPhase,
     bidCount: item.bidCount,
+    reserveNotMet: item.reserveNotMet,
     sortKey: item.sortKey,
     seller: {
       subscriptionTier: item.sellerTier,

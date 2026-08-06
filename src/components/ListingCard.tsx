@@ -27,6 +27,8 @@ export interface ListingCardData {
   endsAtIso?: string;
   auctionPhase?: "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
   bidCount?: number;
+  /** Hidden reserve exists and current bid has not cleared it. */
+  reserveNotMet?: boolean;
   isSponsored?: boolean;
   /** Millisecond timestamp for newest-first sorting in the marketplace grid. */
   sortKey?: number;
@@ -121,6 +123,11 @@ export function ListingCard({
                   label={listing.auctionPhase === "SCHEDULED" ? "Starts in:" : "Ending in:"}
                   prominent
                 />
+              )}
+              {listing.reserveNotMet && (
+                <span className="w-fit rounded bg-amber-500/15 px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide text-amber-800 uppercase dark:text-amber-300">
+                  Reserve not met
+                </span>
               )}
             </div>
           ) : (

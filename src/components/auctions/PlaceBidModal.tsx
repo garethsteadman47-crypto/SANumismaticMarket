@@ -47,7 +47,11 @@ export function PlaceBidModal({
         toast.error(result.error);
         return;
       }
-      toast.success("Bid placed!");
+      if (result.outbid) {
+        toast.message("Your max was outbid by another bidder's proxy ceiling.");
+      } else {
+        toast.success("Max bid placed — proxy bidding is active.");
+      }
       setConfirmOpen(false);
       setOpen(false);
       router.refresh();

@@ -40,8 +40,11 @@ export const createListingSchema = z
     purityPercent: optionalNumber(z.coerce.number().min(0).max(100)),
     priceCents: z.coerce.number().int().positive("Price must be greater than R0."),
     acceptsOffers: z.boolean().default(true),
+    minOfferPriceCents: optionalNumber(z.coerce.number().int().positive()),
+    autoAcceptPriceCents: optionalNumber(z.coerce.number().int().positive()),
     saleFormat: z.enum(["FIXED", "AUCTION"]).default("FIXED"),
     auctionEndsInDays: optionalNumber(z.coerce.number().int().min(1).max(30)),
+    reservePriceCents: optionalNumber(z.coerce.number().int().positive()),
     images: z
       .array(z.string().url("Each image must be a valid URL."))
       .min(1, "Add at least one image.")
@@ -76,6 +79,40 @@ export const createListingSchema = z
         code: z.ZodIssueCode.custom,
         path: ["auctionEndsInDays"],
         message: "Choose how many days the auction should run.",
+      });
+    }
+    if (
+      data.saleFormat === "AUCTION" &&
+      data.reservePriceCents != null &&
+      data.reservePriceCents < data.priceCents
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reservePriceCents"],
+        message: "Reserve must be at or above the starting bid.",
+      });
+    }
+    if (
+      data.saleFormat === "FIXED" &&
+      data.minOfferPriceCents != null &&
+      data.minOfferPriceCents >= data.priceCents
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["minOfferPriceCents"],
+        message: "Minimum offer must be below the asking price.",
+      });
+    }
+    if (
+      data.saleFormat === "FIXED" &&
+      data.autoAcceptPriceCents != null &&
+      (data.autoAcceptPriceCents >= data.priceCents ||
+        (data.minOfferPriceCents != null && data.autoAcceptPriceCents < data.minOfferPriceCents))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["autoAcceptPriceCents"],
+        message: "Auto-accept must be below asking price and at or above the minimum offer.",
       });
     }
   });

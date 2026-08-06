@@ -165,6 +165,7 @@ enum OfferStatus {
   COUNTERED
   DECLINED
   WITHDRAWN
+  EXPIRED
 }
 
 enum AuctionStatus {
@@ -432,8 +433,15 @@ model Listing {
 
   // Drives the "Accepting Offers" browse-format filter and the PDP's "Make
   // an Offer" button. Defaults to true (today every seller allows offers);
-  // the listing wizard exposes a seller-facing toggle.
+  // the listing wizard exposes a seller-facing toggle. (`allowOffers` in
+  // product copy maps to this field.)
   acceptsOffers Boolean @default(true)
+
+  // Optional seller floors/ceilings for the offer engine (ZAR cents).
+  // Offers below `minOfferPriceCents` are auto-declined; offers at or above
+  // `autoAcceptPriceCents` are accepted immediately without seller action.
+  minOfferPriceCents   Int?
+  autoAcceptPriceCents Int?
 
   // Paid / boost placements get a charcoal "Sponsored" treatment on cards.
   isSponsored Boolean @default(false)
@@ -627,12 +635,12 @@ model Invoice {
 // ─────────────────────────────────────────────────────────────────────────
 
 // A buyer-initiated offer on an ACTIVE listing. Offers must be at least 70%
-// of the listing's asking price (enforced in lib/offers.ts, re-validated
-// server-side regardless of client input). Sellers respond with Accept,
-// Counter (sets counterAmountCents + COUNTERED), or Decline. An ACCEPTED
-// offer's amount becomes the checkout price for that specific buyer only
-// (see lib/orders.ts createOrder's optional offerId param) — it never
-// changes the listing's public priceCents.
+// of the listing's asking price (and any seller `minOfferPriceCents`),
+// enforced in lib/offers.ts. Sellers respond with Accept, Counter
+// (sets counterAmountCents + COUNTERED), or Decline. Auto-accept /
+// auto-decline thresholds on Listing may resolve the offer immediately.
+// An ACCEPTED offer's amount becomes the checkout price for that buyer only
+// (see lib/orders.ts) — it never changes the listing's public priceCents.
 model Offer {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
@@ -655,6 +663,8 @@ model Offer {
 
   status     OfferStatus @default(PENDING)
   respondedAt DateTime?
+  // Soft expiry for PENDING / COUNTERED offers (default 48h from create).
+  expiresAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -662,6 +672,7 @@ model Offer {
   @@index([listingId])
   @@index([buyerId])
   @@index([sellerId, status])
+  @@index([expiresAt, status])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -686,7 +697,9 @@ model Auction {
   startingPriceCents Int
   // Minimum amount a new bid must exceed the current bid by.
   bidIncrementCents  Int @default(5000)
+  // Hidden seller reserve (ZAR cents). Buyers only see whether it is met.
   reservePriceCents  Int?
+  isReserveMet       Boolean @default(false)
 
   currentBidCents  Int?
   currentBidderId  String? @db.ObjectId
@@ -723,7 +736,11 @@ model Bid {
   bidderId String @db.ObjectId
   bidder   User   @relation(fields: [bidderId], references: [id])
 
+  // Visible bid amount after proxy resolution (what the public sees).
   amountCents Int
+  // Bidder's confidential maximum (proxy / max-bid ceiling). When omitted,
+  // treated as equal to amountCents (manual one-shot bid).
+  maxBidCents Int?
 
   createdAt DateTime @default(now())
 

@@ -3,7 +3,11 @@
 import { auth } from "@/lib/auth";
 import { placeBid, type AuctionActionResult } from "@/lib/auctions";
 
-export async function placeBidAction(auctionId: string, amountCents: number): Promise<AuctionActionResult> {
+/**
+ * Places a proxy / max bid. `maxBidCents` is the bidder's confidential ceiling;
+ * the auction engine only raises the visible current bid as far as needed.
+ */
+export async function placeBidAction(auctionId: string, maxBidCents: number): Promise<AuctionActionResult> {
   let bidderId: string | undefined;
   try {
     const session = await auth();
@@ -18,7 +22,7 @@ export async function placeBidAction(auctionId: string, amountCents: number): Pr
   }
 
   try {
-    return await placeBid({ auctionId, bidderId, amountCents });
+    return await placeBid({ auctionId, bidderId, maxBidCents });
   } catch (err) {
     console.error("placeBidAction: unexpected error", err);
     return { success: false, error: "Something went wrong while placing your bid. Please try again." };

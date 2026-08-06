@@ -45,6 +45,8 @@ export async function createAuctionFromListingInput(
         metal: data.metal,
         startingPriceCents: data.priceCents,
         bidIncrementCents: Math.max(5_000, Math.round(data.priceCents * 0.02)),
+        reservePriceCents: data.reservePriceCents ?? null,
+        isReserveMet: false,
         startsAt: now,
         endsAt,
         status: AuctionStatus.LIVE,

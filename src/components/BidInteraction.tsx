@@ -23,8 +23,9 @@ import { formatZarCents, randsToCents } from "@/lib/utils/currency";
 import { cn } from "@/lib/utils";
 
 /**
- * Frictionless auction bidding panel: status banner, SA quick-increment buttons,
- * custom max-bid input, and a confirmation modal before placing a legally binding bid.
+ * Frictionless auction bidding panel with proxy / max bidding:
+ * SA quick-increment buttons set a max equal to the tapped amount;
+ * the custom field is the bidder's confidential ceiling.
  */
 export function BidInteraction({
   auctionId,
@@ -36,6 +37,9 @@ export function BidInteraction({
   phaseLabel,
   disabled,
   leadingBidderName,
+  hasReserve,
+  isReserveMet,
+  saleOutcome,
 }: {
   auctionId: string;
   currentBidCents: number;
@@ -46,6 +50,9 @@ export function BidInteraction({
   phaseLabel: "Ends in" | "Starts in" | "Ended";
   disabled?: boolean;
   leadingBidderName?: string | null;
+  hasReserve?: boolean;
+  isReserveMet?: boolean;
+  saleOutcome?: "WINNER" | "RESERVE_NOT_MET" | "NO_BIDS" | "LIVE" | "CANCELLED";
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -73,9 +80,13 @@ export function BidInteraction({
         toast.error(result.error);
         return;
       }
-      toast.success("Bid placed!");
+      if (result.outbid) {
+        toast.message("Your max was outbid by another bidder's proxy ceiling.");
+      } else {
+        toast.success("Max bid placed — you're leading (proxy bidding active).");
+      }
       setConfirmCents(null);
-      setCustomRands(((confirmCents + bidIncrementCents) / 100).toFixed(2));
+      setCustomRands((((result.currentBidCents ?? confirmCents) + bidIncrementCents) / 100).toFixed(2));
       router.refresh();
     });
   }
@@ -93,6 +104,19 @@ export function BidInteraction({
             </p>
             {leadingBidderName && (
               <span className="text-xs text-slate-400">Leading: {leadingBidderName}</span>
+            )}
+            {hasReserve && (
+              <span
+                className={cn(
+                  "mt-1 w-fit rounded px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase",
+                  isReserveMet ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300",
+                )}
+              >
+                {isReserveMet ? "Reserve met" : "Reserve not met"}
+              </span>
+            )}
+            {saleOutcome === "RESERVE_NOT_MET" && (
+              <span className="text-sm text-amber-300">Auction ended — reserve price was not met.</span>
             )}
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
@@ -114,7 +138,7 @@ export function BidInteraction({
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Quick bid</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Quick max bid</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {quickBids.map((amountCents) => (
             <Button
@@ -125,7 +149,7 @@ export function BidInteraction({
               onClick={() => openConfirm(amountCents)}
               className="h-11 border-slate-700 font-semibold hover:border-amber-500 hover:bg-amber-500/10"
             >
-              Bid {formatZarCents(amountCents)}
+              Max {formatZarCents(amountCents)}
             </Button>
           ))}
         </div>
@@ -133,7 +157,7 @@ export function BidInteraction({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="custom-bid" className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Custom max bid (ZAR)
+          Your maximum bid (ZAR) — proxy bidding
         </Label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
@@ -157,27 +181,27 @@ export function BidInteraction({
             )}
           >
             <GavelIcon className="size-4" aria-hidden />
-            Place Bid
+            Set Max Bid
           </Button>
         </div>
         {!customValid && customRands !== "" && (
           <p className="text-xs text-destructive">
-            Your bid must be at least {formatZarCents(minimumNextBidCents)} (current high + minimum increment).
+            Your maximum must be at least {formatZarCents(minimumNextBidCents)} (current high + minimum increment).
           </p>
         )}
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <ShieldIcon className="size-3.5 text-emerald-600" aria-hidden />
-          Minimum next bid: {formatZarCents(minimumNextBidCents)}
+          We&apos;ll bid up to your max in {formatZarCents(bidIncrementCents)} steps — your ceiling stays private.
         </p>
       </div>
 
       <Dialog open={confirmCents != null} onOpenChange={(open) => !open && setConfirmCents(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm your bid</DialogTitle>
+            <DialogTitle>Confirm your maximum bid</DialogTitle>
             <DialogDescription>
               {confirmCents != null
-                ? `Confirm bid of ${formatZarCents(confirmCents)}? This is a legally binding commitment.`
+                ? `Set a confidential max of ${formatZarCents(confirmCents)}? Proxy bidding will raise the visible bid only as far as needed to keep you ahead. This is a legally binding commitment up to that amount.`
                 : null}
             </DialogDescription>
           </DialogHeader>
@@ -192,7 +216,7 @@ export function BidInteraction({
               className="bg-amber-500 font-bold text-black hover:bg-amber-400"
             >
               {isPending && <Loader2Icon className="animate-spin" aria-hidden />}
-              Confirm bid
+              Confirm max bid
             </Button>
           </DialogFooter>
         </DialogContent>

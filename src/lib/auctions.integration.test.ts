@@ -69,7 +69,7 @@ describe("placeBid (integration)", () => {
     const bidder = await makeUser();
     const auction = await makeAuction(seller.id, { startingPriceCents: 1_000_00 });
 
-    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, amountCents: 1_000_00 });
+    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, maxBidCents: 1_000_00 });
     expect(result.success).toBe(true);
 
     const updated = await db.auction.findUnique({ where: { id: auction.id } });
@@ -83,7 +83,7 @@ describe("placeBid (integration)", () => {
     const bidder = await makeUser();
     const auction = await makeAuction(seller.id, { startingPriceCents: 1_000_00 });
 
-    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, amountCents: 900_00 });
+    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, maxBidCents: 900_00 });
     expect(result.success).toBe(false);
   });
 
@@ -94,12 +94,12 @@ describe("placeBid (integration)", () => {
     const bidderB = await makeUser();
     const auction = await makeAuction(seller.id, { startingPriceCents: 1_000_00, bidIncrementCents: 50_00 });
 
-    await placeBid({ auctionId: auction.id, bidderId: bidderA.id, amountCents: 1_000_00 });
+    await placeBid({ auctionId: auction.id, bidderId: bidderA.id, maxBidCents: 1_000_00 });
 
-    const tooLow = await placeBid({ auctionId: auction.id, bidderId: bidderB.id, amountCents: 1_020_00 });
+    const tooLow = await placeBid({ auctionId: auction.id, bidderId: bidderB.id, maxBidCents: 1_020_00 });
     expect(tooLow.success).toBe(false);
 
-    const valid = await placeBid({ auctionId: auction.id, bidderId: bidderB.id, amountCents: 1_050_00 });
+    const valid = await placeBid({ auctionId: auction.id, bidderId: bidderB.id, maxBidCents: 1_050_00 });
     expect(valid.success).toBe(true);
   });
 
@@ -108,7 +108,7 @@ describe("placeBid (integration)", () => {
     const seller = await makeUser();
     const auction = await makeAuction(seller.id);
 
-    const result = await placeBid({ auctionId: auction.id, bidderId: seller.id, amountCents: 1_000_00 });
+    const result = await placeBid({ auctionId: auction.id, bidderId: seller.id, maxBidCents: 1_000_00 });
     expect(result.success).toBe(false);
   });
 
@@ -122,7 +122,7 @@ describe("placeBid (integration)", () => {
       endsAt: new Date(now - 60 * 1000),
     });
 
-    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, amountCents: 1_000_00 });
+    const result = await placeBid({ auctionId: auction.id, bidderId: bidder.id, maxBidCents: 1_000_00 });
     expect(result.success).toBe(false);
   });
 
@@ -134,8 +134,8 @@ describe("placeBid (integration)", () => {
     const bidderB = await makeUser();
     const auction = await makeAuction(seller.id, { startingPriceCents: 1_000_00, bidIncrementCents: 50_00 });
 
-    await placeBid({ auctionId: auction.id, bidderId: bidderA.id, amountCents: 1_000_00 });
-    await placeBid({ auctionId: auction.id, bidderId: bidderB.id, amountCents: 1_050_00 });
+    await placeBid({ auctionId: auction.id, bidderId: bidderA.id, maxBidCents: 1_000_00 });
+    await placeBid({ auctionId: auction.id, bidderId: bidderB.id, maxBidCents: 1_050_00 });
 
     const bids = await db.bid.findMany({ where: { auctionId: auction.id } });
     expect(bids).toHaveLength(2);

@@ -83,7 +83,10 @@ interface WizardState {
   saleFormat: SaleFormat;
   priceRands: string;
   acceptsOffers: boolean;
+  minOfferRands: string;
+  autoAcceptRands: string;
   auctionEndsInDays: string;
+  reservePriceRands: string;
 }
 
 const INITIAL: WizardState = {
@@ -105,7 +108,10 @@ const INITIAL: WizardState = {
   saleFormat: "FIXED",
   priceRands: "",
   acceptsOffers: true,
+  minOfferRands: "",
+  autoAcceptRands: "",
   auctionEndsInDays: "7",
+  reservePriceRands: "",
 };
 
 function placeholderImage(seed: string) {
@@ -245,8 +251,20 @@ export function ListingWizard({
         packageHeightCm: state.packageHeightCm ? Number(state.packageHeightCm) : undefined,
         priceCents,
         acceptsOffers: state.saleFormat === "FIXED" ? state.acceptsOffers : false,
+        minOfferPriceCents:
+          state.saleFormat === "FIXED" && state.acceptsOffers && state.minOfferRands
+            ? randsToCents(Number(state.minOfferRands))
+            : undefined,
+        autoAcceptPriceCents:
+          state.saleFormat === "FIXED" && state.acceptsOffers && state.autoAcceptRands
+            ? randsToCents(Number(state.autoAcceptRands))
+            : undefined,
         saleFormat: state.saleFormat,
         auctionEndsInDays: state.saleFormat === "AUCTION" ? Number(state.auctionEndsInDays) : undefined,
+        reservePriceCents:
+          state.saleFormat === "AUCTION" && state.reservePriceRands
+            ? randsToCents(Number(state.reservePriceRands))
+            : undefined,
         images,
         coverImageUrl: cover || undefined,
         obverseImageUrl: obverse || undefined,
@@ -577,38 +595,79 @@ export function ListingWizard({
               </div>
 
               {state.saleFormat === "AUCTION" && (
-                <div className="flex flex-col gap-1.5">
-                  <Label>Auction duration (days)</Label>
-                  <Select
-                    value={state.auctionEndsInDays}
-                    onValueChange={(v) => v && update("auctionEndsInDays", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["3", "5", "7", "10", "14"].map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {d} days
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Auction duration (days)</Label>
+                    <Select
+                      value={state.auctionEndsInDays}
+                      onValueChange={(v) => v && update("auctionEndsInDays", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["3", "5", "7", "10", "14"].map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d} days
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="reserve">Hidden reserve price (ZAR, optional)</Label>
+                    <Input
+                      id="reserve"
+                      inputMode="decimal"
+                      value={state.reservePriceRands}
+                      onChange={(e) => update("reservePriceRands", e.target.value)}
+                      placeholder="Leave blank for no reserve"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Buyers only see whether the reserve is met — never the amount.
+                    </p>
+                  </div>
+                </>
               )}
 
               {state.saleFormat === "FIXED" && (
-                <div className="flex items-center justify-between rounded-lg border px-3 py-3">
-                  <div>
-                    <div className="text-sm font-medium">Accept offers</div>
-                    <div className="text-xs text-muted-foreground">
-                      Minimum offer locked at 70% of asking price
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between rounded-lg border px-3 py-3">
+                    <div>
+                      <div className="text-sm font-medium">Accept offers</div>
+                      <div className="text-xs text-muted-foreground">
+                        Platform floor is 70% of asking; optional seller min/auto-accept below.
+                      </div>
                     </div>
+                    <Switch
+                      checked={state.acceptsOffers}
+                      onCheckedChange={(checked) => update("acceptsOffers", checked)}
+                    />
                   </div>
-                  <Switch
-                    checked={state.acceptsOffers}
-                    onCheckedChange={(checked) => update("acceptsOffers", checked)}
-                  />
+                  {state.acceptsOffers && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="min-offer">Auto-decline below (ZAR)</Label>
+                        <Input
+                          id="min-offer"
+                          inputMode="decimal"
+                          value={state.minOfferRands}
+                          onChange={(e) => update("minOfferRands", e.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="auto-accept">Auto-accept at/above (ZAR)</Label>
+                        <Input
+                          id="auto-accept"
+                          inputMode="decimal"
+                          value={state.autoAcceptRands}
+                          onChange={(e) => update("autoAcceptRands", e.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

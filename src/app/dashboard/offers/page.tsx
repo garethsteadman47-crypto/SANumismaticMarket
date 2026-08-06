@@ -19,6 +19,7 @@ const STATUS_BADGE: Record<OfferStatus, { label: string; className: string }> = 
   ACCEPTED: { label: "Accepted", className: "bg-emerald-600 text-white hover:bg-emerald-600" },
   DECLINED: { label: "Declined", className: "bg-secondary text-secondary-foreground" },
   WITHDRAWN: { label: "Withdrawn", className: "bg-secondary text-secondary-foreground" },
+  EXPIRED: { label: "Expired", className: "bg-secondary text-secondary-foreground" },
 };
 
 export default async function SellerOffersDashboard() {

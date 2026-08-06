@@ -167,8 +167,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 image={listing.images[0] ?? null}
                 disabled={buyingDisabled}
               />
-              {!acceptedOffer && !openOffer && (
-                <MakeOfferModal listingId={listing.id} listingPriceCents={listing.priceCents} disabled={buyingDisabled} />
+              {!acceptedOffer && !openOffer && listing.acceptsOffers && (
+                <MakeOfferModal
+                  listingId={listing.id}
+                  listingPriceCents={listing.priceCents}
+                  minOfferPriceCents={listing.minOfferPriceCents}
+                  disabled={buyingDisabled}
+                />
               )}
             </div>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

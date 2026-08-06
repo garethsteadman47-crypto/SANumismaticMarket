@@ -107,6 +107,8 @@ export async function createListing(sellerId: string, input: CreateListingInput)
           purityPercent: data.purityPercent,
           priceCents: data.priceCents,
           acceptsOffers: data.acceptsOffers ?? true,
+          minOfferPriceCents: data.acceptsOffers ? (data.minOfferPriceCents ?? null) : null,
+          autoAcceptPriceCents: data.acceptsOffers ? (data.autoAcceptPriceCents ?? null) : null,
           images: uniqueImages.length > 0 ? uniqueImages : data.images,
           coverImageUrl: data.coverImageUrl || null,
           obverseImageUrl: data.obverseImageUrl || null,
