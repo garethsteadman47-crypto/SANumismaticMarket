@@ -53,8 +53,8 @@ describe("bulk-listings CSV", () => {
 
   it("rejects graded rows missing certificate fields", () => {
     const csv = [
-      "title,priceRands,listingType,gradingCompany,coverImageUrl",
-      `Graded Pond,5000,GRADED,NGC,https://example.com/c.jpg`,
+      "title,category,priceRands,listingType,gradingCompany,coverImageUrl",
+      `Graded Pond,COINS,5000,GRADED,NGC,https://example.com/c.jpg`,
     ].join("\n");
     const result = parseBulkListingsCsv(csv);
     expect(result.rows).toHaveLength(0);
