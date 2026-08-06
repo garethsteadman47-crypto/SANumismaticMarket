@@ -19,6 +19,11 @@ export const dynamic = "force-dynamic";
 const RECENT_TAKE = 8;
 const FEATURED_AUCTIONS_TAKE = 6;
 
+/**
+ * Homepage — promo strip, then the premium 3D-coin hero (`HomeHero` /
+ * `HeroCoinBackground`), live auction ticker, and catalog modules.
+ */
+
 export default async function HomePage() {
   const now = new Date();
 
