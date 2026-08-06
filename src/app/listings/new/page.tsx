@@ -22,7 +22,7 @@ export default async function NewListingPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
       <NewListingEntry sellerTier={sellerTier} canBulkImport={canBulkImport} />
     </main>
   );

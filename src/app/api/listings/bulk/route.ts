@@ -1,6 +1,10 @@
 import { BulkImportStatus, SubscriptionTier } from "@prisma/client";
 
-import { draftRowToCreateListingInput, type BulkDraftRow } from "@/lib/bulk-listings";
+import {
+  draftRowToCreateListingInput,
+  type BulkDraftRow,
+  type MediaSlotId,
+} from "@/lib/bulk-listings";
 import { createListing } from "@/lib/listings";
 import { db } from "@/lib/db";
 import { jsonCreated, jsonError, isNextResponse } from "@/lib/api/http";
@@ -10,9 +14,15 @@ export const dynamic = "force-dynamic";
 
 const MAX_BULK_ROWS = 100;
 
+type BulkPublishRow = BulkDraftRow & {
+  /** Pre-uploaded HTTPS URLs from the photo-pool wizard. */
+  mediaUrls?: Partial<Record<MediaSlotId, string>>;
+};
+
 /**
  * POST /api/listings/bulk — publish validated draft rows from the BulkUploadWizard.
- * Body: `{ filename?: string, rows: BulkDraftRow[] }`
+ * Body: `{ filename?: string, rows: BulkPublishRow[] }`
+ * Rows should include uploaded media URLs (cover/obverse/reverse/slab) after client-side upload.
  */
 export async function POST(request: Request) {
   const user = await requireApiUser();
@@ -35,9 +45,9 @@ export async function POST(request: Request) {
     return jsonError("Bulk CSV import is available for Dealer and Gold members.", 403);
   }
 
-  let body: { filename?: string; rows?: BulkDraftRow[] };
+  let body: { filename?: string; rows?: BulkPublishRow[] };
   try {
-    body = (await request.json()) as { filename?: string; rows?: BulkDraftRow[] };
+    body = (await request.json()) as { filename?: string; rows?: BulkPublishRow[] };
   } catch {
     return jsonError("Invalid JSON body.", 400);
   }
@@ -66,7 +76,16 @@ export async function POST(request: Request) {
   const errors: { row: number; message: string }[] = [];
 
   for (const draft of rows) {
-    const mapped = draftRowToCreateListingInput(draft);
+    const resolved =
+      draft.mediaUrls ??
+      ({
+        cover: draft.coverImageUrl || undefined,
+        obverse: draft.obverseImageUrl || undefined,
+        reverse: draft.reverseImageUrl || undefined,
+        slab: draft.slabImageUrl || undefined,
+      } satisfies Partial<Record<MediaSlotId, string>>);
+
+    const mapped = draftRowToCreateListingInput(draft, resolved);
     if ("error" in mapped) {
       errors.push({ row: draft.sourceRow ?? 0, message: mapped.error });
       continue;
