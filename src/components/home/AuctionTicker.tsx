@@ -72,10 +72,10 @@ export function AuctionTicker({ auctions }: { auctions: AuctionTickerItem[] }) {
                   <p className="font-sans text-sm font-semibold text-amber-400">
                     {formatZarCents(auction.currentBidCents)}
                   </p>
-                  <div className="mt-0.5 flex items-center justify-between gap-2 text-slate-400">
-                    <AuctionCountdown targetIso={auction.endsAtIso} label="Ends" />
+                  <div className="mt-0.5 flex items-center justify-between gap-2 text-slate-300">
+                    <AuctionCountdown targetIso={auction.endsAtIso} label="Ends" onDark />
                     {auction.bidCount > 0 && (
-                      <span className="shrink-0 text-[0.7rem]">{auction.bidCount} bids</span>
+                      <span className="shrink-0 text-[0.7rem] text-slate-300">{auction.bidCount} bids</span>
                     )}
                   </div>
                 </div>

@@ -33,12 +33,15 @@ export function AuctionCountdown({
   label,
   className,
   prominent = false,
+  /** Use light-on-dark colours (for slate/black panels). Avoids black `text-foreground` on dark backgrounds. */
+  onDark = false,
 }: {
   targetIso: string;
   label?: string;
   className?: string;
   /** Larger type for cards / status banners. */
   prominent?: boolean;
+  onDark?: boolean;
 }) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -56,10 +59,16 @@ export function AuctionCountdown({
       className={cn(
         "inline-flex items-center gap-1.5 font-medium",
         prominent ? "text-sm sm:text-base" : "text-sm",
-        urgency === "amber" && "text-amber-500 [text-shadow:0_0_12px_rgba(245,158,11,0.45)]",
-        urgency === "critical" && "animate-pulse text-red-500",
-        urgency === "ended" && "text-muted-foreground",
-        urgency === "normal" && "text-foreground",
+        // Default / light surfaces
+        !onDark && urgency === "normal" && "text-foreground",
+        !onDark && urgency === "amber" && "text-amber-600",
+        !onDark && urgency === "critical" && "animate-pulse text-red-600",
+        !onDark && urgency === "ended" && "text-muted-foreground",
+        // Dark panels (current-bid banner, ticker, etc.)
+        onDark && urgency === "normal" && "text-white",
+        onDark && urgency === "amber" && "text-amber-300 [text-shadow:0_0_12px_rgba(252,211,77,0.35)]",
+        onDark && urgency === "critical" && "animate-pulse text-red-300",
+        onDark && urgency === "ended" && "text-slate-400",
         className,
       )}
     >

@@ -99,11 +99,11 @@ export function BidInteraction({
             <span className="text-xs font-semibold tracking-[0.16em] text-amber-400 uppercase">
               {hasBids ? "Current Bid" : "Starting Bid"}
             </span>
-            <p className="font-heading text-4xl font-bold tracking-tight tabular-nums">
+            <p className="font-heading text-4xl font-bold tracking-tight text-white tabular-nums">
               {formatZarCents(currentBidCents)}
             </p>
             {leadingBidderName && (
-              <span className="text-xs text-slate-400">Leading: {leadingBidderName}</span>
+              <span className="text-xs text-slate-300">Leading: {leadingBidderName}</span>
             )}
             {hasReserve && (
               <span
@@ -120,16 +120,17 @@ export function BidInteraction({
             )}
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
-            <span className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
+            <span className="text-xs font-semibold tracking-[0.16em] text-slate-300 uppercase">
               Time Remaining
             </span>
             {phaseLabel === "Ended" ? (
-              <span className="text-lg font-semibold text-slate-400">Auction ended</span>
+              <span className="text-lg font-semibold text-slate-300">Auction ended</span>
             ) : (
               <AuctionCountdown
                 targetIso={endsAtIso}
                 label={phaseLabel === "Starts in" ? "Starts in:" : "Ending in:"}
                 prominent
+                onDark
                 className="text-lg sm:text-xl"
               />
             )}
