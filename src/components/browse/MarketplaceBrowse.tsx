@@ -66,7 +66,6 @@ export function MarketplaceBrowse({
     auctionTotal: number;
     listingTotalPages: number;
     auctionTotalPages: number;
-    hrefForPage: (page: number) => string;
   };
 }) {
   const router = useRouter();
@@ -79,6 +78,17 @@ export function MarketplaceBrowse({
   const activeTab = resolveTab(filters.formats);
   const sortOrder = resolveBrowseSort({ ...filters, formats: tabFormats(activeTab) });
   const [searchDraft, setSearchDraft] = useState(filters.q ?? "");
+
+  // Build pagination hrefs on the client — functions cannot cross the RSC boundary.
+  function hrefForPage(nextPage: number) {
+    const qs = serializeBrowseFilters({
+      ...filters,
+      formats: tabFormats(activeTab),
+      sort: sortOrder,
+      page: nextPage,
+    });
+    return qs ? `${BASE_PATH}?${qs}` : BASE_PATH;
+  }
 
   useEffect(() => {
     setSearchDraft(filters.q ?? "");
@@ -263,7 +273,7 @@ export function MarketplaceBrowse({
             pagination={{
               page: pagination.page,
               totalPages,
-              hrefForPage: pagination.hrefForPage,
+              hrefForPage,
             }}
           />
         </div>

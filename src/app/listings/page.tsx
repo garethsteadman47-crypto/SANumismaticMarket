@@ -10,7 +10,6 @@ import {
   buildListingWhere,
   parseBrowseFilters,
   resolveBrowseSort,
-  serializeBrowseFilters,
 } from "@/lib/browse-filters";
 import { toBrowseItemFromAuction, toBrowseItemFromListing } from "@/lib/browse";
 import { browseItemToListingCard } from "@/lib/marketplace-catalog";
@@ -89,11 +88,6 @@ export default async function BuyCoinsPage({
   const listingTotalPages = Math.max(1, Math.ceil(listingTotal / BROWSE_PAGE_SIZE));
   const auctionTotalPages = Math.max(1, Math.ceil(auctionTotal / BROWSE_PAGE_SIZE));
 
-  function hrefForPage(nextPage: number) {
-    const qs = serializeBrowseFilters({ ...filters, sort, page: nextPage });
-    return qs ? `/listings?${qs}` : "/listings";
-  }
-
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-1">
@@ -120,7 +114,6 @@ export default async function BuyCoinsPage({
             auctionTotal,
             listingTotalPages,
             auctionTotalPages,
-            hrefForPage,
           }}
         />
       </Suspense>
