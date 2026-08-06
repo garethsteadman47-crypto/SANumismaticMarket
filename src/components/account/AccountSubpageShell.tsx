@@ -3,11 +3,13 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   HeartIcon,
+  InboxIcon,
   PackageIcon,
   SettingsIcon,
   ShoppingBagIcon,
   TagIcon,
   UserIcon,
+  WalletIcon,
 } from "lucide-react";
 
 import { SITE_NAME } from "@/lib/constants";
@@ -15,9 +17,11 @@ import { cn } from "@/lib/utils";
 
 const ACCOUNT_SUBNAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/account", label: "Profile", icon: UserIcon },
+  { href: "/account/inbox", label: "Inbox", icon: InboxIcon },
   { href: "/account/orders", label: "Orders", icon: PackageIcon },
   { href: "/account/purchases", label: "Purchases", icon: ShoppingBagIcon },
   { href: "/account/sales", label: "Sales", icon: TagIcon },
+  { href: "/account/payouts", label: "Payouts", icon: WalletIcon },
   { href: "/account/wishlist", label: "Wishlist", icon: HeartIcon },
   { href: "/account/settings", label: "Settings", icon: SettingsIcon },
 ];

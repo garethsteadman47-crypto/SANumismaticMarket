@@ -26,33 +26,35 @@ export function BrowseItemCard({ item, wishlisted = false }: { item: BrowseItem;
             "border-slate-700 bg-gradient-to-b from-slate-900/[0.03] to-transparent transition-colors hover:border-amber-500 dark:from-slate-100/[0.03]",
         )}
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+        <div className="aspect-square bg-slate-900/60 rounded-lg relative overflow-hidden p-2">
           {item.image ? (
-            <ListingImage
-              src={item.image}
-              alt={item.title}
-              fill
-              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-              className="object-cover transition-transform group-hover:scale-105"
-            />
+            <div className="relative size-full">
+              <ListingImage
+                src={item.image}
+                alt={item.title}
+                fill
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                className="object-contain w-full h-full transition-transform group-hover:scale-105"
+              />
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
               <ImageOffIcon className="size-8" />
             </div>
           )}
           {item.shieldAwarded && (
-            <div className="absolute top-2 left-2">
+            <div className="absolute top-2 left-2 z-10">
               <ShieldBadge />
             </div>
           )}
           {isAuction && (
-            <Badge className="absolute bottom-2 left-2 gap-1 bg-black/70 text-white hover:bg-black/70">
+            <Badge className="absolute bottom-2 left-2 z-10 gap-1 bg-black/70 text-white hover:bg-black/70">
               <GavelIcon className="size-3" aria-hidden />
               {item.auctionPhase === "LIVE" ? "Live" : "Upcoming"}
             </Badge>
           )}
           {item.kind === "listing" && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 z-10">
               <WishlistToggle listingId={item.id} initialWishlisted={wishlisted} />
             </div>
           )}

@@ -292,6 +292,8 @@ model User {
 
   // Seller accolades — surfaced via `SellerBadges` on cards and PDPs.
   isSaandDealer       Boolean @default(false)
+  /// Marketplace-verified dealer badge (manual or KYC-backed).
+  isVerified          Boolean @default(false)
   isCoinClubMember    Boolean @default(false)
   completedSalesCount Int     @default(0)
 
@@ -327,11 +329,16 @@ model User {
   wantedItems   WantedItem[]
   bulkListingImports BulkListingImport[]
 
+  buyerConversations  Conversation[] @relation("BuyerConversations")
+  sellerConversations Conversation[] @relation("SellerConversations")
+  sentMessages        Message[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([subscriptionTier])
+  @@index([isVerified])
 }
 
 model Subscription {
@@ -464,6 +471,7 @@ model Listing {
   adPlacements  AdPlacement[]
   offers        Offer[]
   wishlistItems WishlistItem[]
+  conversations Conversation[]
 
   viewCount Int @default(0)
 
@@ -925,6 +933,41 @@ model ContactMessage {
 
   @@index([createdAt])
   @@index([subject])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Listing Q&A / safety inbox (buyer ↔ seller, listing-scoped)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  listingId String?  @db.ObjectId
+  listing   Listing? @relation(fields: [listingId], references: [id])
+  buyerId   String   @db.ObjectId
+  buyer     User     @relation("BuyerConversations", fields: [buyerId], references: [id])
+  sellerId  String   @db.ObjectId
+  seller    User     @relation("SellerConversations", fields: [sellerId], references: [id])
+  messages  Message[]
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([buyerId, updatedAt])
+  @@index([sellerId, updatedAt])
+  @@index([listingId, buyerId])
+}
+
+model Message {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId String       @db.ObjectId
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @db.ObjectId
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

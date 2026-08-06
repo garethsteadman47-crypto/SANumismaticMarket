@@ -26,6 +26,7 @@ import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
 import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
 import { OfferStatusAlert } from "@/components/offers/OfferStatusAlert";
 import { AddToCartButton } from "@/components/cart/AddToCartButton";
+import { AskQuestionModal } from "@/components/messaging/AskQuestionModal";
 import { ListingGrid } from "@/components/ListingGrid";
 import { BuyerOrderSummary } from "@/components/checkout/BuyerOrderSummary";
 import { getSimilarListings } from "@/lib/similar-listings";
@@ -210,6 +211,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   listingPriceCents={listing.priceCents}
                   minOfferPriceCents={listing.minOfferPriceCents}
                   disabled={buyingDisabled}
+                />
+              )}
+              {!isOwnListing && (
+                <AskQuestionModal
+                  listingId={listing.id}
+                  listingTitle={listing.title}
+                  sellerName={listing.seller.name}
+                  isSignedIn={Boolean(session?.user?.id)}
+                  disabled={isSoldOut}
                 />
               )}
             </div>

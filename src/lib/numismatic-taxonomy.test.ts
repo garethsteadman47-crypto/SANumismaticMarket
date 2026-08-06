@@ -93,4 +93,14 @@ describe("buildTaxonomyListingWhere", () => {
     const where = buildTaxonomyListingWhere(predicate);
     expect(where.OR || where.category).toBeTruthy();
   });
+
+  it("includes International Coins & Banknotes with country leaves", () => {
+    expect(getTaxonomyNode("international")).toBeTruthy();
+    expect(getTaxonomyNode("intl-great-britain")).toBeTruthy();
+    expect(getTaxonomyNode("intl-united-states")).toBeTruthy();
+    expect(getTaxonomyNode("intl-germany-notgeld")).toBeTruthy();
+    expect(getTaxonomyNode("intl-belarus")).toBeTruthy();
+    expect(getTaxonomyNode("intl-cuba")).toBeTruthy();
+    expect(getTaxonomyNode("intl-rest-of-world")).toBeTruthy();
+  });
 });

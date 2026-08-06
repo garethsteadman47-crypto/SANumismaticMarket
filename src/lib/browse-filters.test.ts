@@ -31,9 +31,19 @@ describe("parseBrowseFilters", () => {
       minPriceRands: undefined,
       maxPriceRands: undefined,
       formats: [],
+      itemType: undefined,
+      verifiedOnly: undefined,
       sort: undefined,
       page: 1,
     });
+  });
+
+  it("parses itemType and verifiedOnly", () => {
+    expect(parseBrowseFilters({ itemType: "COINS", verifiedOnly: "true" })).toMatchObject({
+      itemType: "COINS",
+      verifiedOnly: true,
+    });
+    expect(parseBrowseFilters({ itemType: "banknotes" }).itemType).toBe("BANKNOTES");
   });
 
   it("parses comma-separated multi-value params", () => {
@@ -102,9 +112,20 @@ describe("serializeBrowseFilters + isAnyFilterActive round-trip", () => {
 });
 
 describe("buildListingWhere", () => {
-  it("returns a base ACTIVE-status where clause with no filters", () => {
-    const where = buildListingWhere(parseBrowseFilters({}));
-    expect(where).toEqual({ AND: [{ status: "ACTIVE" }] });
+  it("adds verified dealer seller filter when verifiedOnly=true", () => {
+    const where = buildListingWhere(parseBrowseFilters({ verifiedOnly: "true" }));
+    expect(where?.AND).toContainEqual({
+      seller: {
+        is: {
+          OR: [{ isVerified: true }, { subscriptionTier: { in: ["SILVER", "GOLD"] } }],
+        },
+      },
+    });
+  });
+
+  it("filters banknotes via itemType", () => {
+    const where = buildListingWhere(parseBrowseFilters({ itemType: "BANKNOTES" }));
+    expect(where?.AND).toContainEqual({ category: "BANKNOTES" });
   });
 
   it("returns null when only Live Auctions is selected as the buying format", () => {

@@ -3,11 +3,14 @@
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CategoryTree } from "@/components/browse/CategoryTree";
+import { ListingFilters } from "@/components/ListingFilters";
+import { Separator } from "@/components/ui/separator";
 import { HISTORICAL_ERA_IDS } from "@/lib/numismatic-taxonomy";
 
 /**
  * Shared category taxonomy sidebar for the unified marketplace.
- * Primary navigation is the six strict South African historical eras.
+ * Primary navigation is the six strict South African historical eras,
+ * followed by International Coins & Banknotes and secondary sections.
  * Selecting a node updates `?category=` + `?taxonomy=` while preserving
  * the active Buy Now / Live Auctions tab, search query, and sort order.
  * Page resets to 1 on category change.
@@ -15,13 +18,17 @@ import { HISTORICAL_ERA_IDS } from "@/lib/numismatic-taxonomy";
 export function Sidebar({ basePath }: { basePath: string }) {
   return (
     <div className="flex flex-col gap-5">
+      <ListingFilters basePath={basePath} />
+
+      <Separator />
+
       <div className="flex flex-col gap-1 px-1">
-        <h3 className="text-sm font-semibold">Historical eras</h3>
+        <h3 className="text-sm font-semibold">Categories</h3>
         <p className="text-xs text-muted-foreground">
-          ZAR → Union → Decimal periods. Featured lots only rise within the era you select.
+          SA historical eras, international coins and banknotes, bullion, and sets.
         </p>
       </div>
-      <CategoryTree basePath={basePath} preferredRootIds={[...HISTORICAL_ERA_IDS]} />
+      <CategoryTree basePath={basePath} preferredRootIds={[...HISTORICAL_ERA_IDS, "international"]} />
     </div>
   );
 }

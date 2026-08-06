@@ -11,7 +11,7 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-muted text-muted-foreground">
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-slate-900/60 text-muted-foreground">
         <ImageOffIcon className="size-10" />
       </div>
     );
@@ -19,15 +19,17 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
-        <ListingImage
-          src={images[activeIndex]}
-          alt={title}
-          fill
-          priority
-          sizes="(min-width: 1024px) 40vw, 90vw"
-          className="object-cover"
-        />
+      <div className="aspect-square bg-slate-900/60 rounded-lg relative overflow-hidden p-2">
+        <div className="relative size-full">
+          <ListingImage
+            src={images[activeIndex]}
+            alt={title}
+            fill
+            priority
+            sizes="(min-width: 1024px) 40vw, 90vw"
+            className="object-contain w-full h-full"
+          />
+        </div>
       </div>
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">
@@ -37,12 +39,12 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
               type="button"
               onClick={() => setActiveIndex(index)}
               className={cn(
-                "relative size-16 shrink-0 overflow-hidden rounded-md border-2 transition-colors",
+                "aspect-square relative size-16 shrink-0 overflow-hidden rounded-md border-2 bg-slate-900/60 p-1 transition-colors",
                 index === activeIndex ? "border-primary" : "border-transparent"
               )}
               aria-label={`View photo ${index + 1}`}
             >
-              <ListingImage src={src} alt="" fill className="object-cover" />
+              <ListingImage src={src} alt="" fill className="object-contain w-full h-full" />
             </button>
           ))}
         </div>

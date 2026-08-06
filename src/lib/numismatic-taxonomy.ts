@@ -17,7 +17,8 @@ export type TaxonomyIconName =
   | "Award"
   | "ScrollText"
   | "AlertTriangle"
-  | "Cat";
+  | "Cat"
+  | "Globe";
 
 export interface TaxonomyPredicate {
   categories?: ListingCategory[];
@@ -27,9 +28,27 @@ export interface TaxonomyPredicate {
   maxYear?: number;
   keywordsAny?: string[];
   nonSouthAfrican?: boolean;
+  /** Exact country name matches on Listing.country. */
+  countries?: string[];
+  /** Exclude these country names (e.g. Rest of World). */
+  countriesExclude?: string[];
   /** Exact subcategory ids (era or leaf) to match on Listing.subcategory. */
   subcategories?: string[];
 }
+
+/** Countries covered by named International taxonomy leaves (excl. Rest of World). */
+export const INTERNATIONAL_NAMED_COUNTRIES = [
+  "Great Britain",
+  "United Kingdom",
+  "UK",
+  "United States",
+  "USA",
+  "US",
+  "Germany",
+  "Belarus",
+  "Cuba",
+  "South Africa",
+] as const;
 
 export interface TaxonomyNode {
   id: string;
@@ -220,6 +239,68 @@ export const TAXONOMY_TREE: TaxonomyNode[] = [
     })),
   },
   {
+    id: "international",
+    label: "International Coins and Banknotes",
+    icon: "Globe",
+    predicate: {
+      categories: [ListingCategory.COINS, ListingCategory.BANKNOTES],
+      nonSouthAfrican: true,
+      subcategories: ["international"],
+    },
+    children: [
+      child(
+        "intl-great-britain",
+        "Great Britain",
+        ["britain", "british", "uk", "england", "scotland", "wales", "pound", "sovereign"],
+        {
+          countries: ["Great Britain", "United Kingdom", "UK"],
+          nonSouthAfrican: true,
+          icon: "Landmark",
+        },
+      ),
+      child(
+        "intl-united-states",
+        "United States",
+        ["united states", "usa", "american", "dollar", "eagle", "morgan", "peace dollar"],
+        {
+          countries: ["United States", "USA", "US"],
+          nonSouthAfrican: true,
+          icon: "Landmark",
+        },
+      ),
+      child(
+        "intl-germany-notgeld",
+        "Germany and Notgeld",
+        ["germany", "german", "notgeld", "weimar", "reichsmark", "deutsche mark"],
+        {
+          countries: ["Germany"],
+          nonSouthAfrican: true,
+          icon: "ScrollText",
+        },
+      ),
+      child("intl-belarus", "Belarus", ["belarus", "belarusian", "ruble", "rouble"], {
+        countries: ["Belarus"],
+        nonSouthAfrican: true,
+        icon: "Banknote",
+      }),
+      child("intl-cuba", "Cuba", ["cuba", "cuban", "peso"], {
+        countries: ["Cuba"],
+        nonSouthAfrican: true,
+        icon: "Banknote",
+      }),
+      child(
+        "intl-rest-of-world",
+        "Rest of World",
+        ["world", "foreign", "international", "overseas"],
+        {
+          countriesExclude: [...INTERNATIONAL_NAMED_COUNTRIES],
+          nonSouthAfrican: true,
+          icon: "Globe",
+        },
+      ),
+    ],
+  },
+  {
     id: "bullion",
     label: "Bullion",
     icon: "Gem",
@@ -370,6 +451,8 @@ function mergePredicates(a: TaxonomyPredicate, b: TaxonomyPredicate): TaxonomyPr
     maxYear: b.maxYear ?? a.maxYear,
     keywordsAny: b.keywordsAny ?? a.keywordsAny,
     nonSouthAfrican: b.nonSouthAfrican ?? a.nonSouthAfrican,
+    countries: b.countries ?? a.countries,
+    countriesExclude: b.countriesExclude ?? a.countriesExclude,
     subcategories: b.subcategories ?? a.subcategories,
   };
 }
@@ -408,7 +491,11 @@ export function buildTaxonomyListingWhere(predicate: TaxonomyPredicate): Prisma.
       ...(predicate.maxYear != null ? { lte: predicate.maxYear } : {}),
     };
   }
-  if (predicate.nonSouthAfrican) {
+  if (predicate.countries?.length) {
+    fieldWhere.country = { in: predicate.countries };
+  } else if (predicate.countriesExclude?.length) {
+    fieldWhere.country = { notIn: predicate.countriesExclude };
+  } else if (predicate.nonSouthAfrican) {
     fieldWhere.country = { not: "South Africa" };
   }
   if (predicate.keywordsAny?.length) {

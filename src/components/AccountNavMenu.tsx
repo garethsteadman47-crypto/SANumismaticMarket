@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import {
   HeartIcon,
+  InboxIcon,
   LogOutIcon,
   PackageIcon,
   SettingsIcon,
   ShoppingBagIcon,
   TagIcon,
   UserIcon,
+  WalletIcon,
 } from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
@@ -25,9 +27,11 @@ import {
 
 const ACCOUNT_LINKS = [
   { href: "/account", label: "My Profile", icon: UserIcon },
+  { href: "/account/inbox", label: "Inbox", icon: InboxIcon },
   { href: "/account/orders", label: "Orders", icon: PackageIcon },
   { href: "/account/purchases", label: "Purchases", icon: ShoppingBagIcon },
   { href: "/account/sales", label: "Sales", icon: TagIcon },
+  { href: "/account/payouts", label: "Payouts", icon: WalletIcon },
   { href: "/account/wishlist", label: "Wishlist", icon: HeartIcon },
   { href: "/account/settings", label: "Settings & Edit", icon: SettingsIcon },
 ] as const;

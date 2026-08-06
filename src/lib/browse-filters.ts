@@ -63,6 +63,14 @@ export const BUYING_FORMAT_LABELS: Record<BuyingFormat, string> = {
   AUCTION: "Live Auctions",
 };
 
+/** Coins vs banknotes item-type facet (applies across all taxonomy categories). */
+export const ITEM_TYPES = ["COINS", "BANKNOTES"] as const;
+export type ItemType = (typeof ITEM_TYPES)[number];
+export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
+  COINS: "Coins",
+  BANKNOTES: "Banknotes",
+};
+
 export const BROWSE_SORTS = ["newest", "price_asc", "price_desc", "ending_soon"] as const;
 export type BrowseSort = (typeof BROWSE_SORTS)[number];
 export const BROWSE_SORT_LABELS: Record<BrowseSort, string> = {
@@ -84,6 +92,10 @@ export interface BrowseFilterState {
   minPriceRands?: number;
   maxPriceRands?: number;
   formats: BuyingFormat[];
+  /** Coins vs Banknotes toggle — empty means both. */
+  itemType?: ItemType;
+  /** Restrict to verified dealers / Silver+ / Gold sellers. */
+  verifiedOnly?: boolean;
   /** Grid sort — defaults applied per tab in the browse UI. */
   sort?: BrowseSort;
   /** 1-based page index for server-side pagination. */
@@ -132,6 +144,13 @@ const CATEGORY_TO_TAXONOMY: Record<string, string> = {
   banknotes: "banknotes",
   sets: "sets",
   "sets-wildlife": "sets-wildlife",
+  international: "international",
+  "intl-great-britain": "intl-great-britain",
+  "intl-united-states": "intl-united-states",
+  "intl-germany-notgeld": "intl-germany-notgeld",
+  "intl-belarus": "intl-belarus",
+  "intl-cuba": "intl-cuba",
+  "intl-rest-of-world": "intl-rest-of-world",
 };
 
 function resolveTaxonomyParam(searchParams: RawSearchParams): string | undefined {
@@ -146,6 +165,11 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
   const sort = sortRaw && (BROWSE_SORTS as readonly string[]).includes(sortRaw) ? (sortRaw as BrowseSort) : undefined;
   const pageRaw = parseIntParam(firstString(searchParams.page));
   const page = pageRaw != null && pageRaw > 0 ? pageRaw : 1;
+  const itemTypeRaw = firstString(searchParams.itemType)?.toUpperCase();
+  const itemType =
+    itemTypeRaw && (ITEM_TYPES as readonly string[]).includes(itemTypeRaw) ? (itemTypeRaw as ItemType) : undefined;
+  const verifiedRaw = firstString(searchParams.verifiedOnly)?.toLowerCase();
+  const verifiedOnly = verifiedRaw === "true" || verifiedRaw === "1" || verifiedRaw === "yes";
   return {
     taxonomy: resolveTaxonomyParam(searchParams),
     q: q || undefined,
@@ -157,6 +181,8 @@ export function parseBrowseFilters(searchParams: RawSearchParams): BrowseFilterS
     minPriceRands: parseIntParam(firstString(searchParams.minPrice)),
     maxPriceRands: parseIntParam(firstString(searchParams.maxPrice)),
     formats: parseCsv(firstString(searchParams.format), BUYING_FORMATS),
+    itemType,
+    verifiedOnly: verifiedOnly || undefined,
     sort,
     page,
   };
@@ -185,6 +211,8 @@ export function serializeBrowseFilters(filters: BrowseFilterState): string {
   if (filters.minPriceRands != null) params.set("minPrice", String(filters.minPriceRands));
   if (filters.maxPriceRands != null) params.set("maxPrice", String(filters.maxPriceRands));
   if (filters.formats.length) params.set("format", filters.formats.join(","));
+  if (filters.itemType) params.set("itemType", filters.itemType);
+  if (filters.verifiedOnly) params.set("verifiedOnly", "true");
   if (filters.sort) params.set("sort", filters.sort);
   if (filters.page != null && filters.page > 1) params.set("page", String(filters.page));
   return params.toString();
@@ -231,7 +259,9 @@ export function isAnyFilterActive(filters: BrowseFilterState): boolean {
       filters.maxYear != null ||
       filters.minPriceRands != null ||
       filters.maxPriceRands != null ||
-      filters.formats.length
+      filters.formats.length ||
+      filters.itemType ||
+      filters.verifiedOnly
   );
 }
 
@@ -312,6 +342,25 @@ export function buildListingWhere(filters: BrowseFilterState): Prisma.ListingWhe
     and.push({ acceptsOffers: true });
   }
 
+  if (filters.itemType === "BANKNOTES") {
+    and.push({ category: "BANKNOTES" });
+  } else if (filters.itemType === "COINS") {
+    and.push({ category: { not: "BANKNOTES" } });
+  }
+
+  if (filters.verifiedOnly) {
+    and.push({
+      seller: {
+        is: {
+          OR: [
+            { isVerified: true },
+            { subscriptionTier: { in: ["SILVER", "GOLD"] } },
+          ],
+        },
+      },
+    });
+  }
+
   return { AND: and };
 }
 
@@ -358,6 +407,25 @@ export function buildAuctionWhere(filters: BrowseFilterState): Prisma.AuctionWhe
         { currentBidCents: range },
         { AND: [{ currentBidCents: null }, { startingPriceCents: range }] },
       ],
+    });
+  }
+
+  if (filters.itemType === "BANKNOTES") {
+    and.push({ category: "BANKNOTES" });
+  } else if (filters.itemType === "COINS") {
+    and.push({ category: { not: "BANKNOTES" } });
+  }
+
+  if (filters.verifiedOnly) {
+    and.push({
+      seller: {
+        is: {
+          OR: [
+            { isVerified: true },
+            { subscriptionTier: { in: ["SILVER", "GOLD"] } },
+          ],
+        },
+      },
     });
   }
 
@@ -417,6 +485,22 @@ export function getActiveFilterPills(filters: BrowseFilterState): FilterPill[] {
       id: `format-${format}`,
       label: BUYING_FORMAT_LABELS[format],
       hrefQuery: serializeBrowseFilters({ ...filters, formats: filters.formats.filter((f) => f !== format) }),
+    });
+  }
+
+  if (filters.itemType) {
+    pills.push({
+      id: "itemType",
+      label: ITEM_TYPE_LABELS[filters.itemType],
+      hrefQuery: serializeBrowseFilters({ ...filters, itemType: undefined }),
+    });
+  }
+
+  if (filters.verifiedOnly) {
+    pills.push({
+      id: "verifiedOnly",
+      label: "Verified Dealers Only",
+      hrefQuery: serializeBrowseFilters({ ...filters, verifiedOnly: undefined }),
     });
   }
 

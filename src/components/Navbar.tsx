@@ -4,6 +4,7 @@ import {
   CoinsIcon,
   GavelIcon,
   HeartIcon,
+  InboxIcon,
   MenuIcon,
   PackageIcon,
   PlusIcon,
@@ -13,6 +14,7 @@ import {
   TrendingUpIcon,
   CrownIcon,
   UserIcon,
+  WalletIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -40,9 +42,11 @@ const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 
 const ACCOUNT_MOBILE_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/account", label: "My Profile", icon: UserIcon },
+  { href: "/account/inbox", label: "Inbox", icon: InboxIcon },
   { href: "/account/orders", label: "Orders", icon: PackageIcon },
   { href: "/account/purchases", label: "Purchases", icon: ShoppingBagIcon },
   { href: "/account/sales", label: "Sales", icon: TagIcon },
+  { href: "/account/payouts", label: "Payouts", icon: WalletIcon },
   { href: "/account/wishlist", label: "Wishlist", icon: HeartIcon },
   { href: "/account/settings", label: "Settings & Edit", icon: SettingsIcon },
 ];

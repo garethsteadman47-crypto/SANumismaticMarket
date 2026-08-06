@@ -7,6 +7,7 @@ import {
   CircleDollarSignIcon,
   CoinsIcon,
   GemIcon,
+  GlobeIcon,
   LandmarkIcon,
   LayersIcon,
   PackageIcon,
@@ -28,6 +29,7 @@ const ICON_MAP: Record<TaxonomyIconName, LucideIcon> = {
   ScrollText: ScrollTextIcon,
   AlertTriangle: AlertTriangleIcon,
   Cat: CatIcon,
+  Globe: GlobeIcon,
 };
 
 export function TaxonomyIcon({
