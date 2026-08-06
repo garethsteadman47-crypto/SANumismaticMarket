@@ -39,8 +39,8 @@ describe("bulk-listings CSV", () => {
 
   it("parses a valid inventory row", () => {
     const csv = [
-      "title,description,category,listingType,metal,priceRands,coverImageUrl,obverseImageUrl",
-      `"Silver Rand","A nice coin for collectors.",COINS,RAW,SILVER,1200,https://example.com/c.jpg,https://example.com/o.jpg`,
+      "title,description,category,listingType,metal,priceRands,coverImageUrl,obverseImageUrl,gradingCompany",
+      `"Silver Rand","A nice coin for collectors.",COINS,RAW,SILVER,1200,https://example.com/c.jpg,https://example.com/o.jpg,RAW`,
     ].join("\n");
 
     const result = parseBulkListingsCsv(csv);
@@ -53,11 +53,11 @@ describe("bulk-listings CSV", () => {
 
   it("rejects graded rows missing certificate fields", () => {
     const csv = [
-      "title,priceRands,listingType,coverImageUrl",
-      `Graded Pond,5000,GRADED,https://example.com/c.jpg`,
+      "title,priceRands,listingType,gradingCompany,coverImageUrl",
+      `Graded Pond,5000,GRADED,NGC,https://example.com/c.jpg`,
     ].join("\n");
     const result = parseBulkListingsCsv(csv);
     expect(result.rows).toHaveLength(0);
-    expect(result.errors[0]?.message).toMatch(/certificateId/i);
+    expect(result.errors[0]?.message).toMatch(/Slab serial|certificate/i);
   });
 });
