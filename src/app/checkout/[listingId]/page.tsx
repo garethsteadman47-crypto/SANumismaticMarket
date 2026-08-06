@@ -6,7 +6,7 @@ import { ListingStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { calculateOrderFeeBreakdown } from "@/lib/utils/fees";
+import { calculateTransactionFeesFromCents, normalizeCommissionTier } from "@/lib/commissionCalculator";
 import { describePayoutVelocity } from "@/lib/utils/escrow";
 import { getAcceptedOfferForBuyer, getAcceptedOfferPriceCents } from "@/lib/offers";
 import { getAvailablePaymentProviders } from "@/lib/payments";
@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TrustBadge } from "@/components/TrustBadge";
 import { CheckoutForm } from "@/components/CheckoutForm";
+import { BuyerOrderSummary } from "@/components/checkout/BuyerOrderSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -47,10 +48,17 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
       <main className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Sign in to continue</h1>
         <p className="text-sm text-muted-foreground">You need an account to complete a purchase.</p>
-        <Button nativeButton={false} render={<Link href="/auth/signin" />}>Sign in</Button>
+        <Button nativeButton={false} render={<Link href="/auth/signin" />}>
+          Sign in
+        </Button>
       </main>
     );
   }
+
+  const buyer = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { subscriptionTier: true },
+  });
 
   const isOwnListing = session.user.id === listing.sellerId;
   const isSoldOut = listing.status !== ListingStatus.ACTIVE;
@@ -58,11 +66,16 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
   const acceptedOffer = await getAcceptedOfferForBuyer(listing.id, session.user.id);
   const effectivePriceCents = acceptedOffer ? getAcceptedOfferPriceCents(acceptedOffer) : listing.priceCents;
 
-  const feeBreakdown = calculateOrderFeeBreakdown({
-    itemPriceCents: effectivePriceCents,
-    subscriptionTier: listing.seller.subscriptionTier,
-    verificationFeeCents: listing.verification?.feeCents ?? 0,
+  const buyerTier = normalizeCommissionTier(buyer?.subscriptionTier ?? "STANDARD");
+  const fees = calculateTransactionFeesFromCents({
+    salePriceCents: effectivePriceCents,
+    buyerTier,
+    sellerTier: listing.seller.subscriptionTier,
+    certFeeCents: listing.verification?.feeCents ?? 0,
   });
+  const buyerTierLabel =
+    buyerTier === "STANDARD" ? "Standard" : buyerTier.charAt(0) + buyerTier.slice(1).toLowerCase();
+
   const payoutCopy = describePayoutVelocity(listing.seller.subscriptionTier);
   const availableProviders = getAvailablePaymentProviders(effectivePriceCents);
   const coverImage = listing.images[0];
@@ -100,7 +113,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
 
       <Card>
         <CardHeader>
-          <CardTitle>Order summary</CardTitle>
+          <CardTitle>Item</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -133,42 +146,53 @@ export default async function CheckoutPage({ params }: { params: Promise<{ listi
 
           <Accordion>
             <AccordionItem value="fees">
-              <AccordionTrigger className="text-sm">Platform fee breakdown (informational)</AccordionTrigger>
+              <AccordionTrigger className="text-sm">Seller-side fee snapshot (informational)</AccordionTrigger>
               <AccordionContent>
                 <dl className="flex flex-col gap-1.5 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Item price</dt>
-                    <dd>{formatZarCents(feeBreakdown.itemPriceCents)}</dd>
+                    <dt className="text-muted-foreground">
+                      Seller commission ({(fees.sellerCommissionRate * 100).toFixed(1)}%)
+                    </dt>
+                    <dd>-{formatZarCents(fees.sellerFeeCents)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Platform commission ({(feeBreakdown.commissionRateBps / 100).toFixed(1)}%)</dt>
-                    <dd>-{formatZarCents(feeBreakdown.commissionAmountCents)}</dd>
+                    <dt className="text-muted-foreground">Seller shipping share (50%)</dt>
+                    <dd>-{formatZarCents(fees.sellerShippingShareCents)}</dd>
                   </div>
-                  {feeBreakdown.verificationFeeCents > 0 && (
+                  {fees.certFeeCents > 0 && (
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Verification fee</dt>
-                      <dd>-{formatZarCents(feeBreakdown.verificationFeeCents)}</dd>
+                      <dd>-{formatZarCents(fees.certFeeCents)}</dd>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Output VAT (15%)</dt>
-                    <dd>-{formatZarCents(feeBreakdown.platformVatCents)}</dd>
-                  </div>
                   <Separator className="my-1" />
                   <div className="flex justify-between font-medium">
-                    <dt>Seller receives</dt>
-                    <dd>{formatZarCents(feeBreakdown.sellerPayoutCents)}</dd>
+                    <dt>Seller receives (before VAT)</dt>
+                    <dd>{formatZarCents(fees.netSellerPayoutCents)}</dd>
                   </div>
                 </dl>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+        </CardContent>
+      </Card>
 
-          <Separator />
+      <BuyerOrderSummary
+        itemization={{
+          itemPriceCents: fees.salePriceCents,
+          buyerTierLabel,
+          buyerCommissionRatePercent: fees.buyerCommissionRate * 100,
+          buyerFeeCents: fees.buyerFeeCents,
+          buyerShippingShareCents: fees.buyerShippingShareCents,
+          totalBuyerPayableCents: fees.totalBuyerPayableCents,
+        }}
+      />
 
+      <Card>
+        <CardContent className="flex flex-col gap-4 pt-6">
           <div className="flex items-center justify-between text-base font-semibold">
             <span>You pay</span>
-            <span>{formatZarCents(effectivePriceCents)}</span>
+            <span>{formatZarCents(fees.totalBuyerPayableCents)}</span>
           </div>
 
           <CheckoutForm

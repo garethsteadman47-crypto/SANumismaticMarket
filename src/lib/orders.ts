@@ -1,7 +1,8 @@
 import { Prisma, ListingStatus, OfferStatus, OrderStatus, PaymentProvider } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { calculateOrderFeeBreakdown } from "@/lib/utils/fees";
+import { calculateTransactionFeesFromCents } from "@/lib/commissionCalculator";
+import { calculateVat } from "@/lib/utils/fees";
 import { canTransitionToSettled, computeSettlementSchedule } from "@/lib/utils/escrow";
 import { buildOrderInvoices } from "@/lib/utils/invoicing";
 import { generateOtpCode, isOtpFormatValid, MAX_OTP_ATTEMPTS, OTP_EXPIRY_MS } from "@/lib/otp";
@@ -76,11 +77,23 @@ export async function createOrder({
     select: { feeCents: true },
   });
 
-  const feeBreakdown = calculateOrderFeeBreakdown({
-    itemPriceCents: effectivePriceCents,
-    subscriptionTier: listing.seller.subscriptionTier,
-    verificationFeeCents: verification?.feeCents ?? 0,
+  const buyer = await db.user.findUnique({
+    where: { id: buyerId },
+    select: { subscriptionTier: true },
   });
+  if (!buyer) {
+    return { success: false, error: "Buyer account not found." };
+  }
+
+  const fees = calculateTransactionFeesFromCents({
+    salePriceCents: effectivePriceCents,
+    buyerTier: buyer.subscriptionTier,
+    sellerTier: listing.seller.subscriptionTier,
+    certFeeCents: verification?.feeCents ?? 0,
+  });
+
+  // SARS output VAT remains on the platform's fee revenue (seller commission + cert).
+  const platformVatCents = calculateVat(fees.sellerFeeCents + fees.certFeeCents);
 
   const now = new Date();
   const otpCode = generateOtpCode();
@@ -105,13 +118,22 @@ export async function createOrder({
           buyerId,
           sellerId: listing.sellerId,
           status: OrderStatus.PAID_ESCROW,
-          itemPriceCents: feeBreakdown.itemPriceCents,
-          commissionRateBps: feeBreakdown.commissionRateBps,
-          commissionAmountCents: feeBreakdown.commissionAmountCents,
-          verificationFeeCents: feeBreakdown.verificationFeeCents,
-          adBoostFeeCents: feeBreakdown.adBoostFeeCents,
-          platformVatCents: feeBreakdown.platformVatCents,
-          sellerPayoutCents: feeBreakdown.sellerPayoutCents,
+          itemPriceCents: fees.salePriceCents,
+          // Legacy single-sided fields mirror the seller commission snapshot.
+          commissionRateBps: fees.sellerCommissionRateBps,
+          commissionAmountCents: fees.sellerFeeCents,
+          buyerCommissionRate: fees.buyerCommissionRate,
+          buyerCommissionZAR: fees.buyerFeeZAR,
+          sellerCommissionRate: fees.sellerCommissionRate,
+          sellerCommissionZAR: fees.sellerFeeZAR,
+          totalShippingCost: fees.totalShippingCost,
+          buyerShippingShare: fees.buyerShippingShare,
+          sellerShippingShare: fees.sellerShippingShare,
+          buyerPayableZAR: fees.totalBuyerPayable,
+          verificationFeeCents: fees.certFeeCents,
+          adBoostFeeCents: 0,
+          platformVatCents,
+          sellerPayoutCents: fees.netSellerPayoutCents - platformVatCents,
           paymentProvider,
           paidAt: now,
           courierName,

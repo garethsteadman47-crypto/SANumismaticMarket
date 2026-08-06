@@ -549,9 +549,19 @@ model Order {
 
   // Snapshot of the tiered commission schedule applied at sale time
   // (see Step 3 fee-calculation utility). Stored in basis points, e.g.
-  // 750 = 7.5%.
+  // 750 = 7.5%. Legacy single-sided fields mirror the *seller* commission.
   commissionRateBps     Int
   commissionAmountCents Int
+
+  // Dual-sided commission + 50/50 shipping (ZAR floats for the product fee engine).
+  buyerCommissionRate   Float @default(0)
+  buyerCommissionZAR    Float @default(0)
+  sellerCommissionRate  Float @default(0)
+  sellerCommissionZAR   Float @default(0)
+  totalShippingCost     Float @default(0)
+  buyerShippingShare    Float @default(0)
+  sellerShippingShare   Float @default(0)
+  buyerPayableZAR       Float?
 
   verificationFeeCents Int @default(0)
   adBoostFeeCents      Int @default(0)

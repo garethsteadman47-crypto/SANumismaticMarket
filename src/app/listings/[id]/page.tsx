@@ -8,6 +8,7 @@ import { getHernsCatalogMetrics, getMintedValuationHistory } from "@/lib/api/val
 import { getProviderLabel } from "@/lib/api/verification";
 import { calculateMeltValueCents, calculatePremiumPercent, getSpotPriceQuote, isSpotTrackedMetal } from "@/lib/api/spot-prices";
 import { getShippingCarrier } from "@/lib/shipping";
+import { calculateTransactionFeesFromCents, normalizeCommissionTier } from "@/lib/commissionCalculator";
 import { formatZarCents } from "@/lib/utils/currency";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import { getAcceptedOfferForBuyer, getAcceptedOfferPriceCents, getOpenOfferForBuyer } from "@/lib/offers";
@@ -26,6 +27,7 @@ import { MakeOfferModal } from "@/components/offers/MakeOfferModal";
 import { OfferStatusAlert } from "@/components/offers/OfferStatusAlert";
 import { AddToCartButton } from "@/components/cart/AddToCartButton";
 import { ListingGrid } from "@/components/ListingGrid";
+import { BuyerOrderSummary } from "@/components/checkout/BuyerOrderSummary";
 import { getSimilarListings } from "@/lib/similar-listings";
 import { getTaxonomyNodeLabel } from "@/lib/numismatic-taxonomy";
 
@@ -73,7 +75,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     session?.user?.id != null
       ? await db.user.findUnique({
           where: { id: session.user.id },
-          select: { isCoinClubMember: true },
+          select: { isCoinClubMember: true, subscriptionTier: true },
         })
       : null;
   const hernsUnlocked = viewer?.isCoinClubMember === true;
@@ -85,6 +87,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const [openOffer, acceptedOffer] = session?.user
     ? await Promise.all([getOpenOfferForBuyer(listing.id, session.user.id), getAcceptedOfferForBuyer(listing.id, session.user.id)])
     : [null, null];
+
+  const displayPriceCents = acceptedOffer ? getAcceptedOfferPriceCents(acceptedOffer) : listing.priceCents;
+  const buyerTier = normalizeCommissionTier(viewer?.subscriptionTier ?? "STANDARD");
+  const feePreview = calculateTransactionFeesFromCents({
+    salePriceCents: displayPriceCents,
+    buyerTier,
+    sellerTier: listing.seller.subscriptionTier,
+    certFeeCents: listing.verification?.feeCents ?? 0,
+  });
+  const buyerTierLabel =
+    buyerTier === "STANDARD" ? "Standard" : buyerTier.charAt(0) + buyerTier.slice(1).toLowerCase();
 
   const similarItems = await getSimilarListings({
     listingId: listing.id,
@@ -140,7 +153,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <span className="text-sm text-muted-foreground">Sold by {listing.seller.name ?? "a private seller"}</span>
           </div>
 
-          <p className="text-3xl font-bold">{formatZarCents(listing.priceCents)}</p>
+          <p className="text-3xl font-bold">{formatZarCents(displayPriceCents)}</p>
 
           {acceptedOffer && (
             <Alert>
@@ -160,6 +173,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               counterAmountCents={openOffer.counterAmountCents}
             />
           )}
+
+          <BuyerOrderSummary
+            itemization={{
+              itemPriceCents: feePreview.salePriceCents,
+              buyerTierLabel,
+              buyerCommissionRatePercent: feePreview.buyerCommissionRate * 100,
+              buyerFeeCents: feePreview.buyerFeeCents,
+              buyerShippingShareCents: feePreview.buyerShippingShareCents,
+              totalBuyerPayableCents: feePreview.totalBuyerPayableCents,
+            }}
+          />
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
