@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { CategoryTree } from "@/components/browse/CategoryTree";
-import { MarketToolsWidget } from "@/components/MarketToolsWidget";
 import {
   BUYING_FORMATS,
   BUYING_FORMAT_LABELS,
@@ -151,10 +150,6 @@ export function FilterSidebar({ basePath }: { basePath: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <MarketToolsWidget />
-
-      <Separator />
-
       <CategoryTree basePath={basePath} />
 
       <Separator />

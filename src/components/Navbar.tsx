@@ -1,13 +1,17 @@
 import Link from "next/link";
 import {
-  BookmarkIcon,
   CoinsIcon,
   GavelIcon,
-  InfoIcon,
+  HeartIcon,
   MenuIcon,
+  PackageIcon,
   PlusIcon,
+  SettingsIcon,
+  ShoppingBagIcon,
+  TagIcon,
   TrendingUpIcon,
   CrownIcon,
+  UserIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -31,8 +35,15 @@ const MAIN_NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/auctions", label: "Live Auctions", icon: GavelIcon },
   { href: "/spot-prices", label: "Spot Prices", icon: TrendingUpIcon },
   { href: "/membership", label: "Membership", icon: CrownIcon },
-  { href: "/about", label: "About Us", icon: InfoIcon },
-  { href: "/wishlist", label: "Wishlist", icon: BookmarkIcon },
+];
+
+const ACCOUNT_MOBILE_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/account", label: "My Profile", icon: UserIcon },
+  { href: "/account/orders", label: "Orders", icon: PackageIcon },
+  { href: "/account/purchases", label: "Purchases", icon: ShoppingBagIcon },
+  { href: "/account/sales", label: "Sales", icon: TagIcon },
+  { href: "/account/wishlist", label: "Wishlist", icon: HeartIcon },
+  { href: "/account/settings", label: "Settings & Edit", icon: SettingsIcon },
 ];
 
 function NavLinks() {
@@ -110,26 +121,33 @@ export async function Navbar() {
                 </div>
               </div>
               {session?.user && (
-                <>
-                  <Link
-                    href="/account"
-                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    My Account
-                  </Link>
-                  <Link
-                    href="/dashboard/offers"
-                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <GavelIcon className="size-4" />
-                    My Offers
-                    {pendingOfferCount > 0 && (
-                      <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
-                        {pendingOfferCount}
-                      </span>
-                    )}
-                  </Link>
-                </>
+                <div className="border-t pt-3">
+                  <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">My Account</p>
+                  <div className="flex flex-col gap-3">
+                    {ACCOUNT_MOBILE_LINKS.map(({ href, label, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Icon className="size-3.5 shrink-0" aria-hidden />
+                        {label}
+                      </Link>
+                    ))}
+                    <Link
+                      href="/dashboard/offers"
+                      className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <GavelIcon className="size-3.5 shrink-0" aria-hidden />
+                      My Offers
+                      {pendingOfferCount > 0 && (
+                        <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white">
+                          {pendingOfferCount}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                </div>
               )}
             </nav>
           </SheetContent>

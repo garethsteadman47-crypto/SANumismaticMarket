@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { db } from "@/lib/db";
 import { getAuctionPhase } from "@/lib/auctions";
 import { buildAuctionWhere, buildListingWhere, getActiveFilterPills, parseBrowseFilters, serializeBrowseFilters } from "@/lib/browse-filters";
@@ -7,6 +9,7 @@ import { MobileFilterDrawer } from "@/components/browse/MobileFilterDrawer";
 import { ActiveFilterPills } from "@/components/browse/ActiveFilterPills";
 import { BrowseGrid } from "@/components/browse/BrowseGrid";
 import { BrowseEmptyState } from "@/components/browse/BrowseEmptyState";
+import { BrowseSearchTabs } from "@/components/browse/BrowseSearchTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +36,13 @@ export default async function BuyCoinsPage({
   const sp = await searchParams;
   const filters = parseBrowseFilters(sp);
 
-  const listingWhere = buildListingWhere(filters);
-  const auctionWhere = buildAuctionWhere(filters);
+  // Default the browse page to Buy Now mode when no format facet is set,
+  // matching the Buy Now / Auction tabs above the grid.
+  const effectiveFilters =
+    filters.formats.length === 0 ? { ...filters, formats: ["BUY_NOW" as const] } : filters;
+
+  const listingWhere = buildListingWhere(effectiveFilters);
+  const auctionWhere = buildAuctionWhere(effectiveFilters);
 
   const [listings, auctions] = await Promise.all([
     listingWhere
@@ -57,8 +65,12 @@ export default async function BuyCoinsPage({
   const auctionItems = auctions.map((auction) => toBrowseItemFromAuction(auction, getAuctionPhase(auction)));
   const items = mergeBrowseItems(listingItems, auctionItems);
 
-  const pills = getActiveFilterPills(filters);
-  const currentQueryString = serializeBrowseFilters(filters);
+  // Mode is controlled by the Buy Now / Auction tabs — omit those from filter pills.
+  const pills = getActiveFilterPills({
+    ...effectiveFilters,
+    formats: effectiveFilters.formats.filter((format) => format === "OFFERS"),
+  });
+  const currentQueryString = serializeBrowseFilters(effectiveFilters);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6">
@@ -69,6 +81,14 @@ export default async function BuyCoinsPage({
           Krugerrands.
         </p>
       </div>
+
+      <Suspense
+        fallback={
+          <div className="h-28 animate-pulse rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/40" />
+        }
+      >
+        <BrowseSearchTabs basePath={BASE_PATH} />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:block">

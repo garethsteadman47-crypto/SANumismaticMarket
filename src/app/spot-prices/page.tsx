@@ -1,16 +1,18 @@
-import { TrendingUpIcon } from "lucide-react";
+import { Suspense } from "react";
+import { CalculatorIcon, TrendingUpIcon } from "lucide-react";
 
 import { getSpotPriceQuote, TROY_OUNCE_GRAMS } from "@/lib/api/spot-prices";
 import { formatZarCents } from "@/lib/utils/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SpotPriceWidget } from "@/components/spot/SpotPriceWidget";
+import { MarketToolsWidget } from "@/components/MarketToolsWidget";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Live Spot Prices — MintMark",
-  description: "Live gold and silver spot prices in South African Rand, per gram and per troy ounce.",
+  description: "Live gold and silver spot prices in South African Rand, plus a melt value calculator for scrap and bullion.",
 };
 
 export default function SpotPricesPage() {
@@ -18,7 +20,7 @@ export default function SpotPricesPage() {
   const silver = getSpotPriceQuote("SILVER");
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-6">
       <div className="flex flex-col gap-1">
         <h1 className="flex items-center gap-2 text-3xl font-semibold">
           <TrendingUpIcon className="size-7 text-amber-600" aria-hidden />
@@ -66,6 +68,22 @@ export default function SpotPricesPage() {
           <SpotPriceWidget quote={silver} metalLabel="Silver (XAG/ZAR)" />
         </TabsContent>
       </Tabs>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="flex items-center gap-2 text-xl font-semibold">
+            <CalculatorIcon className="size-5 text-amber-600" aria-hidden />
+            Melt value calculator
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Estimate scrap and purity melt values alongside live market rates — ideal for Union silver, sterling,
+            and Krugerrand-weight gold.
+          </p>
+        </div>
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-900" />}>
+          <MarketToolsWidget variant="full" />
+        </Suspense>
+      </section>
 
       <p className="text-xs text-muted-foreground">
         1 troy oz = {TROY_OUNCE_GRAMS.toFixed(4)}g. Prices shown are a mock live feed for demo purposes — not

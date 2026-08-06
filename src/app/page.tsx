@@ -72,7 +72,7 @@ export default async function HomePage() {
 
       <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 sm:grid-cols-2">
         <Link
-          href="/about"
+          href="/info/about"
           className="flex items-start gap-3 border border-border/80 bg-slate-50 p-5 transition-colors hover:border-amber-500/30 dark:bg-slate-950"
         >
           <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden />

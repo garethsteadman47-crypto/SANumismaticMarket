@@ -1,7 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOutIcon, SettingsIcon, UserIcon, UserRoundIcon } from "lucide-react";
+import {
+  HeartIcon,
+  LogOutIcon,
+  PackageIcon,
+  SettingsIcon,
+  ShoppingBagIcon,
+  TagIcon,
+  UserIcon,
+} from "lucide-react";
 
 import { signOutAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -15,7 +23,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/** Far-right account menu: profile, settings, sign out. */
+const ACCOUNT_LINKS = [
+  { href: "/account", label: "My Profile", icon: UserIcon },
+  { href: "/account/orders", label: "Orders", icon: PackageIcon },
+  { href: "/account/purchases", label: "Purchases", icon: ShoppingBagIcon },
+  { href: "/account/sales", label: "Sales", icon: TagIcon },
+  { href: "/account/wishlist", label: "Wishlist", icon: HeartIcon },
+  { href: "/account/settings", label: "Settings & Edit", icon: SettingsIcon },
+] as const;
+
+/** Far-right account menu: profile tracking links + sign out. */
 export function AccountNavMenu({ displayName }: { displayName?: string | null }) {
   const router = useRouter();
 
@@ -40,20 +57,18 @@ export function AccountNavMenu({ displayName }: { displayName?: string | null })
       >
         <UserIcon className="size-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48">
+      <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
             {displayName?.trim() || "My Account"}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/account")}>
-            <UserRoundIcon />
-            My Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/account?edit=1")}>
-            <SettingsIcon />
-            Edit Settings
-          </DropdownMenuItem>
+          {ACCOUNT_LINKS.map(({ href, label, icon: Icon }) => (
+            <DropdownMenuItem key={href} onClick={() => router.push(href)}>
+              <Icon />
+              {label}
+            </DropdownMenuItem>
+          ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => void handleSignOut()}>
             <LogOutIcon />
