@@ -8,6 +8,7 @@ import { LISTING_CARD_SELECT, toListingCardData } from "@/lib/listing-card";
 import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
 import { HomePromoBanner } from "@/components/home/HomePromoBanner";
 import { HomeHero } from "@/components/home/HomeHero";
+import { HeroCertSearch } from "@/components/HeroCertSearch";
 import { AuctionTicker } from "@/components/home/AuctionTicker";
 import { CategoryQuickNav } from "@/components/home/CategoryQuickNav";
 import { FeaturedAuctionsSection } from "@/components/home/FeaturedAuctionsSection";
@@ -60,6 +61,7 @@ export default async function HomePage() {
     <main className="flex w-full flex-col gap-12 pb-16">
       <HomePromoBanner />
       <HomeHero />
+      <HeroCertSearch />
       <AuctionTicker auctions={featuredAuctions} />
       <CategoryQuickNav />
       <FeaturedAuctionsSection auctions={featuredAuctions} />
