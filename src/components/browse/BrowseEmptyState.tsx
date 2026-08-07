@@ -35,7 +35,7 @@ export function BrowseEmptyState({ basePath, queryString }: { basePath: string; 
         toast.error(result.error);
         return;
       }
-      toast.success("Search saved — we'll add notifications here once new listings can alert you.");
+      toast.success("Search saved — we'll alert you when matching lots appear.");
       setOpen(false);
       setLabel("");
     });
@@ -63,10 +63,10 @@ export function BrowseEmptyState({ basePath, queryString }: { basePath: string; 
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Save this search</DialogTitle>
+              <DialogTitle>Save search &amp; key-date alert</DialogTitle>
               <DialogDescription>
-                We&apos;ll keep this exact filter combination on your account so you can revisit it quickly. (New-match
-                notifications are coming soon — this saves the search itself for now.)
+                We&apos;ll keep these filters on your account and watch for new matching Buy Now listings via the
+                key-date alert engine.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">

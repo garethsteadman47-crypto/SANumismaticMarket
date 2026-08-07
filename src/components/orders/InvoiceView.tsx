@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatZarCents } from "@/lib/utils/currency";
 import { PrintButton } from "@/components/orders/PrintButton";
+import { InvoiceDownloadButton } from "@/components/orders/InvoiceDownloadButton";
 import { BUYER_PROTECTION_LABEL } from "@/lib/constants";
 
 export interface InvoiceViewData {
@@ -28,10 +29,12 @@ export function InvoiceView({
   invoice,
   fromLabel,
   toLabel,
+  orderId,
 }: {
   invoice: InvoiceViewData;
   fromLabel: string;
   toLabel: string;
+  orderId?: string;
 }) {
   return (
     <Card className="print:shadow-none print:ring-0">
@@ -42,7 +45,16 @@ export function InvoiceView({
             {invoice.invoiceNumber} · {invoice.issuedAt.toLocaleDateString("en-ZA")}
           </p>
         </div>
-        <PrintButton />
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          {orderId && (
+            <InvoiceDownloadButton
+              orderId={orderId}
+              type={invoice.type}
+              label="Download PDF"
+            />
+          )}
+          <PrintButton />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4 text-sm">

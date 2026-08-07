@@ -7,6 +7,7 @@ import { OfferStatus, SubscriptionTier } from "@prisma/client";
 
 import { AccountSubpageShell } from "@/components/account/AccountSubpageShell";
 import { OfferRespondControls } from "@/components/offers/OfferRespondControls";
+import { InvoiceDownloadButton } from "@/components/orders/InvoiceDownloadButton";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +40,7 @@ export default async function AccountSalesPage() {
   }
 
   const userId = session.user.id;
-  const [user, offers, listings, auctions] = await Promise.all([
+  const [user, offers, listings, auctions, soldOrders] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
       select: { subscriptionTier: true, isSaandDealer: true },
@@ -65,6 +66,15 @@ export default async function AccountSalesPage() {
       include: {
         currentBidder: { select: { name: true } },
         _count: { select: { bids: true } },
+      },
+    }),
+    db.order.findMany({
+      where: { sellerId: userId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        listing: { select: { id: true, title: true } },
+        invoices: { select: { id: true, type: true } },
       },
     }),
   ]);
@@ -219,6 +229,46 @@ export default async function AccountSalesPage() {
                 </div>
                 <Badge variant="outline">{listing.status}</Badge>
               </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-lg font-semibold">Completed sales &amp; invoices</h2>
+        {soldOrders.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No completed sales yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {soldOrders.map((order) => (
+              <div
+                key={order.id}
+                className="flex flex-col gap-2 rounded-lg border px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{order.listing?.title ?? "Sale"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatZarCents(order.itemPriceCents)} · {order.status}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{order.status}</Badge>
+                  {order.invoices.length > 0 && (
+                    <>
+                      <InvoiceDownloadButton
+                        orderId={order.id}
+                        type="PLATFORM_TO_SELLER"
+                        label="Platform invoice"
+                      />
+                      <InvoiceDownloadButton
+                        orderId={order.id}
+                        type="SELLER_TO_BUYER"
+                        label="Buyer invoice"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         )}

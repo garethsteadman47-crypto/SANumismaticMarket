@@ -7,6 +7,7 @@ import { OfferStatus } from "@prisma/client";
 
 import { AccountSubpageShell } from "@/components/account/AccountSubpageShell";
 import { OfferStatusAlert } from "@/components/offers/OfferStatusAlert";
+import { InvoiceDownloadButton } from "@/components/orders/InvoiceDownloadButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
@@ -45,6 +46,7 @@ export default async function AccountPurchasesPage() {
       take: 20,
       include: {
         listing: { select: { id: true, title: true, images: true } },
+        invoices: { select: { id: true, type: true } },
       },
     }),
     db.auction.findMany({
@@ -229,19 +231,29 @@ export default async function AccountPurchasesPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {orders.map((order) => (
-              <Link
+              <div
                 key={order.id}
-                href={`/account/orders`}
-                className="flex items-center justify-between gap-3 rounded-lg border px-3 py-3 text-sm hover:border-amber-500/50"
+                className="flex flex-col gap-2 rounded-lg border px-3 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{order.listing?.title ?? "Order"}</p>
+                  <Link href={`/account/orders`} className="font-medium hover:underline">
+                    {order.listing?.title ?? "Order"}
+                  </Link>
                   <p className="text-xs text-muted-foreground">
                     {formatZarCents(order.itemPriceCents)} · {order.status}
                   </p>
                 </div>
-                <Badge variant="outline">{order.status}</Badge>
-              </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{order.status}</Badge>
+                  {order.invoices.length > 0 && (
+                    <InvoiceDownloadButton
+                      orderId={order.id}
+                      type="SELLER_TO_BUYER"
+                      label="Invoice PDF"
+                    />
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         )}

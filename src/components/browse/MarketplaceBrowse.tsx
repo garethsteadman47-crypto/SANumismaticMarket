@@ -17,6 +17,7 @@ import { ListingGrid } from "@/components/ListingGrid";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileFilterDrawer } from "@/components/browse/MobileFilterDrawer";
 import { ActiveFilterPills } from "@/components/browse/ActiveFilterPills";
+import { SavedSearchButton } from "@/components/SavedSearchButton";
 import type { ListingCardData } from "@/components/ListingCard";
 import {
   filterListingCardsByQuery,
@@ -238,22 +239,31 @@ export function MarketplaceBrowse({
                 </button>
               </div>
 
-              <Select value={sortOrder} onValueChange={handleSortChange}>
-                <SelectTrigger
-                  aria-label="Sort by"
-                  className="h-11 w-full border-slate-300 bg-background sm:w-[14rem] dark:border-slate-700"
-                >
-                  <ArrowUpDownIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      Sort by: {BROWSE_SORT_LABELS[option]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Select value={sortOrder} onValueChange={handleSortChange}>
+                  <SelectTrigger
+                    aria-label="Sort by"
+                    className="h-11 w-full border-slate-300 bg-background sm:w-[14rem] dark:border-slate-700"
+                  >
+                    <ArrowUpDownIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        Sort by: {BROWSE_SORT_LABELS[option]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SavedSearchButton
+                  filters={{
+                    ...filters,
+                    formats: tabFormats(activeTab),
+                    sort: sortOrder,
+                  }}
+                />
+              </div>
             </div>
           </div>
 

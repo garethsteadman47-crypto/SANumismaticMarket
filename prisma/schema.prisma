@@ -806,21 +806,38 @@ model PhoneVerification {
 // Saved searches ("notify me" stub for the /listings empty state)
 // ─────────────────────────────────────────────────────────────────────────
 
-// Persists a buyer's exact filter combination from `/listings` so they can
-// revisit it later. No notification/alerting job is wired up yet (that
-// would need a background worker to re-run `queryString` periodically and
-// email/SMS on new matches) — this only covers the "save" half honestly.
+// Persists a buyer's filter combination from `/listings` and powers the
+// Key Date / new-match alert engine (`/api/v1/cron/saved-search-alerts`).
 model SavedSearch {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @db.ObjectId
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  label       String
-  queryString String
+  /// Display name (e.g. "1931 Union Tickey under R25k").
+  queryName String?
+  /// Legacy label kept in sync with queryName for older callers.
+  label     String
+
+  category String?
+  era      String?
+  grade    String?
+  keyword  String?
+  /// Price bounds in ZAR rands (not cents) for collector-facing filters.
+  minPrice Float?
+  maxPrice Float?
+
+  /// Serialized browse query string for one-click restore (`?taxonomy=…&q=…`).
+  queryString String @default("")
+
+  /// Last time the alert engine notified this search of a new match.
+  lastAlertedAt DateTime?
+  alertEnabled  Boolean   @default(true)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([alertEnabled, updatedAt])
 }
 
 // Buyer's personal bookmark list — toggled from listing / browse cards.

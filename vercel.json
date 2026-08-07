@@ -3,6 +3,10 @@
     {
       "path": "/api/v1/cron/settle",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/v1/cron/saved-search-alerts",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

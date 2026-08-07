@@ -252,6 +252,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <InvoiceView
                   key={invoice.id}
                   invoice={invoice}
+                  orderId={order.id}
                   fromLabel={
                     invoice.issuedById === order.sellerId
                       ? order.seller.name ?? order.seller.email
